@@ -1,0 +1,11 @@
+# Go
+*.exe
+*.test
+*~
+vendor/
+
+# Node / Angular
+node_modules/
+dist/
+*.log
+.angular/
