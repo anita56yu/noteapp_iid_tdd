@@ -18,7 +18,7 @@ A text content ends with a new line '\n'.
 Pictures cannot be edited.
 A note should have an unique ID. 
 A note can be tagged with any number of keywords. 
-A note can be found through keyword filtering.
+A note can be found through keyword filtering. 
 A note can be shared and co-edited among multiple users. Two users opening a shared note should see the same contents.
 A user should see all the notes they own.
 An owner can read, write, share, and delete a note.
@@ -34,3 +34,15 @@ A user can have multiple devices. These devices can access all the notes and key
 User facing APIs should guard against illegal parameters
 
 ## Features
+- [ ] **F1:** Note Lifecycle Management. Users can create, read, update, and delete their own notes.
+    - [x] **T1.1:** Create a `Note` model with attributes like ID, title, and content.
+    - [ ] **T1.2:** Implement an API endpoint to create a new note.
+    - [ ] **T1.3:** Implement an API endpoint to retrieve a note by its ID.
+    - [ ] **T1.4:** Implement an API endpoint to update an existing note.
+    - [ ] **T1.5:** Implement an API endpoint to delete a note by its ID.
+    - [ ] **T1.6:** Write unit tests for the Note model and API endpoints.
+- [ ] **F2:** Note Content Management. A note is composed of text and pictures. Users can add, edit, and delete note contents.
+- [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
+- [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
+- [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
+- [ ] **F6:** API Security. APIs validate input to prevent errors and misuse.
