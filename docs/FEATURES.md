@@ -36,7 +36,7 @@ User facing APIs should guard against illegal parameters
 ## Features
 - [ ] **F1:** Note Lifecycle Management. Users can create, read, update, and delete their own notes.
     - [x] **T1.1:** Create a `Note` model with attributes like ID, title, and content.
-    - [ ] **T1.2:** Create a `NoteUsecase` with a `CreateNote` method that handles the business logic for creating a new note.
+    - [x] **T1.2:** Create a `NoteUsecase` with a `CreateNote` method that handles the business logic for creating a new note.
     - [ ] **T1.3:** Implement the `POST /notes` API endpoint in the `api` layer, which will call the `CreateNote` usecase.
     - [ ] **T1.4:** Add a `GetNoteByID` method to the `NoteUsecase`.
     - [ ] **T1.5:** Implement the `GET /notes/{id}` API endpoint.
