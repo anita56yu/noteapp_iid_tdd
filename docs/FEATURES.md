@@ -38,12 +38,13 @@ User facing APIs should guard against illegal parameters
     - [x] **T1.1:** Create a `Note` model with attributes like ID, title, and content.
     - [x] **T1.2:** Create a `NoteUsecase` with a `CreateNote` method that handles the business logic for creating a new note.
     - [x] **T1.3:** Implement the `POST /notes` API endpoint in the `api` layer, which will call the `CreateNote` usecase.
-    - [ ] **T1.4:** Add a `GetNoteByID` method to the `NoteUsecase`.
-    - [ ] **T1.5:** Implement the `GET /notes/{id}` API endpoint.
-    - [ ] **T1.6:** Add an `UpdateNote` method to the `NoteUsecase`.
-    - [ ] **T1.7:** Implement the `PUT /notes/{id}` API endpoint.
-    - [ ] **T1.8:** Add a `DeleteNote` method to the `NoteUsecase`.
-    - [ ] **T1.9:** Implement the `DELETE /notes/{id}` API endpoint.
+    - [x] **T1.4:** Update `main.go` to initialize all dependencies and start the HTTP server.
+    - [ ] **T1.5:** Add a `GetNoteByID` method to the `NoteUsecase`.
+    - [ ] **T1.6:** Implement the `GET /notes/{id}` API endpoint.
+    - [ ] **T1.7:** Add an `UpdateNote` method to the `NoteUsecase`.
+    - [ ] **T1.8:** Implement the `PUT /notes/{id}` API endpoint.
+    - [ ] **T1.9:** Add a `DeleteNote` method to the `NoteUsecase`.
+    - [ ] **T1.10:** Implement the `DELETE /notes/{id}` API endpoint.
 - [ ] **F2:** Note Content Management. A note is composed of text and pictures. Users can add, edit, and delete note contents.
 - [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
