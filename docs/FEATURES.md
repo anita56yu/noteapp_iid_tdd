@@ -51,4 +51,5 @@ User facing APIs should guard against illegal parameters
 - [ ] **F6:** API Security. APIs validate input to prevent errors and misuse.
 - [ ] **F7:** Decouple Data Persistence with a Repository Layer.
     - [x] **T7.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
-    - [ ] **T7.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
+    - [x] **T7.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
+    - [ ] **T7.3:** Make the `InMemoryNoteRepository` thread-safe.
