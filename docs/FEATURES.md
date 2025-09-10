@@ -39,8 +39,8 @@ User facing APIs should guard against illegal parameters
     - [x] **T1.2:** Create a `NoteUsecase` with a `CreateNote` method that handles the business logic for creating a new note.
     - [x] **T1.3:** Implement the `POST /notes` API endpoint in the `api` layer, which will call the `CreateNote` usecase.
     - [x] **T1.4:** Update `main.go` to initialize all dependencies and start the HTTP server.
-    - [ ] **T1.5:** Add a `GetNoteByID` method to the `NoteUsecase`.
-    - [ ] **T1.6:** Implement the `GET /notes/{id}` API endpoint.
+    - [x] **T1.5:** Add a `GetNoteByID` method to the `NoteUsecase` that returns a `NoteDTO`, and define the `NoteDTO` in the `usecase` package.
+    - [ ] **T1.6:** Implement the `GET /notes/{id}` API endpoint, which will receive the `NoteDTO`.
     - [ ] **T1.7:** Add an `UpdateNote` method to the `NoteUsecase`.
     - [ ] **T1.8:** Implement the `PUT /notes/{id}` API endpoint.
     - [ ] **T1.9:** Add a `DeleteNote` method to the `NoteUsecase`.

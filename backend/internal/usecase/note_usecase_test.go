@@ -113,3 +113,64 @@ func TestNoteUsecase_CreateNote_RepositoryError(t *testing.T) {
 		t.Errorf("Expected error message '%s', but got '%s'", expectedErr, err.Error())
 	}
 }
+
+func TestNoteUsecase_GetNoteByID(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	id, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+
+	// Act
+	noteDTO, err := noteUsecase.GetNoteByID(id)
+	if err != nil {
+		t.Fatalf("GetNoteByID() returned an unexpected error: %v", err)
+	}
+
+	// Assert
+	if noteDTO == nil {
+		t.Fatal("Expected a note DTO, but got nil")
+	}
+	if noteDTO.ID != id {
+		t.Errorf("Expected note ID to be '%s', got '%s'", id, noteDTO.ID)
+	}
+	if noteDTO.Title != "Test Title" {
+		t.Errorf("Expected note title to be '%s', got '%s'", "Test Title", noteDTO.Title)
+	}
+}
+
+func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+
+	// Act
+	_, err := noteUsecase.GetNoteByID("non-existent-id")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent note, but got nil")
+	}
+	if !errors.Is(err, repository.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", repository.ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+
+	// Act
+	_, err := noteUsecase.GetNoteByID("") // Empty ID
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for an invalid ID, but got nil")
+	}
+	if !errors.Is(err, ErrInvalidID) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
+	}
+}
