@@ -46,8 +46,7 @@ func TestNewNote_EmptyTitle(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for empty title, but got nil")
 	}
-	expectedErr := "title cannot be empty"
-	if err.Error() != expectedErr {
-		t.Errorf("Expected error message '%s', but got '%s'", expectedErr, err.Error())
+	if err != ErrEmptyTitle {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyTitle, err)
 	}
 }

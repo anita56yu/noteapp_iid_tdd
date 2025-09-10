@@ -5,6 +5,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// ErrEmptyTitle is returned when a note is created with an empty title.
+var ErrEmptyTitle = errors.New("title cannot be empty")
+
 // Note represents a note in the application.
 type Note struct {
 	ID      string
@@ -16,7 +19,7 @@ type Note struct {
 // If id is empty, a new UUID will be generated.
 func NewNote(id, title, content string) (*Note, error) {
 	if title == "" {
-		return nil, errors.New("title cannot be empty")
+		return nil, ErrEmptyTitle
 	}
 
 	if id == "" {

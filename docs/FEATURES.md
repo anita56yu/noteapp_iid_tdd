@@ -45,6 +45,7 @@ User facing APIs should guard against illegal parameters
     - [ ] **T1.8:** Implement the `PUT /notes/{id}` API endpoint.
     - [ ] **T1.9:** Add a `DeleteNote` method to the `NoteUsecase`.
     - [ ] **T1.10:** Implement the `DELETE /notes/{id}` API endpoint.
+    - [ ] **T1.11:** Refactor `NoteUsecase` to translate repository-specific errors into use case-level errors.
 - [ ] **F2:** Note Content Management. A note is composed of text and pictures. Users can add, edit, and delete note contents.
 - [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.

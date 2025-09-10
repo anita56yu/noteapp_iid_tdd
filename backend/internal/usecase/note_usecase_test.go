@@ -86,17 +86,16 @@ func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for empty title, but got nil")
 	}
-	expectedErr := "title cannot be empty"
-	if err.Error() != expectedErr {
-		t.Errorf("Expected error message '%s', but got '%s'", expectedErr, err.Error())
+	if !errors.Is(err, ErrEmptyTitle) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyTitle, err)
 	}
 }
 
-func TestNoteUsecase_CreateNote_RepositoryError(t *testing.T) {
+func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 	// Arrange
 	mockRepo := &mockNoteRepository{
 		SaveFunc: func(note *domain.Note) error {
-			return errors.New("database error")
+			return repository.ErrNilNote
 		},
 	}
 	noteUsecase := NewNoteUsecase(mockRepo)
@@ -108,9 +107,9 @@ func TestNoteUsecase_CreateNote_RepositoryError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a repository error, but got nil")
 	}
-	expectedErr := "database error"
-	if err.Error() != expectedErr {
-		t.Errorf("Expected error message '%s', but got '%s'", expectedErr, err.Error())
+
+	if err != ErrNilNote {
+		t.Errorf("Expected error message '%s', but got '%s'", ErrNilNote, err)
 	}
 }
 
@@ -153,8 +152,8 @@ func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent note, but got nil")
 	}
-	if !errors.Is(err, repository.ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", repository.ErrNoteNotFound, err)
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
 	}
 }
 
