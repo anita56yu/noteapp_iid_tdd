@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"noteapp/internal/usecase"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // NoteHandler handles HTTP requests for notes.
@@ -36,12 +39,13 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// We pass an empty string for the ID to let the usecase generate it.
 	noteID, err := h.usecase.CreateNote("", req.Title, req.Content)
 	if err != nil {
-		// In a real app, we'd check the error type to return the correct status code.
-		// For now, we'll assume any error from the usecase is a bad request.
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if errors.Is(err, usecase.ErrEmptyTitle) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 		return
 	}
 
@@ -49,4 +53,26 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(CreateNoteResponse{ID: noteID})
+}
+
+// GetNoteByID is the handler for the GET /notes/{id} endpoint.
+func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	note, err := h.usecase.GetNoteByID(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrInvalidID):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(note)
 }

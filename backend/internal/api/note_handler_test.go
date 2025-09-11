@@ -14,19 +14,81 @@ import (
 )
 
 // setupTest initializes the necessary components for the tests.
-func setupTest() http.Handler {
+func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	repo := repository.NewInMemoryNoteRepository()
 	noteUsecase := usecase.NewNoteUsecase(repo)
 	handler := NewNoteHandler(noteUsecase)
 
 	router := chi.NewRouter()
 	router.Post("/notes", handler.CreateNote)
-	return router
+	router.Get("/notes/{id}", handler.GetNoteByID)
+	return router, noteUsecase
+}
+
+func TestNoteHandler_GetNoteByID_InvalidID(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	req := httptest.NewRequest(http.MethodGet, "/notes/", nil) // Empty ID
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	req := httptest.NewRequest(http.MethodGet, "/notes/non-existent-id", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/notes/"+noteID, nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
+	}
+
+	var note usecase.NoteDTO
+	if err := json.Unmarshal(rr.Body.Bytes(), &note); err != nil {
+		t.Fatalf("failed to unmarshal response body: %v", err)
+	}
+	if note.ID != noteID {
+		t.Errorf("expected note ID '%s'; got '%s'", noteID, note.ID)
+	}
+	if note.Title != "Test Title" {
+		t.Errorf("expected note title 'Test Title'; got '%s'", note.Title)
+	}
 }
 
 func TestNoteHandler_CreateNote_Success(t *testing.T) {
 	// Arrange
-	router := setupTest()
+	router, _ := setupTest()
 	requestBody := CreateNoteRequest{
 		Title:   "Test Title",
 		Content: "Test Content",
@@ -46,7 +108,9 @@ func TestNoteHandler_CreateNote_Success(t *testing.T) {
 	if !strings.HasPrefix(location, "/notes/") {
 		t.Errorf("expected Location header to start with '/notes/'; got '%s'", location)
 	}
-	var responseBody struct{ ID string `json:"id"` }
+	var responseBody struct {
+		ID string `json:"id"`
+	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseBody); err != nil {
 		t.Fatalf("failed to unmarshal response body: %v", err)
 	}
@@ -61,7 +125,7 @@ func TestNoteHandler_CreateNote_Success(t *testing.T) {
 
 func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 	// Arrange
-	router := setupTest()
+	router, _ := setupTest()
 	invalidBody := []byte(`{"title": "Test", "content":`) // Malformed JSON
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(invalidBody))
 	rr := httptest.NewRecorder()
@@ -77,7 +141,7 @@ func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 
 func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 	// Arrange
-	router := setupTest()
+	router, _ := setupTest()
 	requestBody := CreateNoteRequest{Title: "", Content: "Test Content"}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
