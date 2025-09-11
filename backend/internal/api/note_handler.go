@@ -76,3 +76,23 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(note)
 }
+
+// DeleteNote is the handler for the DELETE /notes/{id} endpoint.
+func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	err := h.usecase.DeleteNote(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrInvalidID):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

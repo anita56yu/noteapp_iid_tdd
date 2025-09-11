@@ -22,7 +22,64 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router := chi.NewRouter()
 	router.Post("/notes", handler.CreateNote)
 	router.Get("/notes/{id}", handler.GetNoteByID)
+	router.Delete("/notes/{id}", handler.DeleteNote)
 	return router, noteUsecase
+}
+
+func TestNoteHandler_DeleteNote_InvalidID(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	req := httptest.NewRequest(http.MethodDelete, "/notes/", nil) // Empty ID
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_DeleteNote_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
+	}
+
+	// Verify the note is actually deleted
+	_, err = noteUsecase.GetNoteByID(noteID)
+	if err != usecase.ErrNoteNotFound {
+		t.Errorf("expected ErrNoteNotFound after deletion, but got %v", err)
+	}
 }
 
 func TestNoteHandler_GetNoteByID_InvalidID(t *testing.T) {

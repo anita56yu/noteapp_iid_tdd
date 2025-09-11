@@ -23,6 +23,7 @@ func main() {
 	router.Use(middleware.Logger) // Add a logger middleware
 	router.Post("/notes", noteHandler.CreateNote)
 	router.Get("/notes/{id}", noteHandler.GetNoteByID)
+	router.Delete("/notes/{id}", noteHandler.DeleteNote)
 
 	// 3. Server Startup
 	port := ":8080"
