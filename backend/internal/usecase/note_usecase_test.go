@@ -173,3 +173,59 @@ func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
 	}
 }
+
+func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	id, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+
+	// Act
+	err = noteUsecase.DeleteNote(id)
+	if err != nil {
+		t.Fatalf("DeleteNote() returned an unexpected error: %v", err)
+	}
+
+	// Assert
+	_, err = repo.FindByID(id)
+	if !errors.Is(err, repository.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", repository.ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+
+	// Act
+	err := noteUsecase.DeleteNote("non-existent-id")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent note, but got nil")
+	}
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+
+	// Act
+	err := noteUsecase.DeleteNote("") // Empty ID
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for an invalid ID, but got nil")
+	}
+	if !errors.Is(err, ErrInvalidID) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
+	}
+}

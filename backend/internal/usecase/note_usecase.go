@@ -60,6 +60,19 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 	}, nil
 }
 
+// DeleteNote deletes a note by its ID.
+func (uc *NoteUsecase) DeleteNote(id string) error {
+	if id == "" {
+		return ErrInvalidID
+	}
+
+	if err := uc.repo.Delete(id); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNoteNotFound):
