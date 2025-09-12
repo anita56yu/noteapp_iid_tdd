@@ -56,3 +56,46 @@ func TestNewNote_EmptyTitle(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyTitle, err)
 	}
 }
+
+func TestNote_AddContent_WithInjectedID(t *testing.T) {
+	// Arrange
+	note, _ := NewNote("note-1", "Test Note")
+	contentID := "content-1"
+	contentData := "Hello, world!"
+
+	// Act
+	note.AddContent(contentID, contentData, TextContentType)
+
+	// Assert
+	contents := note.contents
+	if len(contents) != 1 {
+		t.Fatalf("Expected 1 content block, but got %d", len(contents))
+	}
+	if contents[0].ID != contentID {
+		t.Errorf("Expected content ID to be '%s', but got '%s'", contentID, contents[0].ID)
+	}
+	if contents[0].Data != contentData {
+		t.Errorf("Expected content data to be '%s', but got '%s'", contentData, contents[0].Data)
+	}
+}
+
+func TestNote_AddContent_WithGeneratedID(t *testing.T) {
+	// Arrange
+	note, _ := NewNote("note-1", "Test Note")
+	contentData := "Hello, world!"
+
+	// Act
+	note.AddContent("", contentData, TextContentType)
+
+	// Assert
+	contents := note.contents
+	if len(contents) != 1 {
+		t.Fatalf("Expected 1 content block, but got %d", len(contents))
+	}
+	if contents[0].ID == "" {
+		t.Error("Expected content ID to be non-empty")
+	}
+	if contents[0].Data != contentData {
+		t.Errorf("Expected content data to be '%s', but got '%s'", contentData, contents[0].Data)
+	}
+}

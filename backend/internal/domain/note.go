@@ -49,3 +49,27 @@ func NewNote(id, title string) (*Note, error) {
 		contents: []Content{},
 	}, nil
 }
+
+// Contents returns a copy of the note's contents.
+func (n *Note) Contents() []Content {
+	// Return a copy to prevent modification of the internal slice.
+	contentsCopy := make([]Content, len(n.contents))
+	copy(contentsCopy, n.contents)
+	return contentsCopy
+}
+
+// AddContent adds a new content block to the note.
+// If id is empty, a new UUID will be generated.
+func (n *Note) AddContent(id, data string, contentType ContentType) {
+	if id == "" {
+		id = uuid.New().String()
+	}
+
+	newContent := Content{
+		ID:   id,
+		Type: contentType,
+		Data: data,
+	}
+
+	n.contents = append(n.contents, newContent)
+}
