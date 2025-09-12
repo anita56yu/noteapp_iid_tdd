@@ -47,14 +47,17 @@ User facing APIs should guard against illegal parameters
     - [x] **T1.10:** Implement the `DELETE /notes/{id}` API endpoint.
     - [x] **T1.11:** Refactor `NoteUsecase` to translate repository-specific errors into use case-level errors.
 - [ ] **F2:** Note Content Management. A note is composed of text and pictures. Users can add, edit, and delete note contents.
-    - [x] **T2.1:** Redefine the `Note` and `Content` models in the `domain` layer. A `Note` will contain a slice of `Content` objects, and each `Content` will have an ID, type (e.g., "text", "image"), and data.
-    - [ ] **T2.2:** Create a `AddContent` method in `NoteUsecase` to add a new content block (like text or an image) to a note.
-    - [ ] **T2.3:** Implement the `POST /notes/{id}/contents` API endpoint to handle adding new content.
-    - [ ] **T2.4:** Create an `UpdateContent` method in `NoteUsecase` to modify an existing text content block.
-    - [ ] **T2.5:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint for content updates.
-    - [ ] **T2.6:** Create a `DeleteContent` method in `NoteUsecase` to remove a content block from a note.
-    - [ ] **T2.7:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint for content deletion.
-    - [ ] **T2.8:** Implement logic to handle `ImageContentType` content blocks.
+    - [x] **T2.1:** Redefine the `Note` and `Content` models in the `domain` layer.
+    - [ ] **T2.2:** Implement `AddContent` and `Contents` methods on the `Note` entity in the domain layer.
+    - [ ] **T2.3:** Create an `AddContent` method in `NoteUsecase`.
+    - [ ] **T2.4:** Implement the `POST /notes/{id}/contents` API endpoint.
+    - [ ] **T2.5:** Implement an `UpdateContent` method on the `Note` entity in the domain layer.
+    - [ ] **T2.6:** Create an `UpdateContent` method in `NoteUsecase`.
+    - [ ] **T2.7:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint.
+    - [ ] **T2.8:** Implement a `DeleteContent` method on the `Note` entity in the domain layer.
+    - [ ] **T2.9:** Create a `DeleteContent` method in `NoteUsecase`.
+    - [ ] **T2.10:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint.
+    - [ ] **T2.11:** Implement logic to handle `ImageContentType`.
 - [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
 - [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
