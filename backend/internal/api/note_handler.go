@@ -22,8 +22,7 @@ func NewNoteHandler(uc *usecase.NoteUsecase) *NoteHandler {
 
 // CreateNoteRequest represents the request body for creating a note.
 type CreateNoteRequest struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Title string `json:"title"`
 }
 
 // CreateNoteResponse represents the response body for creating a note.
@@ -39,7 +38,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	noteID, err := h.usecase.CreateNote("", req.Title, req.Content)
+	noteID, err := h.usecase.CreateNote("", req.Title)
 	if err != nil {
 		if errors.Is(err, usecase.ErrEmptyTitle) {
 			http.Error(w, err.Error(), http.StatusBadRequest)

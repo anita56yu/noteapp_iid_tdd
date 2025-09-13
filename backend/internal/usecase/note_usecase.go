@@ -30,8 +30,8 @@ func NewNoteUsecase(repo repository.NoteRepository) *NoteUsecase {
 }
 
 // CreateNote creates a new note.
-func (uc *NoteUsecase) CreateNote(id, title, content string) (string, error) {
-	note, err := domain.NewNote(id, title, content)
+func (uc *NoteUsecase) CreateNote(id, title string) (string, error) {
+	note, err := domain.NewNote(id, title)
 	if err != nil {
 		return "", uc.mapDomainError(err)
 	}
@@ -53,10 +53,17 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 		return nil, uc.mapRepositoryError(err)
 	}
 
+	// For simplicity, we'll just return the first content block.
+	// A more robust implementation would handle multiple content blocks.
+	var content string
+	if len(note.Contents()) > 0 {
+		content = note.Contents()[0].Data
+	}
+
 	return &NoteDTO{
 		ID:      note.ID,
 		Title:   note.Title,
-		Content: note.Content,
+		Content: content,
 	}, nil
 }
 

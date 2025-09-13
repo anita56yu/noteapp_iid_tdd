@@ -27,10 +27,9 @@ func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
 	noteUsecase := NewNoteUsecase(repo)
 	id := "test-id"
 	title := "Test Title"
-	content := "Test Content"
 
 	// Act
-	returnedID, err := noteUsecase.CreateNote(id, title, content)
+	returnedID, err := noteUsecase.CreateNote(id, title)
 	if err != nil {
 		t.Fatalf("CreateNote() returned an unexpected error: %v", err)
 	}
@@ -53,10 +52,9 @@ func TestNoteUsecase_CreateNote_WithGeneratedID(t *testing.T) {
 	repo := repository.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	title := "Test Title"
-	content := "Test Content"
 
 	// Act
-	returnedID, err := noteUsecase.CreateNote("", title, content)
+	returnedID, err := noteUsecase.CreateNote("", title)
 	if err != nil {
 		t.Fatalf("CreateNote() returned an unexpected error: %v", err)
 	}
@@ -80,7 +78,7 @@ func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
-	_, err := noteUsecase.CreateNote("", "", "some content") // Empty title
+	_, err := noteUsecase.CreateNote("", "") // Empty title
 
 	// Assert
 	if err == nil {
@@ -101,7 +99,7 @@ func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 	noteUsecase := NewNoteUsecase(mockRepo)
 
 	// Act
-	_, err := noteUsecase.CreateNote("test-id", "Test Title", "Test Content")
+	_, err := noteUsecase.CreateNote("test-id", "Test Title")
 
 	// Assert
 	if err == nil {
@@ -117,7 +115,7 @@ func TestNoteUsecase_GetNoteByID(t *testing.T) {
 	// Arrange
 	repo := repository.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
-	id, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	id, err := noteUsecase.CreateNote("", "Test Title")
 	if err != nil {
 		t.Fatalf("CreateNote() failed: %v", err)
 	}
@@ -178,7 +176,7 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 	// Arrange
 	repo := repository.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
-	id, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	id, err := noteUsecase.CreateNote("", "Test Title")
 	if err != nil {
 		t.Fatalf("CreateNote() failed: %v", err)
 	}

@@ -9,7 +9,7 @@ import (
 func TestInMemoryNoteRepository_SaveAndFindByID_Success(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note, err := domain.NewNote("test-id", "Test Title", "Test Content")
+	note, err := domain.NewNote("test-id", "Test Title")
 	if err != nil {
 		t.Fatalf("Failed to create a new note for testing: %v", err)
 	}
@@ -52,9 +52,9 @@ func TestInMemoryNoteRepository_FindByID_NotFound(t *testing.T) {
 func TestInMemoryNoteRepository_Save_UpdateExisting(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note, _ := domain.NewNote("test-id", "Original Title", "Original Content")
+	note, _ := domain.NewNote("test-id", "Original Title")
 	repo.Save(note)
-	updatedNote, _ := domain.NewNote("test-id", "Updated Title", "Updated Content")
+	updatedNote, _ := domain.NewNote("test-id", "Updated Title")
 
 	// Act
 	err := repo.Save(updatedNote)
@@ -85,7 +85,7 @@ func TestInMemoryNoteRepository_Save_NilNote(t *testing.T) {
 func TestInMemoryNoteRepository_Delete(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note, _ := domain.NewNote("test-id", "Test Title", "Test Content")
+	note, _ := domain.NewNote("test-id", "Test Title")
 	repo.Save(note)
 
 	// Act

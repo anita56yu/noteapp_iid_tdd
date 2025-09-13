@@ -67,7 +67,7 @@ func TestNote_AddContent_WithInjectedID(t *testing.T) {
 	note.AddContent(contentID, contentData, TextContentType)
 
 	// Assert
-	contents := note.contents
+	contents := note.Contents()
 	if len(contents) != 1 {
 		t.Fatalf("Expected 1 content block, but got %d", len(contents))
 	}
@@ -88,7 +88,7 @@ func TestNote_AddContent_WithGeneratedID(t *testing.T) {
 	note.AddContent("", contentData, TextContentType)
 
 	// Assert
-	contents := note.contents
+	contents := note.Contents()
 	if len(contents) != 1 {
 		t.Fatalf("Expected 1 content block, but got %d", len(contents))
 	}

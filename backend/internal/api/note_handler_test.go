@@ -59,7 +59,7 @@ func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
 func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
 func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "Test Content")
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -147,8 +147,7 @@ func TestNoteHandler_CreateNote_Success(t *testing.T) {
 	// Arrange
 	router, _ := setupTest()
 	requestBody := CreateNoteRequest{
-		Title:   "Test Title",
-		Content: "Test Content",
+		Title: "Test Title",
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
@@ -199,7 +198,7 @@ func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 	// Arrange
 	router, _ := setupTest()
-	requestBody := CreateNoteRequest{Title: "", Content: "Test Content"}
+	requestBody := CreateNoteRequest{Title: ""}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
