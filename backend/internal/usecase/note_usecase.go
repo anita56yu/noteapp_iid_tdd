@@ -62,18 +62,7 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 		return nil, uc.mapRepositoryError(err)
 	}
 
-	// For simplicity, we'll just return the first content block.
-	// A more robust implementation would handle multiple content blocks.
-	var content string
-	if len(note.Contents()) > 0 {
-		content = note.Contents()[0].Data
-	}
-
-	return &NoteDTO{
-		ID:      note.ID,
-		Title:   note.Title,
-		Content: content,
-	}, nil
+	return toNoteDTO(note), nil
 }
 
 // DeleteNote deletes a note by its ID.

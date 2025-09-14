@@ -36,3 +36,9 @@ This file describes the language and tools for the project.
 ## Tooling:
 - git for version control 
 - unit testing with Go standard library "testing"
+
+## Commends:
+- Testing
+```bash
+cd ./backend && go test ./...
+```

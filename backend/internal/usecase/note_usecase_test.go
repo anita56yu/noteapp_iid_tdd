@@ -307,3 +307,45 @@ func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
 	}
 }
+
+func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	note, err := domain.NewNote("note-1", "Test Title")
+	if err != nil {
+		t.Fatalf("NewNote() failed: %v", err)
+	}
+	note.AddContent("content-1", "Content 1", domain.TextContentType)
+	note.AddContent("content-2", "Content 2", domain.ImageContentType)
+	repo.Save(note)
+
+	// Act
+	noteDTO, err := noteUsecase.GetNoteByID("note-1")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("GetNoteByID() returned an unexpected error: %v", err)
+	}
+	if len(noteDTO.Contents) != 2 {
+		t.Errorf("Expected 2 content blocks, got %d", len(noteDTO.Contents))
+	}
+	if noteDTO.Contents[0].ID != "content-1" {
+		t.Errorf("Expected content 1 ID to be 'content-1', got '%s'", noteDTO.Contents[0].ID)
+	}
+	if noteDTO.Contents[0].Data != "Content 1" {
+		t.Errorf("Expected content 1 to be 'Content 1', got '%s'", noteDTO.Contents[0].Data)
+	}
+	if noteDTO.Contents[0].Type != "text" {
+		t.Errorf("Expected content 1 type to be 'text', got '%s'", noteDTO.Contents[0].Type)
+	}
+	if noteDTO.Contents[1].ID != "content-2" {
+		t.Errorf("Expected content 2 ID to be 'content-2', got '%s'", noteDTO.Contents[1].ID)
+	}
+	if noteDTO.Contents[1].Data != "Content 2" {
+		t.Errorf("Expected content 2 to be 'Content 2', got '%s'", noteDTO.Contents[1].Data)
+	}
+	if noteDTO.Contents[1].Type != "image" {
+		t.Errorf("Expected content 2 type to be 'image', got '%s'", noteDTO.Contents[1].Type)
+	}
+}
