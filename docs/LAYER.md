@@ -1,6 +1,6 @@
 # Clean Architecture Layers
 
-This project adheres to the principles of Clean Architecture (CA) to ensure a separation of concerns, testability, and independence from frameworks. The layers are organized to enforce a one-way dependency flow, pointing inwards towards the domain.
+This project adheres to the principles of Clean Architecture (CA). The layers are organized to enforce a one-way dependency flow, pointing inwards towards the domain. At no time should a domain layer object show up at the api layer.
 
 ## 1. Domain Layer
 - **Location:** `backend/internal/domain`

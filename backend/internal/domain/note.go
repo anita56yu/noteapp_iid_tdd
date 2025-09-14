@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+
 	"github.com/google/uuid"
 )
 
@@ -60,7 +61,7 @@ func (n *Note) Contents() []Content {
 
 // AddContent adds a new content block to the note.
 // If id is empty, a new UUID will be generated.
-func (n *Note) AddContent(id, data string, contentType ContentType) {
+func (n *Note) AddContent(id, data string, contentType ContentType) string {
 	if id == "" {
 		id = uuid.New().String()
 	}
@@ -72,4 +73,6 @@ func (n *Note) AddContent(id, data string, contentType ContentType) {
 	}
 
 	n.contents = append(n.contents, newContent)
+
+	return id
 }

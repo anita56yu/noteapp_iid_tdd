@@ -49,7 +49,7 @@ User facing APIs should guard against illegal parameters
 - [ ] **F2:** Note Content Management. A note is composed of text and pictures. Users can add, edit, and delete note contents.
     - [x] **T2.1:** Redefine the `Note` and `Content` models in the `domain` layer.
     - [x] **T2.2:** Implement `AddContent` and `Contents` methods on the `Note` entity in the domain layer.
-    - [ ] **T2.3:** Create an `AddContent` method in `NoteUsecase`.
+    - [x] **T2.3:** Create an `AddContent` method in `NoteUsecase`.
     - [ ] **T2.4:** Implement the `POST /notes/{id}/contents` API endpoint.
     - [ ] **T2.5:** Implement an `UpdateContent` method on the `Note` entity in the domain layer.
     - [ ] **T2.6:** Create an `UpdateContent` method in `NoteUsecase`.
