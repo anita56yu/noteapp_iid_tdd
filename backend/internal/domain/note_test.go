@@ -64,10 +64,13 @@ func TestNote_AddContent_WithInjectedID(t *testing.T) {
 	contentData := "Hello, world!"
 
 	// Act
-	note.AddContent(contentID, contentData, TextContentType)
+	newid := note.AddContent(contentID, contentData, TextContentType)
 
 	// Assert
 	contents := note.Contents()
+	if newid != contentID {
+		t.Errorf("Expected returned content ID to be '%s', but got '%s'", contentID, newid)
+	}
 	if len(contents) != 1 {
 		t.Fatalf("Expected 1 content block, but got %d", len(contents))
 	}

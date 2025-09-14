@@ -227,3 +227,83 @@ func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
 	}
 }
+
+func TestNoteUsecase_AddContent_WithInjectedID(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	id, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+	content_id := "content-1"
+
+	// Act
+	newContentId, err := noteUsecase.AddContent(id, content_id, "New Content", TextContentType)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("AddContent() returned an unexpected error: %v", err)
+	}
+	if newContentId != content_id {
+		t.Errorf("Expected content ID to be '%s', got '%s'", content_id, newContentId)
+	}
+	note, err := repo.FindByID(id)
+	if err != nil {
+		t.Fatalf("Failed to find note: %v", err)
+	}
+	if len(note.Contents()) != 1 {
+		t.Errorf("Expected 1 content block, got %d", len(note.Contents()))
+	}
+	if note.Contents()[0].Data != "New Content" {
+		t.Errorf("Expected content to be 'New Content', got '%s'", note.Contents()[0].Data)
+	}
+}
+
+func TestNoteUsecase_AddContent_WithGeneratedID(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	id, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+
+	// Act
+	contentId, err := noteUsecase.AddContent(id, "", "New Content", TextContentType)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("AddContent() returned an unexpected error: %v", err)
+	}
+	note, err := repo.FindByID(id)
+	if err != nil {
+		t.Fatalf("Failed to find note: %v", err)
+	}
+	if len(note.Contents()) != 1 {
+		t.Errorf("Expected 1 content block, got %d", len(note.Contents()))
+	}
+	if note.Contents()[0].ID != contentId {
+		t.Errorf("Expected content ID to be '%s', got '%s'", contentId, note.Contents()[0].ID)
+	}
+	if note.Contents()[0].Data != "New Content" {
+		t.Errorf("Expected content to be 'New Content', got '%s'", note.Contents()[0].Data)
+	}
+}
+
+func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+
+	// Act
+	_, err := noteUsecase.AddContent("non-existent-id", "", "New Content", TextContentType)
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent note, but got nil")
+	}
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	}
+}
