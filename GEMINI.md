@@ -4,4 +4,5 @@ This file contains instructions to LLM. It is located in the project root direct
 
 - Technology stack: @docs/STACK.md
 - 4 steps of IID: Analysis @docs/ANALYSIS.md, Design @docs/DESIGN.md, Implementation @docs/IMPLEMENTATION.md, and Review @docs/REVIEW.md.
+- Review git log to pick up where we left off
 - Other instructions will be injected just-in-time manually with '@path/to/file'   

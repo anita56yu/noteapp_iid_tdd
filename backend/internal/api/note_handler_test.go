@@ -23,7 +23,105 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Post("/notes", handler.CreateNote)
 	router.Get("/notes/{id}", handler.GetNoteByID)
 	router.Delete("/notes/{id}", handler.DeleteNote)
+	router.Post("/notes/{id}/contents", handler.AddContent)
 	return router, noteUsecase
+}
+
+func TestNoteHandler_AddContent_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	requestBody := AddContentRequest{
+		Type: "text",
+		Data: "Test content",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusCreated {
+		t.Errorf("expected status %d; got %d", http.StatusCreated, rr.Code)
+	}
+
+	var response struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+		t.Fatalf("failed to decode response body: %v", err)
+	}
+
+	if response.ID == "" {
+		t.Error("expected a non-empty content ID")
+	}
+}
+
+func TestNoteHandler_AddContent_NotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	requestBody := AddContentRequest{
+		Type: "text",
+		Data: "Test content",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/notes/non-existent-id/contents", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_AddContent_InvalidJSON(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	invalidBody := []byte(`{"type": "text", "data":`) // Malformed JSON
+	req := httptest.NewRequest(http.MethodPost, "/notes/some-id/contents", bytes.NewBuffer(invalidBody))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
+}
+
+func TestNoteHandler_AddContent_UnsupportedContentType(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	requestBody := AddContentRequest{
+		Type: "unsupported",
+		Data: "Test content",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
 }
 
 func TestNoteHandler_DeleteNote_InvalidID(t *testing.T) {

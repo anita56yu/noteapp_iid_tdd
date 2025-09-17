@@ -51,7 +51,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.2:** Implement `AddContent` and `Contents` methods on the `Note` entity in the domain layer.
     - [x] **T2.3:** Create an `AddContent` method in `NoteUsecase`.
     - [x] **T2.4:** Update `NoteDTO` to handle a slice of contents.
-    - [ ] **T2.5:** Implement the `POST /notes/{id}/contents` API endpoint.
+    - [x] **T2.5:** Implement the `POST /notes/{id}/contents` API endpoint.
     - [ ] **T2.6:** Implement an `UpdateContent` method on the `Note` entity in the domain layer.
     - [ ] **T2.7:** Create an `UpdateContent` method in `NoteUsecase`.
     - [ ] **T2.8:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint.

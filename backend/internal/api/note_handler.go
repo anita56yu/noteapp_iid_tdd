@@ -30,6 +30,14 @@ type CreateNoteResponse struct {
 	ID string `json:"id"`
 }
 
+// AddContentRequest represents the request body for adding content to a note.
+type AddContentRequest struct {
+	Type string `json:"type"`
+	Data string `json:"data"`
+}
+
+var ErrUnsupportedContentType = errors.New("unsupported content type")
+
 // CreateNote is the handler for the POST /notes endpoint.
 func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	var req CreateNoteRequest
@@ -94,4 +102,51 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// AddContent is the handler for the POST /notes/{id}/contents endpoint.
+func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
+	noteID := chi.URLParam(r, "id")
+
+	var req AddContentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	contentType, err := mapToDomainContentType(req.Type)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	contentID, err := h.usecase.AddContent(noteID, "", req.Data, contentType)
+	if err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrInvalidID):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(struct {
+		ID string `json:"id"`
+	}{ID: contentID})
+}
+
+func mapToDomainContentType(ct string) (usecase.ContentType, error) {
+	switch ct {
+	case "text":
+		return usecase.TextContentType, nil
+	case "image":
+		return usecase.ImageContentType, nil
+	default:
+		return usecase.TextContentType, ErrUnsupportedContentType
+	}
 }
