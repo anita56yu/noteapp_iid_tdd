@@ -52,7 +52,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.3:** Create an `AddContent` method in `NoteUsecase`.
     - [x] **T2.4:** Update `NoteDTO` to handle a slice of contents.
     - [x] **T2.5:** Implement the `POST /notes/{id}/contents` API endpoint.
-    - [ ] **T2.6:** Implement an `UpdateContent` method on the `Note` entity in the domain layer.
+    - [x] **T2.6:** Implement an `UpdateContent` method on the `Note` entity in the domain layer.
     - [ ] **T2.7:** Create an `UpdateContent` method in `NoteUsecase`.
     - [ ] **T2.8:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint.
     - [ ] **T2.9:** Implement a `DeleteContent` method on the `Note` entity in the domain layer.
@@ -72,6 +72,6 @@ User facing APIs should guard against illegal parameters
     - [ ] **T8.1:** Refactor: Standardize API error responses to return JSON objects.
     - [ ] **T8.2:** Refactor: Move router setup out of `main.go` to improve modularity.
     - [ ] **T8.3:** Refactor: Centralize API error handling in a helper function.
-- [ ] **F9:** Decouple Domain and Persistence Layers.
+- [x] **F9:** Decouple Domain and Persistence Layers.
     - [x] **T9.1:** Create `NotePO` and `ContentPO` in the `repository` layer, and implement a `NoteMapper` in the `usecase` layer to map between `domain.Note` and `repository.NotePO`.
     - [x] **T9.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.

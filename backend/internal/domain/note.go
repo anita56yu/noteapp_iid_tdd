@@ -9,6 +9,9 @@ import (
 // ErrEmptyTitle is returned when a note is created with an empty title.
 var ErrEmptyTitle = errors.New("title cannot be empty")
 
+// ErrContentNotFound is returned when a content is not found.
+var ErrContentNotFound = errors.New("content not found")
+
 // ContentType defines the type of content in a note.
 type ContentType string
 
@@ -75,4 +78,15 @@ func (n *Note) AddContent(id, data string, contentType ContentType) string {
 	n.contents = append(n.contents, newContent)
 
 	return id
+}
+
+// UpdateContent updates an existing content block in the note.
+func (n *Note) UpdateContent(id, data string) error {
+	for i, content := range n.contents {
+		if content.ID == id {
+			n.contents[i].Data = data
+			return nil
+		}
+	}
+	return ErrContentNotFound
 }

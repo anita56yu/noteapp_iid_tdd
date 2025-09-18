@@ -102,3 +102,41 @@ func TestNote_AddContent_WithGeneratedID(t *testing.T) {
 		t.Errorf("Expected content data to be '%s', but got '%s'", contentData, contents[0].Data)
 	}
 }
+
+func TestNote_UpdateContent_NormalCase(t *testing.T) {
+	// Arrange
+	note, _ := NewNote("note-1", "Test Note")
+	contentID := "content-1"
+	initialData := "Initial content"
+	note.AddContent(contentID, initialData, TextContentType)
+	updatedData := "Updated content"
+
+	// Act
+	err := note.UpdateContent(contentID, updatedData)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("UpdateContent returned an unexpected error: %v", err)
+	}
+	contents := note.Contents()
+	if contents[0].Data != updatedData {
+		t.Errorf("Expected content data to be '%s', but got '%s'", updatedData, contents[0].Data)
+	}
+}
+
+func TestNote_UpdateContent_NotFound(t *testing.T) {
+	// Arrange
+	note, _ := NewNote("note-1", "Test Note")
+	note.AddContent("content-1", "Initial data", TextContentType)
+
+	// Act
+	err := note.UpdateContent("non-existent-id", "Updated data")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error when updating non-existent content, but got nil")
+	}
+	if err != ErrContentNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+	}
+}
