@@ -2,20 +2,16 @@ package repository
 
 import (
 	"errors"
-	"noteapp/internal/domain"
 	"testing"
 )
 
 func TestInMemoryNoteRepository_SaveAndFindByID_Success(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note, err := domain.NewNote("test-id", "Test Title")
-	if err != nil {
-		t.Fatalf("Failed to create a new note for testing: %v", err)
-	}
+	note := &NotePO{ID: "test-id", Title: "Test Title"}
 
 	// Act
-	err = repo.Save(note)
+	err := repo.Save(note)
 	if err != nil {
 		t.Fatalf("Save() returned an unexpected error: %v", err)
 	}
@@ -52,9 +48,9 @@ func TestInMemoryNoteRepository_FindByID_NotFound(t *testing.T) {
 func TestInMemoryNoteRepository_Save_UpdateExisting(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note, _ := domain.NewNote("test-id", "Original Title")
+	note := &NotePO{ID: "test-id", Title: "Original Title"}
 	repo.Save(note)
-	updatedNote, _ := domain.NewNote("test-id", "Updated Title")
+	updatedNote := &NotePO{ID: "test-id", Title: "Updated Title"}
 
 	// Act
 	err := repo.Save(updatedNote)
@@ -85,7 +81,7 @@ func TestInMemoryNoteRepository_Save_NilNote(t *testing.T) {
 func TestInMemoryNoteRepository_Delete(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note, _ := domain.NewNote("test-id", "Test Title")
+	note := &NotePO{ID: "test-id", Title: "Test Title"}
 	repo.Save(note)
 
 	// Act

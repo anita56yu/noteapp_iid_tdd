@@ -21,7 +21,7 @@ A note can be tagged with any number of keywords.
 A note can be found through keyword filtering. 
 A note can be shared and co-edited among multiple users. Two users opening a shared note should see the same contents.
 A user should see all the notes they own.
-An owner can read, write, share, and delete a note.
+An owner can read, write, share, and delete a note. 
 A user should see all the notes they were shared with.
 An owner can share a note as read or read/write to another user.
 A user cannot delete a note not owned by them.
@@ -61,6 +61,7 @@ User facing APIs should guard against illegal parameters
     - [ ] **T2.12:** Implement logic to handle `ImageContentType`.
 - [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
+    - [ ] **T4.1:** Define a method in the domain layer that adds a content to a note with additional parameters such as lock status.
 - [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F6:** API Security. APIs validate input to prevent errors and misuse.
 - [ ] **F7:** Decouple Data Persistence with a Repository Layer.
@@ -73,4 +74,4 @@ User facing APIs should guard against illegal parameters
     - [ ] **T8.3:** Refactor: Centralize API error handling in a helper function.
 - [ ] **F9:** Decouple Domain and Persistence Layers.
     - [x] **T9.1:** Create `NotePO` and `ContentPO` in the `repository` layer, and implement a `NoteMapper` in the `usecase` layer to map between `domain.Note` and `repository.NotePO`.
-    - [ ] **T9.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.
+    - [x] **T9.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.

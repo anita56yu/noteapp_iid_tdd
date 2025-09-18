@@ -1,23 +1,19 @@
 package repository
 
-import (
-	"noteapp/internal/domain"
-)
-
 // InMemoryNoteRepository is an in-memory implementation of NoteRepository.
 type InMemoryNoteRepository struct {
-	notes map[string]*domain.Note
+	notes map[string]*NotePO
 }
 
 // NewInMemoryNoteRepository creates a new InMemoryNoteRepository.
 func NewInMemoryNoteRepository() *InMemoryNoteRepository {
 	return &InMemoryNoteRepository{
-		notes: make(map[string]*domain.Note),
+		notes: make(map[string]*NotePO),
 	}
 }
 
 // Save saves a note to the repository.
-func (r *InMemoryNoteRepository) Save(note *domain.Note) error {
+func (r *InMemoryNoteRepository) Save(note *NotePO) error {
 	if note == nil {
 		return ErrNilNote
 	}
@@ -26,7 +22,7 @@ func (r *InMemoryNoteRepository) Save(note *domain.Note) error {
 }
 
 // FindByID finds a note by its ID.
-func (r *InMemoryNoteRepository) FindByID(id string) (*domain.Note, error) {
+func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 	note, ok := r.notes[id]
 	if !ok {
 		return nil, ErrNoteNotFound

@@ -9,17 +9,29 @@ import (
 
 // mockNoteRepository is a mock implementation of the NoteRepository for testing error cases.
 type mockNoteRepository struct {
-	SaveFunc func(note *domain.Note) error
+	SaveFunc     func(note *repository.NotePO) error
+	FindByIDFunc func(id string) (*repository.NotePO, error)
+	DeleteFunc   func(id string) error
 }
 
-func (m *mockNoteRepository) Save(note *domain.Note) error {
+func (m *mockNoteRepository) Save(note *repository.NotePO) error {
 	if m.SaveFunc != nil {
 		return m.SaveFunc(note)
 	}
 	return nil
 }
-func (m *mockNoteRepository) FindByID(id string) (*domain.Note, error) { return nil, nil }
-func (m *mockNoteRepository) Delete(id string) error                   { return nil }
+func (m *mockNoteRepository) FindByID(id string) (*repository.NotePO, error) {
+	if m.FindByIDFunc != nil {
+		return m.FindByIDFunc(id)
+	}
+	return nil, nil
+}
+func (m *mockNoteRepository) Delete(id string) error {
+	if m.DeleteFunc != nil {
+		return m.DeleteFunc(id)
+	}
+	return nil
+}
 
 func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
 	// Arrange
@@ -92,7 +104,7 @@ func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 	// Arrange
 	mockRepo := &mockNoteRepository{
-		SaveFunc: func(note *domain.Note) error {
+		SaveFunc: func(note *repository.NotePO) error {
 			return repository.ErrNilNote
 		},
 	}
@@ -232,6 +244,7 @@ func TestNoteUsecase_AddContent_WithInjectedID(t *testing.T) {
 	// Arrange
 	repo := repository.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
+	mapper := NewNoteMapper()
 	id, err := noteUsecase.CreateNote("", "Test Title")
 	if err != nil {
 		t.Fatalf("CreateNote() failed: %v", err)
@@ -248,10 +261,11 @@ func TestNoteUsecase_AddContent_WithInjectedID(t *testing.T) {
 	if newContentId != content_id {
 		t.Errorf("Expected content ID to be '%s', got '%s'", content_id, newContentId)
 	}
-	note, err := repo.FindByID(id)
+	notePO, err := repo.FindByID(id)
 	if err != nil {
 		t.Fatalf("Failed to find note: %v", err)
 	}
+	note := mapper.ToDomain(notePO)
 	if len(note.Contents()) != 1 {
 		t.Errorf("Expected 1 content block, got %d", len(note.Contents()))
 	}
@@ -264,6 +278,7 @@ func TestNoteUsecase_AddContent_WithGeneratedID(t *testing.T) {
 	// Arrange
 	repo := repository.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
+	mapper := NewNoteMapper()
 	id, err := noteUsecase.CreateNote("", "Test Title")
 	if err != nil {
 		t.Fatalf("CreateNote() failed: %v", err)
@@ -276,10 +291,11 @@ func TestNoteUsecase_AddContent_WithGeneratedID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddContent() returned an unexpected error: %v", err)
 	}
-	note, err := repo.FindByID(id)
+	notePO, err := repo.FindByID(id)
 	if err != nil {
 		t.Fatalf("Failed to find note: %v", err)
 	}
+	note := mapper.ToDomain(notePO)
 	if len(note.Contents()) != 1 {
 		t.Errorf("Expected 1 content block, got %d", len(note.Contents()))
 	}
@@ -312,13 +328,14 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	// Arrange
 	repo := repository.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
+	mapper := NewNoteMapper()
 	note, err := domain.NewNote("note-1", "Test Title")
 	if err != nil {
 		t.Fatalf("NewNote() failed: %v", err)
 	}
 	note.AddContent("content-1", "Content 1", domain.TextContentType)
 	note.AddContent("content-2", "Content 2", domain.ImageContentType)
-	repo.Save(note)
+	repo.Save(mapper.ToPO(note))
 
 	// Act
 	noteDTO, err := noteUsecase.GetNoteByID("note-1")

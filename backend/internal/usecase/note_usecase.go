@@ -46,7 +46,8 @@ func (uc *NoteUsecase) CreateNote(id, title string) (string, error) {
 		return "", uc.mapDomainError(err)
 	}
 
-	if err := uc.repo.Save(note); err != nil {
+	notePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(notePO); err != nil {
 		return "", uc.mapRepositoryError(err)
 	}
 
@@ -58,11 +59,12 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 	if id == "" {
 		return nil, ErrInvalidID
 	}
-	note, err := uc.repo.FindByID(id)
+	notePO, err := uc.repo.FindByID(id)
 	if err != nil {
 		return nil, uc.mapRepositoryError(err)
 	}
 
+	note := uc.mapper.ToDomain(notePO)
 	return uc.mapper.toNoteDTO(note), nil
 }
 
@@ -80,13 +82,16 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 }
 
 func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType ContentType) (string, error) {
-	note, err := uc.repo.FindByID(noteID)
+	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return "", uc.mapRepositoryError(err)
 	}
+	note := uc.mapper.ToDomain(notePO)
 
 	newID := note.AddContent(contentID, data, mapToDomainContentType(contentType))
-	if err := uc.repo.Save(note); err != nil {
+
+	updatedNotePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return "", uc.mapRepositoryError(err)
 	}
 
