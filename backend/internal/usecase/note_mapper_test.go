@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"noteapp/internal/domain"
+	"noteapp/internal/repository"
 	"testing"
 )
 
@@ -15,7 +16,8 @@ func TestToNoteDTO(t *testing.T) {
 	note.AddContent("content-2", "base64-encoded-image", domain.ImageContentType)
 
 	// Act
-	noteDTO := toNoteDTO(note)
+	mapper := NewNoteMapper()
+	noteDTO := mapper.toNoteDTO(note)
 
 	// Assert
 	if noteDTO.ID != "note-1" {
@@ -48,5 +50,73 @@ func TestToNoteDTO(t *testing.T) {
 	}
 	if noteDTO.Contents[1].Data != "base64-encoded-image" {
 		t.Errorf("Expected content 2 data to be 'base64-encoded-image', got '%s'", noteDTO.Contents[1].Data)
+	}
+}
+
+func TestNoteMapper_ToPO(t *testing.T) {
+	// Arrange
+	note, _ := domain.NewNote("note-1", "Test Note")
+	note.AddContent("content-1", "Hello", domain.TextContentType)
+
+	mapper := NewNoteMapper()
+
+	// Act
+	po := mapper.ToPO(note)
+
+	// Assert
+	if po.ID != "note-1" {
+		t.Errorf("Expected ID to be 'note-1', but got '%s'", po.ID)
+	}
+	if po.Title != "Test Note" {
+		t.Errorf("Expected Title to be 'Test Note', but got '%s'", po.Title)
+	}
+	if len(po.Contents) != 1 {
+		t.Fatalf("Expected 1 content block, but got %d", len(po.Contents))
+	}
+	if po.Contents[0].ID != "content-1" {
+		t.Errorf("Expected content ID to be 'content-1', but got '%s'", po.Contents[0].ID)
+	}
+}
+
+func TestNoteMapper_ToDomain(t *testing.T) {
+	// Arrange
+	po := &repository.NotePO{
+		ID:    "note-1",
+		Title: "Test Note",
+		Contents: []repository.ContentPO{
+			{ID: "content-1", Type: "text", Data: "Hello"},
+		},
+	}
+
+	expectedNote, _ := domain.NewNote("note-1", "Test Note")
+	expectedNote.AddContent("content-1", "Hello", domain.TextContentType)
+
+	mapper := NewNoteMapper()
+
+	// Act
+	note := mapper.ToDomain(po)
+
+	// Assert
+	if note.ID != expectedNote.ID {
+		t.Errorf("Expected note ID to be '%s', got '%s'", expectedNote.ID, note.ID)
+	}
+	if note.Title != expectedNote.Title {
+		t.Errorf("Expected note title to be '%s', got '%s'", expectedNote.Title, note.Title)
+	}
+
+	contents := note.Contents()
+	expectedContents := expectedNote.Contents()
+	if len(contents) != len(expectedContents) {
+		t.Fatalf("Expected %d content blocks, got %d", len(expectedContents), len(contents))
+	}
+
+	if contents[0].ID != expectedContents[0].ID {
+		t.Errorf("Expected content ID to be '%s', got '%s'", expectedContents[0].ID, contents[0].ID)
+	}
+	if contents[0].Type != expectedContents[0].Type {
+		t.Errorf("Expected content type to be '%s', got '%s'", expectedContents[0].Type, contents[0].Type)
+	}
+	if contents[0].Data != expectedContents[0].Data {
+		t.Errorf("Expected content data to be '%s', got '%s'", expectedContents[0].Data, contents[0].Data)
 	}
 }

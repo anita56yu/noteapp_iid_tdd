@@ -30,12 +30,13 @@ const (
 
 // NoteUsecase handles the business logic for notes.
 type NoteUsecase struct {
-	repo repository.NoteRepository
+	repo   repository.NoteRepository
+	mapper *NoteMapper
 }
 
 // NewNoteUsecase creates a new NoteUsecase.
 func NewNoteUsecase(repo repository.NoteRepository) *NoteUsecase {
-	return &NoteUsecase{repo: repo}
+	return &NoteUsecase{repo: repo, mapper: NewNoteMapper()}
 }
 
 // CreateNote creates a new note.
@@ -62,7 +63,7 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 		return nil, uc.mapRepositoryError(err)
 	}
 
-	return toNoteDTO(note), nil
+	return uc.mapper.toNoteDTO(note), nil
 }
 
 // DeleteNote deletes a note by its ID.

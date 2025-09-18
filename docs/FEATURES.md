@@ -72,6 +72,5 @@ User facing APIs should guard against illegal parameters
     - [ ] **T8.2:** Refactor: Move router setup out of `main.go` to improve modularity.
     - [ ] **T8.3:** Refactor: Centralize API error handling in a helper function.
 - [ ] **F9:** Decouple Domain and Persistence Layers.
-    - [ ] **T9.1:** Introduce a `NotePO` in the `repository` layer and a `NoteMapper` in the `usecase` layer.
-    - [ ] **T9.2:** Update the `NoteRepository` interface and `InMemoryNoteRepository` to use `NotePO`.
-    - [ ] **T9.3:** Update `NoteUsecase` to use the `NoteMapper`.
+    - [x] **T9.1:** Create `NotePO` and `ContentPO` in the `repository` layer, and implement a `NoteMapper` in the `usecase` layer to map between `domain.Note` and `repository.NotePO`.
+    - [ ] **T9.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.
