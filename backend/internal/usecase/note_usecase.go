@@ -19,6 +19,9 @@ var ErrNilNote = errors.New("note cannot be nil")
 // ErrEmptyTitle is returned when a note is created with an empty title.
 var ErrEmptyTitle = errors.New("title cannot be empty")
 
+// ErrContentNotFound is returned when a content is not found.
+var ErrContentNotFound = errors.New("content not found")
+
 type ContentType string
 
 const (
@@ -98,6 +101,26 @@ func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType Co
 	return newID, nil
 }
 
+// UpdateContent updates the content of a note.
+func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	note := uc.mapper.ToDomain(notePO)
+
+	if err := note.UpdateContent(contentID, data); err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	updatedNotePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNoteNotFound):
@@ -113,6 +136,8 @@ func (uc *NoteUsecase) mapDomainError(err error) error {
 	switch {
 	case errors.Is(err, domain.ErrEmptyTitle):
 		return ErrEmptyTitle
+	case errors.Is(err, domain.ErrContentNotFound):
+		return ErrContentNotFound
 	default:
 		return fmt.Errorf("an unexpected domain error occurred: %w", err)
 	}

@@ -366,3 +366,77 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 		t.Errorf("Expected content 2 type to be 'image', got '%s'", noteDTO.Contents[1].Type)
 	}
 }
+
+func TestNoteUsecase_UpdateContent_NormalCase(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	mapper := NewNoteMapper()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+	contentID, err := noteUsecase.AddContent(noteID, "", "Initial Content", TextContentType)
+	if err != nil {
+		t.Fatalf("AddContent() failed: %v", err)
+	}
+	updatedData := "Updated Content"
+
+	// Act
+	err = noteUsecase.UpdateContent(noteID, contentID, updatedData)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("UpdateContent() returned an unexpected error: %v", err)
+	}
+	notePO, err := repo.FindByID(noteID)
+	if err != nil {
+		t.Fatalf("Failed to find note: %v", err)
+	}
+	note := mapper.ToDomain(notePO)
+	contents := note.Contents()
+	if len(contents) != 1 {
+		t.Fatalf("Expected 1 content block, got %d", len(contents))
+	}
+	if contents[0].Data != updatedData {
+		t.Errorf("Expected content to be '%s', got '%s'", updatedData, contents[0].Data)
+	}
+}
+
+func TestNoteUsecase_UpdateContent_NoteNotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+
+	// Act
+	err := noteUsecase.UpdateContent("non-existent-note-id", "content-id", "Updated data")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent note, but got nil")
+	}
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_UpdateContent_ContentNotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+
+	// Act
+	err = noteUsecase.UpdateContent(noteID, "non-existent-content-id", "Updated data")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for non-existent content, but got nil")
+	}
+	if !errors.Is(err, ErrContentNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+	}
+}
