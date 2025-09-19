@@ -54,7 +54,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.5:** Implement the `POST /notes/{id}/contents` API endpoint.
     - [x] **T2.6:** Implement an `UpdateContent` method on the `Note` entity in the domain layer.
     - [x] **T2.7:** Create an `UpdateContent` method in `NoteUsecase`.
-    - [ ] **T2.8:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint.
+    - [x] **T2.8:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint.
     - [ ] **T2.9:** Implement a `DeleteContent` method on the `Note` entity in the domain layer.
     - [ ] **T2.10:** Create a `DeleteContent` method in `NoteUsecase`.
     - [ ] **T2.11:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint.

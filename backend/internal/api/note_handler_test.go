@@ -24,6 +24,7 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Get("/notes/{id}", handler.GetNoteByID)
 	router.Delete("/notes/{id}", handler.DeleteNote)
 	router.Post("/notes/{id}/contents", handler.AddContent)
+	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	return router, noteUsecase
 }
 
@@ -311,5 +312,103 @@ func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 	expectedErr := "title cannot be empty"
 	if !strings.Contains(rr.Body.String(), expectedErr) {
 		t.Errorf("expected error message '%s' in body; got '%s'", expectedErr, rr.Body.String())
+	}
+}
+
+func TestNoteHandler_UpdateContent_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	contentID, err := noteUsecase.AddContent(noteID, "", "Initial Content", "text")
+	if err != nil {
+		t.Fatalf("setup: failed to add content: %v", err)
+	}
+
+	requestBody := UpdateContentRequest{
+		Data: "Updated Content",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
+	}
+
+	note, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get note: %v", err)
+	}
+	if len(note.Contents) != 1 {
+		t.Fatalf("expected 1 content block, got %d", len(note.Contents))
+	}
+	if note.Contents[0].Data != "Updated Content" {
+		t.Errorf("expected content to be 'Updated Content', got '%s'", note.Contents[0].Data)
+	}
+}
+
+func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	requestBody := UpdateContentRequest{
+		Data: "Updated Content",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPut, "/notes/non-existent-id/contents/some-content-id", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	requestBody := UpdateContentRequest{
+		Data: "Updated Content",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/non-existent-content-id", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_UpdateContent_InvalidJSON(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	invalidBody := []byte(`{"data":`) // Malformed JSON
+	req := httptest.NewRequest(http.MethodPut, "/notes/some-id/contents/some-content-id", bytes.NewBuffer(invalidBody))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
 	}
 }
