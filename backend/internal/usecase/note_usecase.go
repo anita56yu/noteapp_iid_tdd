@@ -121,6 +121,26 @@ func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
 	return nil
 }
 
+// DeleteContent deletes a content from a note.
+func (uc *NoteUsecase) DeleteContent(noteID, contentID string) error {
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	note := uc.mapper.ToDomain(notePO)
+
+	if err := note.DeleteContent(contentID); err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	updatedNotePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNoteNotFound):

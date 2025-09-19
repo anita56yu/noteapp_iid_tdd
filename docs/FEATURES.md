@@ -56,7 +56,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.7:** Create an `UpdateContent` method in `NoteUsecase`.
     - [x] **T2.8:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint.
     - [x] **T2.9:** Implement a `DeleteContent` method on the `Note` entity in the domain layer.
-    - [ ] **T2.10:** Create a `DeleteContent` method in `NoteUsecase`.
+    - [x] **T2.10:** Create a `DeleteContent` method in `NoteUsecase`.
     - [ ] **T2.11:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint.
     - [ ] **T2.12:** Implement logic to handle `ImageContentType`.
 - [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
@@ -67,7 +67,7 @@ User facing APIs should guard against illegal parameters
 - [ ] **F7:** Decouple Data Persistence with a Repository Layer.
     - [x] **T7.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
     - [x] **T7.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
-    - [ ] **T7.3:** Make the `InMemoryNoteRepository` thread-safe.
+    - [ ] **T7.3:** Make the `InMemoryNoteRepository` thread-safe, and anti-racing. When two users are changing the same note, the PO in the repository should be anti-racing.
 - [ ] **F8:** API and Codebase Polish.
     - [ ] **T8.1:** Refactor: Standardize API error responses to return JSON objects.
     - [ ] **T8.2:** Refactor: Move router setup out of `main.go` to improve modularity.
