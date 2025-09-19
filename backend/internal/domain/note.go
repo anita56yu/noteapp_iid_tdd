@@ -90,3 +90,14 @@ func (n *Note) UpdateContent(id, data string) error {
 	}
 	return ErrContentNotFound
 }
+
+// DeleteContent removes a content block from the note.
+func (n *Note) DeleteContent(id string) error {
+	for i, content := range n.contents {
+		if content.ID == id {
+			n.contents = append(n.contents[:i], n.contents[i+1:]...)
+			return nil
+		}
+	}
+	return ErrContentNotFound
+}

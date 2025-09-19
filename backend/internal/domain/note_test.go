@@ -140,3 +140,42 @@ func TestNote_UpdateContent_NotFound(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
 	}
 }
+
+func TestNote_DeleteContent_Success(t *testing.T) {
+	// Arrange
+	note, _ := NewNote("note-1", "Test Note")
+	contentID1 := note.AddContent("", "Content 1", TextContentType)
+	contentID2 := note.AddContent("", "Content 2", TextContentType)
+
+	// Act
+	err := note.DeleteContent(contentID1)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("DeleteContent returned an unexpected error: %v", err)
+	}
+	contents := note.Contents()
+	if len(contents) != 1 {
+		t.Fatalf("Expected 1 content block after deletion, but got %d", len(contents))
+	}
+	if contents[0].ID != contentID2 {
+		t.Errorf("Expected remaining content ID to be '%s', but got '%s'", contentID2, contents[0].ID)
+	}
+}
+
+func TestNote_DeleteContent_NotFound(t *testing.T) {
+	// Arrange
+	note, _ := NewNote("note-1", "Test Note")
+	note.AddContent("content-1", "Initial data", TextContentType)
+
+	// Act
+	err := note.DeleteContent("non-existent-id")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error when deleting non-existent content, but got nil")
+	}
+	if err != ErrContentNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+	}
+}

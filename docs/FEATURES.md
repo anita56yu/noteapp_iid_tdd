@@ -55,7 +55,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.6:** Implement an `UpdateContent` method on the `Note` entity in the domain layer.
     - [x] **T2.7:** Create an `UpdateContent` method in `NoteUsecase`.
     - [x] **T2.8:** Implement the `PUT /notes/{id}/contents/{contentId}` API endpoint.
-    - [ ] **T2.9:** Implement a `DeleteContent` method on the `Note` entity in the domain layer.
+    - [x] **T2.9:** Implement a `DeleteContent` method on the `Note` entity in the domain layer.
     - [ ] **T2.10:** Create a `DeleteContent` method in `NoteUsecase`.
     - [ ] **T2.11:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint.
     - [ ] **T2.12:** Implement logic to handle `ImageContentType`.
@@ -64,7 +64,7 @@ User facing APIs should guard against illegal parameters
     - [ ] **T4.1:** Define a method in the domain layer that adds a content to a note with additional parameters such as lock status.
 - [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F6:** API Security. APIs validate input to prevent errors and misuse.
-- [ ] **F7:** Decourple Data Persistence with a Repository Layer.
+- [ ] **F7:** Decouple Data Persistence with a Repository Layer.
     - [x] **T7.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
     - [x] **T7.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
     - [ ] **T7.3:** Make the `InMemoryNoteRepository` thread-safe.
