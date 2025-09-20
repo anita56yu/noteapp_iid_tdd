@@ -25,6 +25,7 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Delete("/notes/{id}", handler.DeleteNote)
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
+	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
 	return router, noteUsecase
 }
 
@@ -410,5 +411,72 @@ func TestNoteHandler_UpdateContent_InvalidJSON(t *testing.T) {
 	// Assert
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
+}
+
+func TestNoteHandler_DeleteContent_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	contentID, err := noteUsecase.AddContent(noteID, "", "Initial Content", "text")
+	if err != nil {
+		t.Fatalf("setup: failed to add content: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
+	}
+
+	note, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get note: %v", err)
+	}
+	if len(note.Contents) != 0 {
+		t.Errorf("expected 0 content blocks, got %d", len(note.Contents))
+	}
+}
+
+func TestNoteHandler_DeleteContent_NoteNotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id/contents/some-content-id", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/non-existent-content-id", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
 	}
 }

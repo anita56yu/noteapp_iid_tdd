@@ -1,9 +1,9 @@
 # Test-driven development
 This instruction describes the TDD loop you and I will follow to complete a task.
 
-## 1. Write a failing test:
+## 1. Write a failing test, one test at a time:
     - You will help me create the boilerplate test, including a good test name in a suitable test suite.
-    - I will write the **Arrange-Act-Assert (AAA)** test code.
+    - We will then write the **Arrange-Act-Assert (AAA)** test code.
     - You will run the build to confirm it fails.
 ## 2. Write code to pass the test:
     - You will ask me before generating any function prototype without implementation

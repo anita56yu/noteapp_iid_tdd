@@ -26,6 +26,7 @@ func main() {
 	router.Delete("/notes/{id}", noteHandler.DeleteNote)
 	router.Post("/notes/{id}/contents", noteHandler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", noteHandler.UpdateContent)
+	router.Delete("/notes/{id}/contents/{contentId}", noteHandler.DeleteContent)
 
 	// 3. Server Startup
 	port := ":8080"

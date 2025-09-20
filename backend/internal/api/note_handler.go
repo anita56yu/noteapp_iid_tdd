@@ -172,6 +172,27 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// DeleteContent is the handler for the DELETE /notes/{id}/contents/{contentId} endpoint.
+func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
+	noteID := chi.URLParam(r, "id")
+	contentID := chi.URLParam(r, "contentId")
+
+	err := h.usecase.DeleteContent(noteID, contentID)
+	if err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound), errors.Is(err, usecase.ErrContentNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrInvalidID):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func mapToDomainContentType(ct string) (usecase.ContentType, error) {
 	switch ct {
 	case "text":
