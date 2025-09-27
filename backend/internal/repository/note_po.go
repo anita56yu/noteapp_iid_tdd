@@ -12,4 +12,5 @@ type NotePO struct {
 	ID       string
 	Title    string
 	Contents []ContentPO
+	Keywords map[string][]string
 }

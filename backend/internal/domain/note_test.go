@@ -187,7 +187,7 @@ func TestNote_AddKeyword(t *testing.T) {
 
 	note.AddKeyword(userID, keyword)
 
-	keywords := note.Keywords(userID)
+	keywords := note.UserKeywords(userID)
 	if len(keywords) != 1 {
 		t.Fatalf("Expected 1 keyword for user, but got %d", len(keywords))
 	}

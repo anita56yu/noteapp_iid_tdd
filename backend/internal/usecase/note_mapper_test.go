@@ -57,6 +57,8 @@ func TestNoteMapper_ToPO(t *testing.T) {
 	// Arrange
 	note, _ := domain.NewNote("note-1", "Test Note")
 	note.AddContent("content-1", "Hello", domain.TextContentType)
+	keyword, _ := domain.NewKeyword("test-keyword")
+	note.AddKeyword("user-1", keyword)
 
 	mapper := NewNoteMapper()
 
@@ -76,6 +78,12 @@ func TestNoteMapper_ToPO(t *testing.T) {
 	if po.Contents[0].ID != "content-1" {
 		t.Errorf("Expected content ID to be 'content-1', but got '%s'", po.Contents[0].ID)
 	}
+	if len(po.Keywords["user-1"]) != 1 {
+		t.Fatalf("Expected 1 keyword for user-1, but got %d", len(po.Keywords["user-1"]))
+	}
+	if po.Keywords["user-1"][0] != "test-keyword" {
+		t.Errorf("Expected keyword to be 'test-keyword', but got '%s'", po.Keywords["user-1"][0])
+	}
 }
 
 func TestNoteMapper_ToDomain(t *testing.T) {
@@ -86,10 +94,15 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 		Contents: []repository.ContentPO{
 			{ID: "content-1", Type: "text", Data: "Hello"},
 		},
+		Keywords: map[string][]string{
+			"user-1": {"test-keyword"},
+		},
 	}
 
 	expectedNote, _ := domain.NewNote("note-1", "Test Note")
 	expectedNote.AddContent("content-1", "Hello", domain.TextContentType)
+	keyword, _ := domain.NewKeyword("test-keyword")
+	expectedNote.AddKeyword("user-1", keyword)
 
 	mapper := NewNoteMapper()
 
@@ -118,5 +131,13 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 	}
 	if contents[0].Data != expectedContents[0].Data {
 		t.Errorf("Expected content data to be '%s', got '%s'", expectedContents[0].Data, contents[0].Data)
+	}
+
+	keywords := note.UserKeywords("user-1")
+	if len(keywords) != 1 {
+		t.Fatalf("Expected 1 keyword, but got %d", len(keywords))
+	}
+	if keywords[0].String() != "test-keyword" {
+		t.Errorf("Expected keyword to be 'test-keyword', but got '%s'", keywords[0].String())
 	}
 }

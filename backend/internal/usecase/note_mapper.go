@@ -24,10 +24,18 @@ func (m *NoteMapper) ToPO(note *domain.Note) *repository.NotePO {
 		}
 	}
 
+	keywordPOs := make(map[string][]string)
+	for userID, keywords := range note.Keywords() {
+		for _, keyword := range keywords {
+			keywordPOs[userID] = append(keywordPOs[userID], keyword.String())
+		}
+	}
+
 	return &repository.NotePO{
 		ID:       note.ID,
 		Title:    note.Title,
 		Contents: contentPOs,
+		Keywords: keywordPOs,
 	}
 }
 
@@ -36,6 +44,12 @@ func (m *NoteMapper) ToDomain(po *repository.NotePO) *domain.Note {
 	note, _ := domain.NewNote(po.ID, po.Title)
 	for _, contentPO := range po.Contents {
 		note.AddContent(contentPO.ID, contentPO.Data, domain.ContentType(contentPO.Type))
+	}
+	for userID, keywords := range po.Keywords {
+		for _, keywordStr := range keywords {
+			keyword, _ := domain.NewKeyword(keywordStr)
+			note.AddKeyword(userID, keyword)
+		}
 	}
 	return note
 }

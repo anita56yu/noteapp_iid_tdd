@@ -64,8 +64,19 @@ func (n *Note) Contents() []Content {
 	return contentsCopy
 }
 
-// Keywords returns a copy of the note's keywords for a specific user.
-func (n *Note) Keywords(userID string) []Keyword {
+// Keywords returns a deep copy of the note's keywords.
+func (n *Note) Keywords() map[string][]Keyword {
+	keywordsCopy := make(map[string][]Keyword)
+	for userID, keywords := range n.keywords {
+		userKeywordsCopy := make([]Keyword, len(keywords))
+		copy(userKeywordsCopy, keywords)
+		keywordsCopy[userID] = userKeywordsCopy
+	}
+	return keywordsCopy
+}
+
+// UserKeywords returns a copy of the note's keywords for a specific user.
+func (n *Note) UserKeywords(userID string) []Keyword {
 	// Return a copy to prevent modification of the internal slice.
 	keywordsCopy := make([]Keyword, len(n.keywords[userID]))
 	copy(keywordsCopy, n.keywords[userID])
