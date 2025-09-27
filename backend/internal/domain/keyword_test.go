@@ -22,4 +22,7 @@ func TestNewKeyword_EmptyText(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for empty keyword text, but got nil")
 	}
+	if err != ErrEmptyKeyword {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyKeyword, err)
+	}
 }

@@ -22,6 +22,9 @@ var ErrEmptyTitle = errors.New("title cannot be empty")
 // ErrContentNotFound is returned when a content is not found.
 var ErrContentNotFound = errors.New("content not found")
 
+// ErrEmptyKeyword is returned when a keyword is empty.
+var ErrEmptyKeyword = errors.New("keyword cannot be empty")
+
 type ContentType string
 
 const (
@@ -141,6 +144,29 @@ func (uc *NoteUsecase) DeleteContent(noteID, contentID string) error {
 	return nil
 }
 
+// TagNote adds a keyword to a note for a specific user.
+func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	note := uc.mapper.ToDomain(notePO)
+
+	keyword, err := domain.NewKeyword(keywordStr)
+	if err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	note.AddKeyword(userID, keyword)
+
+	updatedNotePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNoteNotFound):
@@ -158,6 +184,8 @@ func (uc *NoteUsecase) mapDomainError(err error) error {
 		return ErrEmptyTitle
 	case errors.Is(err, domain.ErrContentNotFound):
 		return ErrContentNotFound
+	case errors.Is(err, domain.ErrEmptyKeyword):
+		return ErrEmptyKeyword
 	default:
 		return fmt.Errorf("an unexpected domain error occurred: %w", err)
 	}
