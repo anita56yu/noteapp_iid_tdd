@@ -179,3 +179,19 @@ func TestNote_DeleteContent_NotFound(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
 	}
 }
+
+func TestNote_AddKeyword(t *testing.T) {
+	note, _ := NewNote("note-1", "Test Note")
+	userID := "user-1"
+	keyword, _ := NewKeyword("test-keyword")
+
+	note.AddKeyword(userID, keyword)
+
+	keywords := note.Keywords(userID)
+	if len(keywords) != 1 {
+		t.Fatalf("Expected 1 keyword for user, but got %d", len(keywords))
+	}
+	if keywords[0] != keyword {
+		t.Errorf("Expected keyword to be '%v', but got '%v'", keyword, keywords[0])
+	}
+}

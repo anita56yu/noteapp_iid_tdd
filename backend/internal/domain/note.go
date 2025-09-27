@@ -34,6 +34,7 @@ type Note struct {
 	ID       string
 	Title    string
 	contents []Content
+	keywords map[string][]Keyword
 }
 
 // NewNote creates a new Note instance.
@@ -51,6 +52,7 @@ func NewNote(id, title string) (*Note, error) {
 		ID:       id,
 		Title:    title,
 		contents: []Content{},
+		keywords: make(map[string][]Keyword),
 	}, nil
 }
 
@@ -60,6 +62,14 @@ func (n *Note) Contents() []Content {
 	contentsCopy := make([]Content, len(n.contents))
 	copy(contentsCopy, n.contents)
 	return contentsCopy
+}
+
+// Keywords returns a copy of the note's keywords for a specific user.
+func (n *Note) Keywords(userID string) []Keyword {
+	// Return a copy to prevent modification of the internal slice.
+	keywordsCopy := make([]Keyword, len(n.keywords[userID]))
+	copy(keywordsCopy, n.keywords[userID])
+	return keywordsCopy
 }
 
 // AddContent adds a new content block to the note.
@@ -78,6 +88,11 @@ func (n *Note) AddContent(id, data string, contentType ContentType) string {
 	n.contents = append(n.contents, newContent)
 
 	return id
+}
+
+// AddKeyword adds a new keyword to the note for a specific user.
+func (n *Note) AddKeyword(userID string, keyword Keyword) {
+	n.keywords[userID] = append(n.keywords[userID], keyword)
 }
 
 // UpdateContent updates an existing content block in the note.

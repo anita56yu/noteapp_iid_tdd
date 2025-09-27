@@ -61,7 +61,7 @@ User facing APIs should guard against illegal parameters
     - [ ] **T2.12:** Implement logic to handle `ImageContentType`.
 - [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
     - [x] **T3.1:** Define `Keyword` as a value object in the `domain` layer.
-    - [ ] **T3.2:** Enhance the `Note` domain model to store user-specific keywords and add an `AddTag` method.
+    - [x] **T3.2:** Enhance the `Note` domain model to store user-specific keywords and add an `AddKeyword` method.
     - [ ] **T3.3:** Update `NotePO` in the repository and the `NoteMapper` in the usecase to handle the new tag data.
     - [ ] **T3.4:** Implement the `TagNote` method in `NoteUsecase` to fetch, update, and save the note.
     - [ ] **T3.5:** Implement the `POST /users/{userID}/notes/{noteID}/tags` API endpoint.
