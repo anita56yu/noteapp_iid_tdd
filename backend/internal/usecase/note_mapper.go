@@ -64,9 +64,17 @@ func (m *NoteMapper) toNoteDTO(note *domain.Note) *NoteDTO {
 		}
 	}
 
+	keywordDTOs := make(map[string][]string)
+	for userID, keywords := range note.Keywords() {
+		for _, keyword := range keywords {
+			keywordDTOs[userID] = append(keywordDTOs[userID], keyword.String())
+		}
+	}
+
 	return &NoteDTO{
 		ID:       note.ID,
 		Title:    note.Title,
 		Contents: contentDTOs,
+		Keywords: keywordDTOs,
 	}
 }

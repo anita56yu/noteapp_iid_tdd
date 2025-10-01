@@ -14,6 +14,10 @@ func TestToNoteDTO(t *testing.T) {
 	}
 	note.AddContent("content-1", "Hello", domain.TextContentType)
 	note.AddContent("content-2", "base64-encoded-image", domain.ImageContentType)
+	keyword1, _ := domain.NewKeyword("keyword1")
+	keyword2, _ := domain.NewKeyword("keyword2")
+	note.AddKeyword("user-1", keyword1)
+	note.AddKeyword("user-1", keyword2)
 
 	// Act
 	mapper := NewNoteMapper()
@@ -50,6 +54,20 @@ func TestToNoteDTO(t *testing.T) {
 	}
 	if noteDTO.Contents[1].Data != "base64-encoded-image" {
 		t.Errorf("Expected content 2 data to be 'base64-encoded-image', got '%s'", noteDTO.Contents[1].Data)
+	}
+
+	// Check keywords
+	if len(noteDTO.Keywords) != 1 {
+		t.Fatalf("Expected 1 user with keywords, got %d", len(noteDTO.Keywords))
+	}
+	if len(noteDTO.Keywords["user-1"]) != 2 {
+		t.Fatalf("Expected 2 keywords for user-1, got %d", len(noteDTO.Keywords["user-1"]))
+	}
+	if noteDTO.Keywords["user-1"][0] != "keyword1" {
+		t.Errorf("Expected keyword 1 to be 'keyword1', got '%s'", noteDTO.Keywords["user-1"][0])
+	}
+	if noteDTO.Keywords["user-1"][1] != "keyword2" {
+		t.Errorf("Expected keyword 2 to be 'keyword2', got '%s'", noteDTO.Keywords["user-1"][1])
 	}
 }
 

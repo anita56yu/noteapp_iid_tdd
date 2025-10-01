@@ -41,6 +41,11 @@ type UpdateContentRequest struct {
 	Data string `json:"data"`
 }
 
+// TagNoteRequest represents the request body for tagging a note.
+type TagNoteRequest struct {
+	Keyword string `json:"keyword"`
+}
+
 var ErrUnsupportedContentType = errors.New("unsupported content type")
 
 // CreateNote is the handler for the POST /notes endpoint.
@@ -191,6 +196,32 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// TagNote is the handler for the POST /users/{userID}/notes/{noteID}/tags endpoint.
+func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	noteID := chi.URLParam(r, "noteID")
+
+	var req TagNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.usecase.TagNote(noteID, userID, req.Keyword); err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrEmptyKeyword):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
 
 func mapToDomainContentType(ct string) (usecase.ContentType, error) {

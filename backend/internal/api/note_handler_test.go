@@ -26,6 +26,7 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
+	router.Post("/users/{userID}/notes/{noteID}/tags", handler.TagNote)
 	return router, noteUsecase
 }
 
@@ -478,5 +479,79 @@ func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 	// Assert
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_TagNote_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	userID := "user-1"
+	keyword := "test-keyword"
+	requestBody := TagNoteRequest{Keyword: keyword}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/tags", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusCreated {
+		t.Errorf("expected status %d; got %d", http.StatusCreated, rr.Code)
+	}
+	note, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get note: %v", err)
+	}
+	if len(note.Keywords[userID]) != 1 {
+		t.Fatalf("expected 1 keyword, got %d", len(note.Keywords[userID]))
+	}
+	if note.Keywords[userID][0] != keyword {
+		t.Errorf("expected keyword to be '%s', got '%s'", keyword, note.Keywords[userID][0])
+	}
+}
+
+func TestNoteHandler_TagNote_NoteNotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	userID := "user-1"
+	keyword := "test-keyword"
+	requestBody := TagNoteRequest{Keyword: keyword}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/non-existent-id/tags", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	userID := "user-1"
+	requestBody := TagNoteRequest{Keyword: ""}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/tags", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
 	}
 }

@@ -9,7 +9,8 @@ type ContentDTO struct {
 
 // NoteDTO represents a note for external consumers.
 type NoteDTO struct {
-	ID       string       `json:"id"`
-	Title    string       `json:"title"`
-	Contents []ContentDTO `json:"contents"`
+	ID       string              `json:"id"`	
+	Title    string              `json:"title"`	
+	Contents []ContentDTO        `json:"contents"`	
+	Keywords map[string][]string `json:"keywords,omitempty"`
 }
