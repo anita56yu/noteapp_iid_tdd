@@ -576,3 +576,82 @@ func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyKeyword, err)
 	}
 }
+
+func TestNoteUsecase_FindNotesByKeyword(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	note1, _ := noteUsecase.CreateNote("", "Note 1")
+	note2, _ := noteUsecase.CreateNote("", "Note 2")
+	note3, _ := noteUsecase.CreateNote("", "Note 3")
+	noteUsecase.TagNote(note1, "user-1", "go")
+	noteUsecase.TagNote(note1, "user-1", "testing")
+	noteUsecase.TagNote(note1, "user-2", "go")
+	noteUsecase.TagNote(note2, "user-1", "testing")
+	noteUsecase.TagNote(note3, "user-2", "java")
+	noteUsecase.TagNote(note3, "user-2", "testing")
+
+	// Act
+	notes, err := noteUsecase.FindNotesByKeyword("user-1", "testing")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("FindNotesByKeyword() returned an unexpected error: %v", err)
+	}
+	if len(notes) != 2 {
+		t.Fatalf("Expected 2 notes, got %d", len(notes))
+	}
+
+	// Check that the correct notes are returned, regardless of order.
+	noteIDs := make(map[string]bool)
+	for _, note := range notes {
+		noteIDs[note.ID] = true
+	}
+	if !noteIDs[note1] {
+		t.Errorf("Expected to find note with ID %s", note1)
+	}
+	if !noteIDs[note2] {
+		t.Errorf("Expected to find note with ID %s", note2)
+	}
+	if noteIDs[note3] {
+		t.Errorf("Did not expect to find note with ID %s", note3)
+	}
+}
+
+func TestNoteUsecase_FindNotesByKeyword_NoResults(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	note1, _ := noteUsecase.CreateNote("", "Note 1")
+	noteUsecase.TagNote(note1, "user-1", "go")
+
+	// Act
+	notes, err := noteUsecase.FindNotesByKeyword("user-1", "testing")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("FindNotesByKeyword() returned an unexpected error: %v", err)
+	}
+	if len(notes) != 0 {
+		t.Fatalf("Expected 0 notes, got %d", len(notes))
+	}
+}
+
+func TestNoteUsecase_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	note1, _ := noteUsecase.CreateNote("", "Note 1")
+	noteUsecase.TagNote(note1, "user-1", "go")
+
+	// Act
+	notes, err := noteUsecase.FindNotesByKeyword("user-1", "")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("FindNotesByKeyword() returned an unexpected error: %v", err)
+	}
+	if len(notes) != 0 {
+		t.Fatalf("Expected 0 notes, got %d", len(notes))
+	}
+}

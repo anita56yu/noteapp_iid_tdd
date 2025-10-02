@@ -167,6 +167,26 @@ func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
 	return nil
 }
 
+// FindNotesByTag finds notes by a specific tag for a given user.
+func (uc *NoteUsecase) FindNotesByKeyword(userID, keyword string) ([]*NoteDTO, error) {
+	if userID == "" || keyword == "" {
+		return []*NoteDTO{}, nil
+	}
+
+	notePOs, err := uc.repo.FindByKeywordForUser(userID, keyword)
+	if err != nil {
+		return nil, uc.mapRepositoryError(err)
+	}
+
+	var noteDTOs []*NoteDTO
+	for _, notePO := range notePOs {
+		note := uc.mapper.ToDomain(notePO)
+		noteDTOs = append(noteDTOs, uc.mapper.toNoteDTO(note))
+	}
+
+	return noteDTOs, nil
+}
+
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNoteNotFound):
