@@ -198,7 +198,7 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// TagNote is the handler for the POST /users/{userID}/notes/{noteID}/tags endpoint.
+// TagNote is the handler for the POST /users/{userID}/notes/{noteID}/keyword endpoint.
 func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 	noteID := chi.URLParam(r, "noteID")
@@ -222,6 +222,22 @@ func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+// FindNotesByKeyword is the handler for the GET /users/{userID}/notes?keyword={keyword} endpoint.
+func (h *NoteHandler) FindNotesByKeyword(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	keyword := r.URL.Query().Get("keyword")
+
+	notes, err := h.usecase.FindNotesByKeyword(userID, keyword)
+	if err != nil {
+		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(notes)
 }
 
 func mapToDomainContentType(ct string) (usecase.ContentType, error) {

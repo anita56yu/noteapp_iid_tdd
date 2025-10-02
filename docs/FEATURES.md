@@ -64,10 +64,10 @@ User facing APIs should guard against illegal parameters
     - [x] **T3.2:** Enhance the `Note` domain model to store user-specific keywords and add an `AddKeyword` method.
     - [x] **T3.3:** Update `NotePO` in the repository and the `NoteMapper` in the usecase to handle the new tag data.
     - [x] **T3.4:** Implement the `TagNote` method in `NoteUsecase` to fetch, update, and save the note.
-    - [x] **T3.5:** Implement the `POST /users/{userID}/notes/{noteID}/tags` API endpoint.
+    - [x] **T3.5:** Implement the `POST /users/{userID}/notes/{noteID}/keywords` API endpoint.
     - [x] **T3.6:** Add a `FindByKeywordForUser` method to the `NoteRepository` interface and `InMemoryNoteRepository`.
     - [x] **T3.7:** Implement the `FindNotesByKeyword` method in `NoteUsecase` to filter notes in memory.
-    - [ ] **T3.8:** Implement the `GET /users/{userID}/notes?tag={tag}` API endpoint.
+    - [x] **T3.8:** Implement the `GET /users/{userID}/notes?keyword={keyword}` API endpoint.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
     - [ ] **T4.1:** Define a method in the domain layer that adds a content to a note with additional parameters such as lock status.
 - [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.

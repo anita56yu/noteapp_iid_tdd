@@ -26,8 +26,95 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
-	router.Post("/users/{userID}/notes/{noteID}/tags", handler.TagNote)
+	router.Post("/users/{userID}/notes/{noteID}/keyword", handler.TagNote)
+	router.Get("/users/{userID}/notes", handler.FindNotesByKeyword)
 	return router, noteUsecase
+}
+
+func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	note1, _ := noteUsecase.CreateNote("", "Note 1")
+	note2, _ := noteUsecase.CreateNote("", "Note 2")
+	note3, _ := noteUsecase.CreateNote("", "Note 3")
+
+	noteUsecase.TagNote(note1, "user-1", "testing")
+	noteUsecase.TagNote(note2, "user-1", "testing")
+	noteUsecase.TagNote(note3, "user-2", "testing")
+
+	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=testing", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
+	}
+	var notes []*usecase.NoteDTO
+	if err := json.NewDecoder(rr.Body).Decode(&notes); err != nil {
+		t.Fatalf("failed to decode response body: %v", err)
+	}
+	if len(notes) != 2 {
+		t.Fatalf("expected 2 notes, got %d", len(notes))
+	}
+}
+
+func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	note1, _ := noteUsecase.CreateNote("", "Note 1")
+	note2, _ := noteUsecase.CreateNote("", "Note 2")
+	note3, _ := noteUsecase.CreateNote("", "Note 3")
+
+	noteUsecase.TagNote(note1, "user-1", "testing")
+	noteUsecase.TagNote(note2, "user-1", "testing")
+	noteUsecase.TagNote(note3, "user-2", "testing")
+
+	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=go", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
+	}
+	var notes []*usecase.NoteDTO
+	if err := json.NewDecoder(rr.Body).Decode(&notes); err != nil {
+		t.Fatalf("failed to decode response body: %v", err)
+	}
+	if len(notes) != 0 {
+		t.Fatalf("expected 0 notes, got %d", len(notes))
+	}
+}
+
+func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	note1, _ := noteUsecase.CreateNote("", "Note 1")
+
+	noteUsecase.TagNote(note1, "user-1", "testing")
+
+	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
+	}
+	var notes []*usecase.NoteDTO
+	if err := json.NewDecoder(rr.Body).Decode(&notes); err != nil {
+		t.Fatalf("failed to decode response body: %v", err)
+	}
+	if len(notes) != 0 {
+		t.Fatalf("expected 0 notes, got %d", len(notes))
+	}
 }
 
 func TestNoteHandler_AddContent_Success(t *testing.T) {
@@ -493,7 +580,7 @@ func TestNoteHandler_TagNote_Success(t *testing.T) {
 	keyword := "test-keyword"
 	requestBody := TagNoteRequest{Keyword: keyword}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/tags", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -522,7 +609,7 @@ func TestNoteHandler_TagNote_NoteNotFound(t *testing.T) {
 	keyword := "test-keyword"
 	requestBody := TagNoteRequest{Keyword: keyword}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/non-existent-id/tags", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/non-existent-id/keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -544,7 +631,7 @@ func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 	userID := "user-1"
 	requestBody := TagNoteRequest{Keyword: ""}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/tags", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
