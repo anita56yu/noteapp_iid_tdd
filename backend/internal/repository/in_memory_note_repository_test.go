@@ -109,3 +109,50 @@ func TestInMemoryNoteRepository_Delete_NotFound(t *testing.T) {
 		t.Errorf("Expected error %v, got %v", ErrNoteNotFound, err)
 	}
 }
+
+func TestInMemoryNoteRepository_FindByKeywordForUser(t *testing.T) {
+	// Arrange
+	repo := NewInMemoryNoteRepository()
+	note1 := &NotePO{
+		ID:    "note-1",
+		Title: "Note 1",
+		Keywords: map[string][]string{
+			"user-1": {"go", "testing"},
+			"user-2": {"go"},
+		},
+	}
+	note2 := &NotePO{
+		ID:    "note-2",
+		Title: "Note 2",
+		Keywords: map[string][]string{
+			"user-1": {"testing"},
+		},
+	}
+	note3 := &NotePO{
+		ID:    "note-3",
+		Title: "Note 3",
+		Keywords: map[string][]string{
+			"user-2": {"java", "testing"},
+		},
+	}
+	repo.Save(note1)
+	repo.Save(note2)
+	repo.Save(note3)
+
+	// Act
+	notes, err := repo.FindByKeywordForUser("user-1", "testing")
+	if err != nil {
+		t.Fatalf("FindByKeywordForUser() returned an unexpected error: %v", err)
+	}
+
+	// Assert
+	if len(notes) != 2 {
+		t.Fatalf("Expected 2 notes, got %d", len(notes))
+	}
+	if notes[0].ID != "note-1" && notes[0].ID != "note-2" {
+		t.Errorf("Expected note-1 or note-2, got %s", notes[0].ID)
+	}
+	if notes[1].ID != "note-1" && notes[1].ID != "note-2" {
+		t.Errorf("Expected note-1 or note-2, got %s", notes[1].ID)
+	}
+}

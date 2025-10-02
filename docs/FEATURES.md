@@ -65,7 +65,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T3.3:** Update `NotePO` in the repository and the `NoteMapper` in the usecase to handle the new tag data.
     - [x] **T3.4:** Implement the `TagNote` method in `NoteUsecase` to fetch, update, and save the note.
     - [x] **T3.5:** Implement the `POST /users/{userID}/notes/{noteID}/tags` API endpoint.
-    - [ ] **T3.6:** Add a `FindAll` method to the `NoteRepository` interface and `InMemoryNoteRepository`.
+    - [x] **T3.6:** Add a `FindByKeywordForUser` method to the `NoteRepository` interface and `InMemoryNoteRepository`.
     - [ ] **T3.7:** Implement the `FindNotesByTag` method in `NoteUsecase` to filter notes in memory.
     - [ ] **T3.8:** Implement the `GET /users/{userID}/notes?tag={tag}` API endpoint.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.

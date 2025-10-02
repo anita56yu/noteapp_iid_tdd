@@ -38,3 +38,19 @@ func (r *InMemoryNoteRepository) Delete(id string) error {
 	delete(r.notes, id)
 	return nil
 }
+
+// FindByKeywordForUser finds notes by a specific keyword for a given user.
+func (r *InMemoryNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*NotePO, error) {
+	var foundNotes []*NotePO
+	for _, note := range r.notes {
+		if userKeywords, ok := note.Keywords[userID]; ok {
+			for _, k := range userKeywords {
+				if k == keyword {
+					foundNotes = append(foundNotes, note)
+					break
+				}
+			}
+		}
+	}
+	return foundNotes, nil
+}

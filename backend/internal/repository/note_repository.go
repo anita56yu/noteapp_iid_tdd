@@ -5,4 +5,5 @@ type NoteRepository interface {
 	Save(note *NotePO) error
 	FindByID(id string) (*NotePO, error)
 	Delete(id string) error
+	FindByKeywordForUser(userID, keyword string) ([]*NotePO, error)
 }

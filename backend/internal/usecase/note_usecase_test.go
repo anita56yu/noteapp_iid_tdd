@@ -9,9 +9,10 @@ import (
 
 // mockNoteRepository is a mock implementation of the NoteRepository for testing error cases.
 type mockNoteRepository struct {
-	SaveFunc     func(note *repository.NotePO) error
-	FindByIDFunc func(id string) (*repository.NotePO, error)
-	DeleteFunc   func(id string) error
+	SaveFunc                 func(note *repository.NotePO) error
+	FindByIDFunc             func(id string) (*repository.NotePO, error)
+	DeleteFunc               func(id string) error
+	FindByKeywordForUserFunc func(userID, keyword string) ([]*repository.NotePO, error)
 }
 
 func (m *mockNoteRepository) Save(note *repository.NotePO) error {
@@ -31,6 +32,12 @@ func (m *mockNoteRepository) Delete(id string) error {
 		return m.DeleteFunc(id)
 	}
 	return nil
+}
+func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*repository.NotePO, error) {
+	if m.FindByKeywordForUserFunc != nil {
+		return m.FindByKeywordForUserFunc(userID, keyword)
+	}
+	return nil, nil
 }
 
 func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
