@@ -1,5 +1,7 @@
 package repository
 
+import "sync"
+
 // ContentPO represents the persistent state of a content block.
 type ContentPO struct {
 	ID   string
@@ -13,4 +15,5 @@ type NotePO struct {
 	Title    string
 	Contents []ContentPO
 	Keywords map[string][]string
+	mutex    sync.Mutex
 }

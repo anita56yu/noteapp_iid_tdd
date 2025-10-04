@@ -80,6 +80,10 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 		return ErrInvalidID
 	}
 
+	if err := uc.repo.LockNoteForUpdate(id); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
 	if err := uc.repo.Delete(id); err != nil {
 		return uc.mapRepositoryError(err)
 	}
@@ -88,6 +92,11 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 }
 
 func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType ContentType) (string, error) {
+	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
+		return "", uc.mapRepositoryError(err)
+	}
+	defer uc.repo.UnlockNoteForUpdate(noteID)
+
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return "", uc.mapRepositoryError(err)
@@ -106,6 +115,11 @@ func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType Co
 
 // UpdateContent updates the content of a note.
 func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
+	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	defer uc.repo.UnlockNoteForUpdate(noteID)
+
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -126,6 +140,11 @@ func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
 
 // DeleteContent deletes a content from a note.
 func (uc *NoteUsecase) DeleteContent(noteID, contentID string) error {
+	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	defer uc.repo.UnlockNoteForUpdate(noteID)
+
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -146,6 +165,11 @@ func (uc *NoteUsecase) DeleteContent(noteID, contentID string) error {
 
 // TagNote adds a keyword to a note for a specific user.
 func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
+	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	defer uc.repo.UnlockNoteForUpdate(noteID)
+
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)

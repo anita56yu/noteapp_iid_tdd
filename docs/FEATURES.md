@@ -68,6 +68,8 @@ User facing APIs should guard against illegal parameters
     - [x] **T3.6:** Add a `FindByKeywordForUser` method to the `NoteRepository` interface and `InMemoryNoteRepository`.
     - [x] **T3.7:** Implement the `FindNotesByKeyword` method in `NoteUsecase` to filter notes in memory.
     - [x] **T3.8:** Implement the `GET /users/{userID}/notes?keyword={keyword}` API endpoint.
+    - [ ] **T3.9:** Implement an `UntagNote` method in `NoteUsecase`.
+    - [ ] **T3.10:** Implement a `DELETE /users/{userID}/notes/{noteID}/keywords/{keyword}` API endpoint.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
     - [ ] **T4.1:** Define a method in the domain layer that adds a content to a note with additional parameters such as lock status.
 - [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
@@ -75,7 +77,8 @@ User facing APIs should guard against illegal parameters
 - [ ] **F7:** Decouple Data Persistence with a Repository Layer.
     - [x] **T7.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
     - [x] **T7.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
-    - [ ] **T7.3:** Make the `InMemoryNoteRepository` thread-safe, and anti-racing. When two users are changing the same note, the PO in the repository should be anti-racing.
+    - [x] **T7.3:** Make the `InMemoryNoteRepository` thread-safe, and anti-racing. When two users are changing the same note, the PO in the repository should be anti-racing.
+    - [ ] **T7.4:** (Potential) Refactor the repository to use a transactional callback pattern for thread-safe updates, moving locking logic out of the usecase layer.
 - [ ] **F8:** API and Codebase Polish.
     - [ ] **T8.1:** Refactor: Standardize API error responses to return JSON objects.
     - [ ] **T8.2:** Refactor: Move router setup out of `main.go` to improve modularity.

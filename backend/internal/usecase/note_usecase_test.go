@@ -13,6 +13,8 @@ type mockNoteRepository struct {
 	FindByIDFunc             func(id string) (*repository.NotePO, error)
 	DeleteFunc               func(id string) error
 	FindByKeywordForUserFunc func(userID, keyword string) ([]*repository.NotePO, error)
+	LockNoteForUpdateFunc    func(noteID string) error
+	UnlockNoteForUpdateFunc  func(noteID string) error
 }
 
 func (m *mockNoteRepository) Save(note *repository.NotePO) error {
@@ -38,6 +40,18 @@ func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*re
 		return m.FindByKeywordForUserFunc(userID, keyword)
 	}
 	return nil, nil
+}
+func (m *mockNoteRepository) LockNoteForUpdate(noteID string) error {
+	if m.LockNoteForUpdateFunc != nil {
+		return m.LockNoteForUpdateFunc(noteID)
+	}
+	return nil
+}
+func (m *mockNoteRepository) UnlockNoteForUpdate(noteID string) error {
+	if m.UnlockNoteForUpdateFunc != nil {
+		return m.UnlockNoteForUpdateFunc(noteID)
+	}
+	return nil
 }
 
 func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
