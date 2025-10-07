@@ -28,6 +28,7 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
 	router.Post("/users/{userID}/notes/{noteID}/keyword", handler.TagNote)
 	router.Get("/users/{userID}/notes", handler.FindNotesByKeyword)
+	router.Delete("/users/{userID}/notes/{noteID}/keyword/{keyword}", handler.UntagNote)
 	return router, noteUsecase
 }
 
@@ -640,5 +641,101 @@ func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 	// Assert
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
+}
+
+func TestNoteHandler_UntagNote_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	userID1 := "user-1"
+	userID2 := "user-2"
+	keyword := "test-keyword"
+	noteUsecase.TagNote(noteID, userID1, keyword)
+	noteUsecase.TagNote(noteID, userID2, keyword)
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID1+"/notes/"+noteID+"/keyword/"+keyword, nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
+	}
+	note, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get note: %v", err)
+	}
+	if len(note.Keywords[userID1]) != 0 {
+		t.Errorf("expected 0 keywords for user1, got %d", len(note.Keywords[userID1]))
+	}
+	if len(note.Keywords[userID2]) != 1 {
+		t.Errorf("expected 1 keyword for user2, got %d", len(note.Keywords[userID2]))
+	}
+}
+
+func TestNoteHandler_UntagNote_NoteNotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	req := httptest.NewRequest(http.MethodDelete, "/users/user-1/notes/non-existent-id/keyword/test-keyword", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_UntagNote_UserNotFound(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	userID := "user-1"
+	keyword := "test-keyword"
+	noteUsecase.TagNote(noteID, userID, keyword)
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/non-existent-user/notes/"+noteID+"/keyword/"+keyword, nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_UntagNote_KeywordNotFound(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	userID := "user-1"
+	keyword := "test-keyword"
+	noteUsecase.TagNote(noteID, userID, keyword)
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID+"/notes/"+noteID+"/keyword/non-existent-keyword", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
 	}
 }

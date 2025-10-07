@@ -59,7 +59,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.10:** Create a `DeleteContent` method in `NoteUsecase`.
     - [x] **T2.11:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint.
     - [ ] **T2.12:** Implement logic to handle `ImageContentType`.
-- [ ] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
+- [x] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
     - [x] **T3.1:** Define `Keyword` as a value object in the `domain` layer.
     - [x] **T3.2:** Enhance the `Note` domain model to store user-specific keywords and add an `AddKeyword` method.
     - [x] **T3.3:** Update `NotePO` in the repository and the `NoteMapper` in the usecase to handle the new tag data.
@@ -69,7 +69,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T3.7:** Implement the `FindNotesByKeyword` method in `NoteUsecase` to filter notes in memory.
     - [x] **T3.8:** Implement the `GET /users/{userID}/notes?keyword={keyword}` API endpoint.
     - [x] **T3.9:** Implement an `UntagNote` method in `NoteUsecase`.
-    - [ ] **T3.10:** Implement a `DELETE /users/{userID}/notes/{noteID}/keywords/{keyword}` API endpoint.
+    - [x] **T3.10:** Implement a `DELETE /users/{userID}/notes/{noteID}/keywords/{keyword}` API endpoint.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
     - [ ] **T4.1:** Define a method in the domain layer that adds a content to a note with additional parameters such as lock status.
 - [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.

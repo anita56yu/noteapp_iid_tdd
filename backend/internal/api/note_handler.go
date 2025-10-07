@@ -240,6 +240,27 @@ func (h *NoteHandler) FindNotesByKeyword(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(notes)
 }
 
+// UntagNote is the handler for the DELETE /users/{userID}/notes/{noteID}/keyword/{keyword} endpoint.
+func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	noteID := chi.URLParam(r, "noteID")
+	keyword := chi.URLParam(r, "keyword")
+
+	if err := h.usecase.UntagNote(noteID, userID, keyword); err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound), errors.Is(err, usecase.ErrUserNotFound), errors.Is(err, usecase.ErrKeywordNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrEmptyKeyword):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func mapToDomainContentType(ct string) (usecase.ContentType, error) {
 	switch ct {
 	case "text":
