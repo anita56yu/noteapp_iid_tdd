@@ -25,6 +25,12 @@ var ErrContentNotFound = errors.New("content not found")
 // ErrEmptyKeyword is returned when a keyword is empty.
 var ErrEmptyKeyword = errors.New("keyword cannot be empty")
 
+// ErrUserNotFound is returned when a user is not found.
+var ErrUserNotFound = errors.New("user not found")
+
+// ErrKeywordNotFound is returned when a keyword is not found.
+var ErrKeywordNotFound = errors.New("keyword not found")
+
 type ContentType string
 
 const (
@@ -191,6 +197,36 @@ func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
 	return nil
 }
 
+// UntagNote removes a keyword from a note for a specific user.
+func (uc *NoteUsecase) UntagNote(noteID, userID, keywordStr string) error {
+	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	defer uc.repo.UnlockNoteForUpdate(noteID)
+
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	note := uc.mapper.ToDomain(notePO)
+
+	keyword, err := domain.NewKeyword(keywordStr)
+	if err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	if err := note.RemoveKeyword(userID, keyword); err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	updatedNotePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 // FindNotesByTag finds notes by a specific tag for a given user.
 func (uc *NoteUsecase) FindNotesByKeyword(userID, keyword string) ([]*NoteDTO, error) {
 	if userID == "" || keyword == "" {
@@ -230,6 +266,10 @@ func (uc *NoteUsecase) mapDomainError(err error) error {
 		return ErrContentNotFound
 	case errors.Is(err, domain.ErrEmptyKeyword):
 		return ErrEmptyKeyword
+	case errors.Is(err, domain.ErrUserNotFound):
+		return ErrUserNotFound
+	case errors.Is(err, domain.ErrKeywordNotFound):
+		return ErrKeywordNotFound
 	default:
 		return fmt.Errorf("an unexpected domain error occurred: %w", err)
 	}

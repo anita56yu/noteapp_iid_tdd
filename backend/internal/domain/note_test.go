@@ -195,3 +195,50 @@ func TestNote_AddKeyword(t *testing.T) {
 		t.Errorf("Expected keyword to be '%v', but got '%v'", keyword, keywords[0])
 	}
 }
+
+func TestNote_RemoveKeyword_Success(t *testing.T) {
+	note, _ := NewNote("note-1", "Test Note")
+	userID := "user-1"
+	keyword1, _ := NewKeyword("keyword1")
+	keyword2, _ := NewKeyword("keyword2")
+	note.AddKeyword(userID, keyword1)
+	note.AddKeyword(userID, keyword2)
+
+	err := note.RemoveKeyword(userID, keyword1)
+	if err != nil {
+		t.Fatalf("RemoveKeyword returned an unexpected error: %v", err)
+	}
+
+	keywords := note.UserKeywords(userID)
+	if len(keywords) != 1 {
+		t.Fatalf("Expected 1 keyword remaining, but got %d", len(keywords))
+	}
+	if keywords[0] != keyword2 {
+		t.Errorf("Expected remaining keyword to be '%v', but got '%v'", keyword2, keywords[0])
+	}
+}
+
+func TestNote_RemoveKeyword_UserNotFound(t *testing.T) {
+	note, _ := NewNote("note-1", "Test Note")
+	userID := "user-1"
+	keyword, _ := NewKeyword("keyword")
+	note.AddKeyword(userID, keyword)
+
+	err := note.RemoveKeyword("non-existent-user", keyword)
+	if err != ErrUserNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrUserNotFound, err)
+	}
+}
+
+func TestNote_RemoveKeyword_KeywordNotFound(t *testing.T) {
+	note, _ := NewNote("note-1", "Test Note")
+	userID := "user-1"
+	keyword, _ := NewKeyword("keyword")
+	nonExistentKeyword, _ := NewKeyword("non-existent-keyword")
+	note.AddKeyword(userID, keyword)
+
+	err := note.RemoveKeyword(userID, nonExistentKeyword)
+	if err != ErrKeywordNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrKeywordNotFound, err)
+	}
+}

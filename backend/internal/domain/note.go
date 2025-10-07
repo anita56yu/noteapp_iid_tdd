@@ -12,6 +12,12 @@ var ErrEmptyTitle = errors.New("title cannot be empty")
 // ErrContentNotFound is returned when a content is not found.
 var ErrContentNotFound = errors.New("content not found")
 
+// ErrUserNotFound is returned when a user is not found.
+var ErrUserNotFound = errors.New("user not found")
+
+// ErrKeywordNotFound is returned when a keyword is not found.
+var ErrKeywordNotFound = errors.New("keyword not found")
+
 // ContentType defines the type of content in a note.
 type ContentType string
 
@@ -126,4 +132,20 @@ func (n *Note) DeleteContent(id string) error {
 		}
 	}
 	return ErrContentNotFound
+}
+
+// RemoveKeyword removes a keyword from the note for a specific user.
+func (n *Note) RemoveKeyword(userID string, keyword Keyword) error {
+	userKeywords, ok := n.keywords[userID]
+	if !ok {
+		return ErrUserNotFound
+	}
+
+	for i, k := range userKeywords {
+		if k == keyword {
+			n.keywords[userID] = append(userKeywords[:i], userKeywords[i+1:]...)
+			return nil
+		}
+	}
+	return ErrKeywordNotFound
 }

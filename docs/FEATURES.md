@@ -68,7 +68,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T3.6:** Add a `FindByKeywordForUser` method to the `NoteRepository` interface and `InMemoryNoteRepository`.
     - [x] **T3.7:** Implement the `FindNotesByKeyword` method in `NoteUsecase` to filter notes in memory.
     - [x] **T3.8:** Implement the `GET /users/{userID}/notes?keyword={keyword}` API endpoint.
-    - [ ] **T3.9:** Implement an `UntagNote` method in `NoteUsecase`.
+    - [x] **T3.9:** Implement an `UntagNote` method in `NoteUsecase`.
     - [ ] **T3.10:** Implement a `DELETE /users/{userID}/notes/{noteID}/keywords/{keyword}` API endpoint.
 - [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
     - [ ] **T4.1:** Define a method in the domain layer that adds a content to a note with additional parameters such as lock status.

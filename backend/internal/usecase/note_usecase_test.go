@@ -669,3 +669,90 @@ func TestNoteUsecase_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 		t.Fatalf("Expected 0 notes, got %d", len(notes))
 	}
 }
+
+func TestNoteUsecase_UntagNote_Success(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+	userID1 := "user-1"
+	userID2 := "user-2"
+	keywordToKeep := "go"
+	keywordToRemove := "testing"
+	noteUsecase.TagNote(noteID, userID1, keywordToKeep)
+	noteUsecase.TagNote(noteID, userID1, keywordToRemove)
+	noteUsecase.TagNote(noteID, userID2, keywordToKeep)
+	noteUsecase.TagNote(noteID, userID2, keywordToRemove)
+
+	// Act
+	err = noteUsecase.UntagNote(noteID, userID1, keywordToRemove)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("UntagNote() returned an unexpected error: %v", err)
+	}
+	notePO, err := repo.FindByID(noteID)
+	if err != nil {
+		t.Fatalf("Failed to find note: %v", err)
+	}
+	if len(notePO.Keywords[userID1]) != 1 {
+		t.Fatalf("Expected 1 keyword for user1, but got %d", len(notePO.Keywords[userID1]))
+	}
+	if notePO.Keywords[userID1][0] != keywordToKeep {
+		t.Errorf("Expected keyword for user1 to be '%s', got '%s'", keywordToKeep, notePO.Keywords[userID1][0])
+	}
+	if len(notePO.Keywords[userID2]) != 2 {
+		t.Fatalf("Expected 2 keywords for user2, but got %d", len(notePO.Keywords[userID2]))
+	}
+}
+
+func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+	userID := "user-1"
+	keyword := "go"
+	noteUsecase.TagNote(noteID, userID, keyword)
+
+	// Act
+	err = noteUsecase.UntagNote(noteID, "non-existent-user", keyword)
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent user, but got nil")
+	}
+	if !errors.Is(err, ErrUserNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrUserNotFound, err)
+	}
+}
+
+func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+	userID := "user-1"
+	keyword := "go"
+	noteUsecase.TagNote(noteID, userID, keyword)
+
+	// Act
+	err = noteUsecase.UntagNote(noteID, userID, "non-existent-keyword")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent keyword, but got nil")
+	}
+	if !errors.Is(err, ErrKeywordNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrKeywordNotFound, err)
+	}
+}
