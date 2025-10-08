@@ -2,6 +2,7 @@
 This instruction describes the TDD loop you and I will follow to complete a task.
 
 1. Write a failing test, one test at a time:
+    - Read the existing tests, and write in similar style.
     - You will help me create the boilerplate test, including a good test name in a suitable test suite.
     - We will then write the **Arrange-Act-Assert (AAA)** test code.
     - You will run the build to confirm it fails.

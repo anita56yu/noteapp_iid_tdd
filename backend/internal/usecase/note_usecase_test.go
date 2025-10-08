@@ -79,6 +79,9 @@ func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
 	if savedNote.Title != title {
 		t.Errorf("Expected saved note title to be '%s', got '%s'", title, savedNote.Title)
 	}
+	if savedNote.OwnerID != ownerID {
+		t.Errorf("Expected saved note owner ID to be '%s', got '%s'", ownerID, savedNote.OwnerID)
+	}
 }
 
 func TestNoteUsecase_CreateNote_WithGeneratedID(t *testing.T) {
@@ -104,6 +107,9 @@ func TestNoteUsecase_CreateNote_WithGeneratedID(t *testing.T) {
 	}
 	if savedNote.Title != title {
 		t.Errorf("Expected saved note title to be '%s', got '%s'", title, savedNote.Title)
+	}
+	if savedNote.OwnerID != ownerID {
+		t.Errorf("Expected saved note owner ID to be '%s', got '%s'", ownerID, savedNote.OwnerID)
 	}
 }
 
@@ -756,5 +762,81 @@ func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 	}
 	if !errors.Is(err, ErrKeywordNotFound) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrKeywordNotFound, err)
+	}
+}
+
+func TestNoteUsecase_ShareNote_NotOwner(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	ownerID := "owner-1"
+	collaboratorID := "collaborator-1"
+	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+
+	// Act
+	err = noteUsecase.ShareNote(noteID, "not-the-owner", collaboratorID, "read")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error when sharing a note by a non-owner, but got nil")
+	}
+	if !errors.Is(err, ErrPermissionDenied) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
+	}
+}
+
+func TestNoteUsecase_ShareNote_InvalidPermission(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	ownerID := "owner-1"
+	collaboratorID := "collaborator-1"
+	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+
+	// Act
+	err = noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "invalid-permission")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for invalid permission, but got nil")
+	}
+}
+
+func TestNoteUsecase_ShareNote_Success(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	ownerID := "owner-1"
+	collaboratorID := "collaborator-1"
+	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
+	if err != nil {
+		t.Fatalf("CreateNote() failed: %v", err)
+	}
+
+	// Act
+	err = noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("ShareNote() returned an unexpected error: %v", err)
+	}
+	notePO, err := repo.FindByID(noteID)
+	if err != nil {
+		t.Fatalf("Failed to find note: %v", err)
+	}
+	if len(notePO.Collaborators) != 1 {
+		t.Fatalf("Expected 1 collaborator, but got %d", len(notePO.Collaborators))
+	}
+	if _, ok := notePO.Collaborators[collaboratorID]; !ok {
+		t.Errorf("Expected collaborator with ID '%s' to be in the map", collaboratorID)
+	}
+	if notePO.Collaborators[collaboratorID] != "read" {
+		t.Errorf("Expected collaborator permission to be 'read', got '%s'", notePO.Collaborators[collaboratorID])
 	}
 }

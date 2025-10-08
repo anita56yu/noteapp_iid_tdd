@@ -31,6 +31,9 @@ var ErrUserNotFound = errors.New("user not found")
 // ErrKeywordNotFound is returned when a keyword is not found.
 var ErrKeywordNotFound = errors.New("keyword not found")
 
+// ErrPermissionDenied is returned when a user is not authorized to perform an action.
+var ErrPermissionDenied = errors.New("permission denied")
+
 type ContentType string
 
 const (
@@ -247,6 +250,37 @@ func (uc *NoteUsecase) FindNotesByKeyword(userID, keyword string) ([]*NoteDTO, e
 	return noteDTOs, nil
 }
 
+// ShareNote shares a note with another user.
+func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission string) error {
+	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	defer uc.repo.UnlockNoteForUpdate(noteID)
+
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	note := uc.mapper.ToDomain(notePO)
+
+	permissionType, err := mapToDomainPermissionType(permission)
+	if err != nil {
+		return err
+	}
+
+	if err := note.AddCollaborator(ownerID, collaboratorID, permissionType); err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	updatedNotePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNoteNotFound):
@@ -270,6 +304,8 @@ func (uc *NoteUsecase) mapDomainError(err error) error {
 		return ErrUserNotFound
 	case errors.Is(err, domain.ErrKeywordNotFound):
 		return ErrKeywordNotFound
+	case errors.Is(err, domain.ErrPermissionDenied):
+		return ErrPermissionDenied
 	default:
 		return fmt.Errorf("an unexpected domain error occurred: %w", err)
 	}
@@ -283,5 +319,16 @@ func mapToDomainContentType(ct ContentType) domain.ContentType {
 		return domain.ImageContentType
 	default:
 		return domain.TextContentType // Default to text if unknown
+	}
+}
+
+func mapToDomainPermissionType(p string) (domain.Permission, error) {
+	switch p {
+	case "read":
+		return domain.ReadOnly, nil
+	case "read-write":
+		return domain.ReadWrite, nil
+	default:
+		return domain.ReadOnly, fmt.Errorf("invalid permission type: %s", p)
 	}
 }

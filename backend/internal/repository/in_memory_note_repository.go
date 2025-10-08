@@ -42,14 +42,19 @@ func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 
 	// Return a copy to prevent external modification
 	copiedNote := &NotePO{
-		ID:    note.ID,
-		Title: note.Title,
+		ID:      note.ID,
+		Title:   note.Title,
+		OwnerID: note.OwnerID,
 	}
 	copiedNote.Contents = make([]ContentPO, len(note.Contents))
 	copy(copiedNote.Contents, note.Contents)
 	copiedNote.Keywords = make(map[string][]string)
 	for k, v := range note.Keywords {
 		copiedNote.Keywords[k] = append([]string(nil), v...)
+	}
+	copiedNote.Collaborators = make(map[string]string)
+	for k, v := range note.Collaborators {
+		copiedNote.Collaborators[k] = v
 	}
 	return copiedNote, nil
 }
