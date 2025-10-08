@@ -18,6 +18,19 @@ var ErrUserNotFound = errors.New("user not found")
 // ErrKeywordNotFound is returned when a keyword is not found.
 var ErrKeywordNotFound = errors.New("keyword not found")
 
+// ErrPermissionDenied is returned when a user is not authorized to perform an action.
+var ErrPermissionDenied = errors.New("permission denied")
+
+// Permission defines the access level for a collaborator.
+type Permission string
+
+const (
+	// ReadOnly allows a user to view a note.
+	ReadOnly Permission = "read"
+	// ReadWrite allows a user to view and edit a note.
+	ReadWrite Permission = "read-write"
+)
+
 // ContentType defines the type of content in a note.
 type ContentType string
 
@@ -37,15 +50,17 @@ type Content struct {
 
 // Note represents a note in the application.
 type Note struct {
-	ID       string
-	Title    string
-	contents []Content
-	keywords map[string][]Keyword
+	ID            string
+	OwnerID       string
+	Title         string
+	contents      []Content
+	keywords      map[string][]Keyword
+	Collaborators map[string]Permission
 }
 
 // NewNote creates a new Note instance.
 // If id is empty, a new UUID will be generated.
-func NewNote(id, title string) (*Note, error) {
+func NewNote(id, title, ownerID string) (*Note, error) {
 	if title == "" {
 		return nil, ErrEmptyTitle
 	}
@@ -55,11 +70,22 @@ func NewNote(id, title string) (*Note, error) {
 	}
 
 	return &Note{
-		ID:       id,
-		Title:    title,
-		contents: []Content{},
-		keywords: make(map[string][]Keyword),
+		ID:            id,
+		OwnerID:       ownerID,
+		Title:         title,
+		contents:      []Content{},
+		keywords:      make(map[string][]Keyword),
+		Collaborators: make(map[string]Permission),
 	}, nil
+}
+
+// AddCollaborator adds a user to the note's collaborators with a specific permission.
+func (n *Note) AddCollaborator(callerID, collaboratorID string, permission Permission) error {
+	if n.OwnerID != callerID {
+		return ErrPermissionDenied
+	}
+	n.Collaborators[collaboratorID] = permission
+	return nil
 }
 
 // Contents returns a copy of the note's contents.

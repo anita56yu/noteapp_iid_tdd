@@ -7,8 +7,9 @@ import (
 func TestNewNote_ValidCreation_WithInjectedID(t *testing.T) {
 	id := "test-id"
 	title := "Test Note"
+	ownerID := "owner-1"
 
-	note, err := NewNote(id, title)
+	note, err := NewNote(id, title, ownerID)
 	if err != nil {
 		t.Fatalf("Failed to create a valid note: %v", err)
 	}
@@ -28,7 +29,8 @@ func TestNewNote_ValidCreation_WithInjectedID(t *testing.T) {
 
 func TestNewNote_ValidCreation_WithGeneratedID(t *testing.T) {
 	title := "Test Note"
-	note, err := NewNote("", title)
+	ownerID := "owner-1"
+	note, err := NewNote("", title, ownerID)
 	if err != nil {
 		t.Fatalf("Failed to create a valid note: %v", err)
 	}
@@ -48,7 +50,7 @@ func TestNewNote_ValidCreation_WithGeneratedID(t *testing.T) {
 }
 
 func TestNewNote_EmptyTitle(t *testing.T) {
-	_, err := NewNote("", "")
+	_, err := NewNote("", "", "owner-1")
 	if err == nil {
 		t.Fatal("Expected an error for empty title, but got nil")
 	}
@@ -59,7 +61,7 @@ func TestNewNote_EmptyTitle(t *testing.T) {
 
 func TestNote_AddContent_WithInjectedID(t *testing.T) {
 	// Arrange
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	contentID := "content-1"
 	contentData := "Hello, world!"
 
@@ -84,7 +86,7 @@ func TestNote_AddContent_WithInjectedID(t *testing.T) {
 
 func TestNote_AddContent_WithGeneratedID(t *testing.T) {
 	// Arrange
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	contentData := "Hello, world!"
 
 	// Act
@@ -105,7 +107,7 @@ func TestNote_AddContent_WithGeneratedID(t *testing.T) {
 
 func TestNote_UpdateContent_NormalCase(t *testing.T) {
 	// Arrange
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	contentID := "content-1"
 	initialData := "Initial content"
 	note.AddContent(contentID, initialData, TextContentType)
@@ -126,7 +128,7 @@ func TestNote_UpdateContent_NormalCase(t *testing.T) {
 
 func TestNote_UpdateContent_NotFound(t *testing.T) {
 	// Arrange
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	note.AddContent("content-1", "Initial data", TextContentType)
 
 	// Act
@@ -143,7 +145,7 @@ func TestNote_UpdateContent_NotFound(t *testing.T) {
 
 func TestNote_DeleteContent_Success(t *testing.T) {
 	// Arrange
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	contentID1 := note.AddContent("", "Content 1", TextContentType)
 	contentID2 := note.AddContent("", "Content 2", TextContentType)
 
@@ -165,7 +167,7 @@ func TestNote_DeleteContent_Success(t *testing.T) {
 
 func TestNote_DeleteContent_NotFound(t *testing.T) {
 	// Arrange
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	note.AddContent("content-1", "Initial data", TextContentType)
 
 	// Act
@@ -181,7 +183,7 @@ func TestNote_DeleteContent_NotFound(t *testing.T) {
 }
 
 func TestNote_AddKeyword(t *testing.T) {
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	userID := "user-1"
 	keyword, _ := NewKeyword("test-keyword")
 
@@ -197,7 +199,7 @@ func TestNote_AddKeyword(t *testing.T) {
 }
 
 func TestNote_RemoveKeyword_Success(t *testing.T) {
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	userID := "user-1"
 	keyword1, _ := NewKeyword("keyword1")
 	keyword2, _ := NewKeyword("keyword2")
@@ -219,7 +221,7 @@ func TestNote_RemoveKeyword_Success(t *testing.T) {
 }
 
 func TestNote_RemoveKeyword_UserNotFound(t *testing.T) {
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	userID := "user-1"
 	keyword, _ := NewKeyword("keyword")
 	note.AddKeyword(userID, keyword)
@@ -231,7 +233,7 @@ func TestNote_RemoveKeyword_UserNotFound(t *testing.T) {
 }
 
 func TestNote_RemoveKeyword_KeywordNotFound(t *testing.T) {
-	note, _ := NewNote("note-1", "Test Note")
+	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	userID := "user-1"
 	keyword, _ := NewKeyword("keyword")
 	nonExistentKeyword, _ := NewKeyword("non-existent-keyword")
@@ -240,5 +242,43 @@ func TestNote_RemoveKeyword_KeywordNotFound(t *testing.T) {
 	err := note.RemoveKeyword(userID, nonExistentKeyword)
 	if err != ErrKeywordNotFound {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrKeywordNotFound, err)
+	}
+}
+
+func TestNote_AddCollaborator_Success(t *testing.T) {
+	note, _ := NewNote("note1", "Test Note", "owner1")
+	callerID := "owner1"
+	collaboratorID := "user1"
+	permission := ReadWrite
+
+	err := note.AddCollaborator(callerID, collaboratorID, permission)
+
+	if err != nil {
+		t.Fatalf("AddCollaborator returned an unexpected error: %v", err)
+	}
+	if len(note.Collaborators) != 1 {
+		t.Fatalf("Expected 1 collaborator, but got %d", len(note.Collaborators))
+	}
+	if p, ok := note.Collaborators[collaboratorID]; !ok || p != permission {
+		t.Errorf("Expected collaborator to have permission '%v', but got '%v'", permission, p)
+	}
+}
+
+func TestNote_AddCollaborator_NotOwner(t *testing.T) {
+	note, _ := NewNote("note1", "Test Note", "owner1")
+	callerID := "another_user"
+	collaboratorID := "user1"
+	permission := ReadWrite
+
+	err := note.AddCollaborator(callerID, collaboratorID, permission)
+
+	if err == nil {
+		t.Fatal("Expected an error when a non-owner adds a collaborator, but got nil")
+	}
+	if err != ErrPermissionDenied {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
+	}
+	if len(note.Collaborators) != 0 {
+		t.Fatalf("Expected 0 collaborators, but got %d", len(note.Collaborators))
 	}
 }

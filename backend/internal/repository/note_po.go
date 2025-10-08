@@ -11,9 +11,11 @@ type ContentPO struct {
 
 // NotePO represents the persistent state of a note.
 type NotePO struct {
-	ID       string
-	Title    string
-	Contents []ContentPO
-	Keywords map[string][]string
-	mutex    sync.Mutex
+	ID            string
+	OwnerID       string
+	Title         string
+	Contents      []ContentPO
+	Keywords      map[string][]string
+	Collaborators map[string]string
+	mutex         sync.Mutex
 }

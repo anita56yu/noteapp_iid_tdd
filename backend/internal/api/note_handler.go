@@ -56,7 +56,11 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	noteID, err := h.usecase.CreateNote("", req.Title)
+	// For now, we'll use a placeholder ownerID.
+	// This will be replaced with actual user authentication later.
+	ownerID := "placeholder-owner-id"
+
+	noteID, err := h.usecase.CreateNote("", req.Title, ownerID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrEmptyTitle) {
 			http.Error(w, err.Error(), http.StatusBadRequest)

@@ -70,19 +70,24 @@ User facing APIs should guard against illegal parameters
     - [x] **T3.8:** Implement the `GET /users/{userID}/notes?keyword={keyword}` API endpoint.
     - [x] **T3.9:** Implement an `UntagNote` method in `NoteUsecase`.
     - [x] **T3.10:** Implement a `DELETE /users/{userID}/notes/{noteID}/keywords/{keyword}` API endpoint.
-- [ ] **F4:** Note Sharing and Collaboration. Users can share notes with others, enabling co-editing and real-time content visibility.
-    - [ ] **T4.1:** Define a method in the domain layer that adds a content to a note with additional parameters such as lock status.
-- [ ] **F5:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
-- [ ] **F6:** API Security. APIs validate input to prevent errors and misuse.
-- [ ] **F7:** Decouple Data Persistence with a Repository Layer.
-    - [x] **T7.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
-    - [x] **T7.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
-    - [x] **T7.3:** Make the `InMemoryNoteRepository` thread-safe, and anti-racing. When two users are changing the same note, the PO in the repository should be anti-racing.
-    - [ ] **T7.4:** (Potential) Refactor the repository to use a transactional callback pattern for thread-safe updates, moving locking logic out of the usecase layer.
-- [ ] **F8:** API and Codebase Polish.
-    - [ ] **T8.1:** Refactor: Standardize API error responses to return JSON objects.
-    - [ ] **T8.2:** Refactor: Move router setup out of `main.go` to improve modularity.
-    - [ ] **T8.3:** Refactor: Centralize API error handling in a helper function.
-- [x] **F9:** Decouple Domain and Persistence Layers.
-    - [x] **T9.1:** Create `NotePO` and `ContentPO` in the `repository` layer, and implement a `NoteMapper` in the `usecase` layer to map between `domain.Note` and `repository.NotePO`.
-    - [x] **T9.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.
+- [ ] **F4:** Note Sharing and Access. An owner can share a note with other users, specifying their permissions (read-only or read-write), and users can view and access notes that have been shared with them.
+    - [x] **T4.1:** In the `domain` layer, update the `Note` entity to include a list of collaborators and their permissions (e.g., read, read-write).
+    - [ ] **T4.2:** Create a `ShareNote` method in the `NoteUsecase` that allows a note owner to share a note with another user and set their permissions.
+    - [ ] **T4.3:** Implement a `POST /notes/{noteID}/shares` API endpoint to expose the `ShareNote` functionality. This endpoint will take a user ID and permission level in the request body.
+    - [ ] **T4.4:** Add a `GetSharedNotesForUser` method to the `NoteRepository` to retrieve all notes shared with a specific user.
+    - [ ] **T4.5:** Implement a `GET /users/{userID}/shared-notes` API endpoint to allow users to see all the notes that have been shared with them.
+- [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time.
+- [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
+- [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.
+- [ ] **F8:** Decouple Data Persistence with a Repository Layer.
+    - [x] **T8.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
+    - [x] **T8.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
+    - [x] **T8.3:** Make the `InMemoryNoteRepository` thread-safe, and anti-racing. When two users are changing the same note, the PO in the repository should be anti-racing.
+    - [ ] **T8.4:** (Potential) Refactor the repository to use a transactional callback pattern for thread-safe updates, moving locking logic out of the usecase layer.
+- [ ] **F9:** API and Codebase Polish.
+    - [ ] **T9.1:** Refactor: Standardize API error responses to return JSON objects.
+    - [ ] **T9.2:** Refactor: Move router setup out of `main.go` to improve modularity.
+    - [ ] **T9.3:** Refactor: Centralize API error handling in a helper function.
+- [x] **F10:** Decouple Domain and Persistence Layers.
+    - [x] **T10.1:** Create `NotePO` and `ContentPO` in the `repository` layer, and implement a `NoteMapper` in the `usecase` layer to map between `domain.Note` and `repository.NotePO`.
+    - [x] **T10.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.

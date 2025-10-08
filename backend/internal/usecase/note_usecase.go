@@ -52,8 +52,8 @@ func NewNoteUsecase(repo repository.NoteRepository) *NoteUsecase {
 }
 
 // CreateNote creates a new note.
-func (uc *NoteUsecase) CreateNote(id, title string) (string, error) {
-	note, err := domain.NewNote(id, title)
+func (uc *NoteUsecase) CreateNote(id, title, ownerID string) (string, error) {
+	note, err := domain.NewNote(id, title, ownerID)
 	if err != nil {
 		return "", uc.mapDomainError(err)
 	}

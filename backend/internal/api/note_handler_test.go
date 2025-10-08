@@ -35,9 +35,9 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	note1, _ := noteUsecase.CreateNote("", "Note 1")
-	note2, _ := noteUsecase.CreateNote("", "Note 2")
-	note3, _ := noteUsecase.CreateNote("", "Note 3")
+	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
+	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-1")
+	note3, _ := noteUsecase.CreateNote("", "Note 3", "owner-1")
 
 	noteUsecase.TagNote(note1, "user-1", "testing")
 	noteUsecase.TagNote(note2, "user-1", "testing")
@@ -65,9 +65,9 @@ func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
 func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	note1, _ := noteUsecase.CreateNote("", "Note 1")
-	note2, _ := noteUsecase.CreateNote("", "Note 2")
-	note3, _ := noteUsecase.CreateNote("", "Note 3")
+	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
+	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-1")
+	note3, _ := noteUsecase.CreateNote("", "Note 3", "owner-1")
 
 	noteUsecase.TagNote(note1, "user-1", "testing")
 	noteUsecase.TagNote(note2, "user-1", "testing")
@@ -95,7 +95,7 @@ func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
 func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	note1, _ := noteUsecase.CreateNote("", "Note 1")
+	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
 
 	noteUsecase.TagNote(note1, "user-1", "testing")
 
@@ -121,7 +121,7 @@ func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 func TestNoteHandler_AddContent_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestNoteHandler_AddContent_InvalidJSON(t *testing.T) {
 func TestNoteHandler_AddContent_UnsupportedContentType(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -248,7 +248,7 @@ func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
 func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
 func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -408,7 +408,7 @@ func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -466,7 +466,7 @@ func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
 func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -506,7 +506,7 @@ func TestNoteHandler_UpdateContent_InvalidJSON(t *testing.T) {
 func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -553,7 +553,7 @@ func TestNoteHandler_DeleteContent_NoteNotFound(t *testing.T) {
 func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -573,7 +573,7 @@ func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 func TestNoteHandler_TagNote_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -625,7 +625,7 @@ func TestNoteHandler_TagNote_NoteNotFound(t *testing.T) {
 func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -647,7 +647,7 @@ func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 func TestNoteHandler_UntagNote_Success(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -697,7 +697,7 @@ func TestNoteHandler_UntagNote_NoteNotFound(t *testing.T) {
 func TestNoteHandler_UntagNote_UserNotFound(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -720,7 +720,7 @@ func TestNoteHandler_UntagNote_UserNotFound(t *testing.T) {
 func TestNoteHandler_UntagNote_KeywordNotFound(t *testing.T) {
 	// Arrange
 	router, noteUsecase := setupTest()
-	noteID, err := noteUsecase.CreateNote("", "Test Title")
+	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}

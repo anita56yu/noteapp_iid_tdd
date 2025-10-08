@@ -31,17 +31,24 @@ func (m *NoteMapper) ToPO(note *domain.Note) *repository.NotePO {
 		}
 	}
 
+	collaboratorPOs := make(map[string]string)
+	for userID, permission := range note.Collaborators {
+		collaboratorPOs[userID] = string(permission)
+	}
+
 	return &repository.NotePO{
-		ID:       note.ID,
-		Title:    note.Title,
-		Contents: contentPOs,
-		Keywords: keywordPOs,
+		ID:            note.ID,
+		OwnerID:       note.OwnerID,
+		Title:         note.Title,
+		Contents:      contentPOs,
+		Keywords:      keywordPOs,
+		Collaborators: collaboratorPOs,
 	}
 }
 
 // ToDomain converts a repository.NotePO to a domain.Note.
 func (m *NoteMapper) ToDomain(po *repository.NotePO) *domain.Note {
-	note, _ := domain.NewNote(po.ID, po.Title)
+	note, _ := domain.NewNote(po.ID, po.Title, po.OwnerID)
 	for _, contentPO := range po.Contents {
 		note.AddContent(contentPO.ID, contentPO.Data, domain.ContentType(contentPO.Type))
 	}
@@ -50,6 +57,9 @@ func (m *NoteMapper) ToDomain(po *repository.NotePO) *domain.Note {
 			keyword, _ := domain.NewKeyword(keywordStr)
 			note.AddKeyword(userID, keyword)
 		}
+	}
+	for userID, permission := range po.Collaborators {
+		note.AddCollaborator(note.OwnerID, userID, domain.Permission(permission))
 	}
 	return note
 }
