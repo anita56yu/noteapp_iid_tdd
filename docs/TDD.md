@@ -15,5 +15,5 @@ This instruction describes the TDD loop you and I will follow to complete a task
     - If we do, you or me will modify the code.
     - You will then run the tests to ensure they still pass.
 ## 5. Commit:
-    - You will mark the task as complete in docs/FEATURES.md.
+    - You will mark the task as complete in ./FEATURES.md.
     - You will propose a **short commit message including the task ID** and, after my approval, commit the code.
