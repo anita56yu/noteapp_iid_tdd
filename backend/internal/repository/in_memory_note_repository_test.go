@@ -179,7 +179,7 @@ func TestInMemoryNoteRepository_GetAccessibleNoteByUserID(t *testing.T) {
 	repo.Save(otherNote)
 
 	// Act
-	notes, err := repo.GetAccessibleNoteByUserID(ownerID)
+	notes, err := repo.GetAccessibleNotesByUserID(ownerID)
 
 	// Assert
 	if err != nil {

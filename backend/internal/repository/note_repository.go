@@ -6,7 +6,7 @@ type NoteRepository interface {
 	FindByID(id string) (*NotePO, error)
 	Delete(id string) error
 	FindByKeywordForUser(userID, keyword string) ([]*NotePO, error)
-	GetAccessibleNoteByUserID(userID string) ([]*NotePO, error)
+	GetAccessibleNotesByUserID(userID string) ([]*NotePO, error)
 	LockNoteForUpdate(id string) error
 	UnlockNoteForUpdate(id string) error
 }

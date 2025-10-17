@@ -284,6 +284,22 @@ func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission str
 	return nil
 }
 
+// GetAccessibleNotesForUser retrieves all notes that a user can access.
+func (uc *NoteUsecase) GetAccessibleNotesForUser(userID string) ([]*NoteDTO, error) {
+	notePOs, err := uc.repo.GetAccessibleNotesByUserID(userID)
+	if err != nil {
+		return nil, uc.mapRepositoryError(err)
+	}
+
+	var noteDTOs []*NoteDTO
+	for _, notePO := range notePOs {
+		note := uc.mapper.ToDomain(notePO)
+		noteDTOs = append(noteDTOs, uc.mapper.toNoteDTO(note))
+	}
+
+	return noteDTOs, nil
+}
+
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNoteNotFound):

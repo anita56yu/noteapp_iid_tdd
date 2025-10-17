@@ -9,13 +9,13 @@ import (
 
 // mockNoteRepository is a mock implementation of the NoteRepository for testing error cases.
 type mockNoteRepository struct {
-	SaveFunc                 func(note *repository.NotePO) error
-	FindByIDFunc             func(id string) (*repository.NotePO, error)
-	DeleteFunc               func(id string) error
-	FindByKeywordForUserFunc func(userID, keyword string) ([]*repository.NotePO, error)
-	GetAccessibleNoteByUserIDFunc func(userID string) ([]*repository.NotePO, error)
-	LockNoteForUpdateFunc    func(noteID string) error
-	UnlockNoteForUpdateFunc  func(noteID string) error
+	SaveFunc                       func(note *repository.NotePO) error
+	FindByIDFunc                   func(id string) (*repository.NotePO, error)
+	DeleteFunc                     func(id string) error
+	FindByKeywordForUserFunc       func(userID, keyword string) ([]*repository.NotePO, error)
+	GetAccessibleNotesByUserIDFunc func(userID string) ([]*repository.NotePO, error)
+	LockNoteForUpdateFunc          func(noteID string) error
+	UnlockNoteForUpdateFunc        func(noteID string) error
 }
 
 func (m *mockNoteRepository) Save(note *repository.NotePO) error {
@@ -42,9 +42,9 @@ func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*re
 	}
 	return nil, nil
 }
-func (m *mockNoteRepository) GetAccessibleNoteByUserID(userID string) ([]*repository.NotePO, error) {
-	if m.GetAccessibleNoteByUserIDFunc != nil {
-		return m.GetAccessibleNoteByUserIDFunc(userID)
+func (m *mockNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*repository.NotePO, error) {
+	if m.GetAccessibleNotesByUserIDFunc != nil {
+		return m.GetAccessibleNotesByUserIDFunc(userID)
 	}
 	return nil, nil
 }
@@ -845,5 +845,47 @@ func TestNoteUsecase_ShareNote_Success(t *testing.T) {
 	}
 	if notePO.Collaborators[collaboratorID] != "read" {
 		t.Errorf("Expected collaborator permission to be 'read', got '%s'", notePO.Collaborators[collaboratorID])
+	}
+}
+
+func TestNoteUsecase_GetAccessibleNotesForUser(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	userID := "user-1"
+	otherUserID := "user-2"
+
+	// Create notes
+	ownedNoteID, _ := noteUsecase.CreateNote("", "Owned Note", userID)
+	sharedNoteID, _ := noteUsecase.CreateNote("", "Shared Note", otherUserID)
+	unrelatedNoteID, _ := noteUsecase.CreateNote("", "Unrelated Note", otherUserID)
+
+	// Share a note with the user
+	noteUsecase.ShareNote(sharedNoteID, otherUserID, userID, "read")
+
+	// Act
+	notes, err := noteUsecase.GetAccessibleNotesForUser(userID)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("GetAccessibleNotesForUser() returned an unexpected error: %v", err)
+	}
+	if len(notes) != 2 {
+		t.Fatalf("Expected 2 accessible notes, but got %d", len(notes))
+	}
+
+	// Check that the correct notes are returned
+	returnedIDs := make(map[string]bool)
+	for _, note := range notes {
+		returnedIDs[note.ID] = true
+	}
+	if !returnedIDs[ownedNoteID] {
+		t.Errorf("Expected to find owned note with ID %s", ownedNoteID)
+	}
+	if !returnedIDs[sharedNoteID] {
+		t.Errorf("Expected to find shared note with ID %s", sharedNoteID)
+	}
+	if returnedIDs[unrelatedNoteID] {
+		t.Errorf("Did not expect to find unrelated note with ID %s", unrelatedNoteID)
 	}
 }

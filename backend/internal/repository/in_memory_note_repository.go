@@ -89,8 +89,8 @@ func (r *InMemoryNoteRepository) FindByKeywordForUser(userID, keyword string) ([
 	return foundNotes, nil
 }
 
-// GetAccessibleNoteByUserID retrieves all notes where the user is either the owner or a collaborator.
-func (r *InMemoryNoteRepository) GetAccessibleNoteByUserID(userID string) ([]*NotePO, error) {
+// GetAccessibleNotesByUserID retrieves all notes where the user is either the owner or a collaborator.
+func (r *InMemoryNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*NotePO, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	var accessibleNotes []*NotePO
