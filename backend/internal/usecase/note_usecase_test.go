@@ -889,3 +889,75 @@ func TestNoteUsecase_GetAccessibleNotesForUser(t *testing.T) {
 		t.Errorf("Did not expect to find unrelated note with ID %s", unrelatedNoteID)
 	}
 }
+
+func TestNoteUsecase_RevokeAccess_Success(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	ownerID := "owner-1"
+	collaboratorID1 := "user-1"
+	collaboratorID2 := "user-2"
+	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID1, "read")
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID2, "read")
+	noteUsecase.TagNote(noteID, collaboratorID1, "test")
+	noteUsecase.TagNote(noteID, collaboratorID2, "test")
+
+	// Act
+	err := noteUsecase.RevokeAccess(noteID, ownerID, collaboratorID1)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("RevokeAccess() returned an unexpected error: %v", err)
+	}
+	note, _ := noteUsecase.GetNoteByID(noteID)
+	if _, ok := note.Collaborators[collaboratorID1]; ok {
+		t.Errorf("Expected collaborator 1 to be removed, but they still exist")
+	}
+	if _, ok := note.Collaborators[collaboratorID2]; !ok {
+		t.Errorf("Expected collaborator 2 to remain, but they were removed")
+	}
+	if _, ok := note.Keywords[collaboratorID1]; ok {
+		t.Errorf("Expected collaborator's keywords to be removed, but they still exist")
+	}
+	if _, ok := note.Keywords[collaboratorID2]; !ok {
+		t.Errorf("Expected collaborator 2's keywords to remain, but they were removed")
+	}
+}
+
+func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	ownerID := "owner-1"
+	collaboratorID := "user-1"
+	nonOwnerID := "user-2"
+	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+
+	// Act
+	err := noteUsecase.RevokeAccess(noteID, nonOwnerID, collaboratorID)
+
+	// Assert
+	if err != ErrPermissionDenied {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
+	}
+}
+
+func TestNoteUsecase_RevokeAccess_CollaboratorNotFound(t *testing.T) {
+	// Arrange
+	repo := repository.NewInMemoryNoteRepository()
+	noteUsecase := NewNoteUsecase(repo)
+	ownerID := "owner-1"
+	collaboratorID := "user-1"
+	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+
+	// Act
+	err := noteUsecase.RevokeAccess(noteID, ownerID, "non-existent-user")
+
+	// Assert
+	if err != ErrUserNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrUserNotFound, err)
+	}
+}

@@ -284,7 +284,7 @@ func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission str
 	return nil
 }
 
-// GetAccessibleNotesForUser retrieves all notes that a user can access.
+// GetAccessibleNotesForUser retrieves all notes that a user can access (owned or shared).
 func (uc *NoteUsecase) GetAccessibleNotesForUser(userID string) ([]*NoteDTO, error) {
 	notePOs, err := uc.repo.GetAccessibleNotesByUserID(userID)
 	if err != nil {
@@ -298,6 +298,32 @@ func (uc *NoteUsecase) GetAccessibleNotesForUser(userID string) ([]*NoteDTO, err
 	}
 
 	return noteDTOs, nil
+}
+
+// RevokeAccess revokes a collaborator's access to a note.
+func (uc *NoteUsecase) RevokeAccess(noteID, ownerID, collaboratorID string) error {
+	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	defer uc.repo.UnlockNoteForUpdate(noteID)
+
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	note := uc.mapper.ToDomain(notePO)
+
+	if err := note.RemoveCollaborator(ownerID, collaboratorID); err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	updatedNotePO := uc.mapper.ToPO(note)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
 }
 
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
