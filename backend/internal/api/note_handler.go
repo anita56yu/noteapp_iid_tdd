@@ -299,6 +299,21 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// GetAccessibleNotesForUser is the handler for the GET /users/{userID}/notes endpoint.
+func (h *NoteHandler) GetAccessibleNotesForUser(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+
+	notes, err := h.usecase.GetAccessibleNotesForUser(userID)
+	if err != nil {
+		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(notes)
+}
+
 func mapToDomainContentType(ct string) (usecase.ContentType, error) {
 	switch ct {
 	case "text":

@@ -30,6 +30,8 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Get("/users/{userID}/notes", handler.FindNotesByKeyword)
 	router.Delete("/users/{userID}/notes/{noteID}/keyword/{keyword}", handler.UntagNote)
 	router.Post("/users/{ownerID}/notes/{noteID}/shares", handler.ShareNote)
+	router.Get("/users/{userID}/accessible-notes", handler.GetAccessibleNotesForUser)
+
 	return router, noteUsecase
 }
 
@@ -908,5 +910,52 @@ func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 	}
 	if perm != "read-write" {
 		t.Errorf("expected permission to be 'read-write'; got '%s'", perm)
+	}
+}
+
+func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	userID := "user-1"
+	ownerID := "owner-1"
+
+	// Create notes
+	_, err := noteUsecase.CreateNote("", "Owned Note", userID)
+	if err != nil {
+		t.Fatalf("failed to create owned note: %v", err)
+	}
+	sharedNoteID, err := noteUsecase.CreateNote("", "Shared Note", ownerID)
+	if err != nil {
+		t.Fatalf("failed to create shared note: %v", err)
+	}
+	_, err = noteUsecase.CreateNote("", "Unrelated Note", ownerID)
+	if err != nil {
+		t.Fatalf("failed to create unrelated note: %v", err)
+	}
+
+	// Share the note
+	err = noteUsecase.ShareNote(sharedNoteID, ownerID, userID, "read")
+	if err != nil {
+		t.Fatalf("failed to share note: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/users/"+userID+"/accessible-notes", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
+	}
+
+	var notes []usecase.NoteDTO
+	if err := json.NewDecoder(rr.Body).Decode(&notes); err != nil {
+		t.Fatalf("failed to decode response body: %v", err)
+	}
+
+	if len(notes) != 2 {
+		t.Fatalf("expected 2 accessible notes, but got %d", len(notes))
 	}
 }
