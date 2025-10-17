@@ -65,26 +65,33 @@ func (m *NoteMapper) ToDomain(po *repository.NotePO) *domain.Note {
 }
 
 func (m *NoteMapper) toNoteDTO(note *domain.Note) *NoteDTO {
-	contentDTOs := make([]ContentDTO, len(note.Contents()))
-	for i, content := range note.Contents() {
-		contentDTOs[i] = ContentDTO{
-			ID:   content.ID,
-			Type: string(content.Type),
-			Data: content.Data,
+	contents := []*ContentDTO{}
+	for _, c := range note.Contents() {
+		contents = append(contents, &ContentDTO{
+			ID:   c.ID,
+			Type: string(c.Type),
+			Data: c.Data,
+		})
+	}
+
+	keywords := make(map[string][]string)
+	for userID, userKeywords := range note.Keywords() {
+		for _, keyword := range userKeywords {
+			keywords[userID] = append(keywords[userID], keyword.String())
 		}
 	}
 
-	keywordDTOs := make(map[string][]string)
-	for userID, keywords := range note.Keywords() {
-		for _, keyword := range keywords {
-			keywordDTOs[userID] = append(keywordDTOs[userID], keyword.String())
-		}
+	collaborators := make(map[string]Permission)
+	for userID, permission := range note.Collaborators {
+		collaborators[userID] = Permission(permission)
 	}
 
 	return &NoteDTO{
-		ID:       note.ID,
-		Title:    note.Title,
-		Contents: contentDTOs,
-		Keywords: keywordDTOs,
+		ID:            note.ID,
+		Title:         note.Title,
+		OwnerID:       note.OwnerID,
+		Contents:      contents,
+		Keywords:      keywords,
+		Collaborators: collaborators,
 	}
 }

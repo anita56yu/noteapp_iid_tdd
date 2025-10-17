@@ -29,6 +29,7 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Post("/users/{userID}/notes/{noteID}/keyword", handler.TagNote)
 	router.Get("/users/{userID}/notes", handler.FindNotesByKeyword)
 	router.Delete("/users/{userID}/notes/{noteID}/keyword/{keyword}", handler.UntagNote)
+	router.Post("/users/{ownerID}/notes/{noteID}/shares", handler.ShareNote)
 	return router, noteUsecase
 }
 
@@ -737,5 +738,175 @@ func TestNoteHandler_UntagNote_KeywordNotFound(t *testing.T) {
 	// Assert
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_ShareNote_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	ownerID := "owner-1"
+	collaboratorID := "user-2"
+	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	requestBody := map[string]interface{}{
+		"user_id":    collaboratorID,
+		"permission": "read",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusCreated {
+		t.Errorf("expected status %d; got %d", http.StatusCreated, rr.Code)
+	}
+	note, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get note: %v", err)
+	}
+	perm, exists := note.Collaborators[collaboratorID]
+	if !exists {
+		t.Fatalf("expected collaborator '%s' to be in shares", collaboratorID)
+	}
+	if perm != "read" {
+		t.Errorf("expected permission to be 'read'; got '%s'", perm)
+	}
+}
+
+func TestNoteHandler_ShareNote_Unauthorized(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	ownerID := "owner-1"
+	nonOwnerID := "non-owner"
+	collaboratorID := "user-2"
+	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	requestBody := map[string]interface{}{
+		"user_id":    collaboratorID,
+		"permission": "read",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/users/"+nonOwnerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
+	}
+}
+
+func TestNoteHandler_ShareNote_NoteNotFound(t *testing.T) {
+	// Arrange
+	router, _ := setupTest()
+	ownerID := "owner-1"
+	collaboratorID := "user-2"
+	nonExistentNoteID := "non-existent-note-id"
+
+	requestBody := map[string]interface{}{
+		"user_id":    collaboratorID,
+		"permission": "read",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+nonExistentNoteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_ShareNote_InvalidPermission(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	ownerID := "owner-1"
+	collaboratorID := "user-2"
+	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	requestBody := map[string]interface{}{
+		"user_id":    collaboratorID,
+		"permission": "invalid-permission",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
+}
+
+func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	ownerID := "owner-1"
+	collaboratorID := "user-2"
+	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	// First, share with "read" permission
+	initialRequestBody := map[string]interface{}{
+		"user_id":    collaboratorID,
+		"permission": "read",
+	}
+	initialBody, _ := json.Marshal(initialRequestBody)
+	initialReq := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(initialBody))
+	initialRR := httptest.NewRecorder()
+	router.ServeHTTP(initialRR, initialReq)
+	if initialRR.Code != http.StatusCreated {
+		t.Fatalf("initial share failed: expected status %d; got %d", http.StatusCreated, initialRR.Code)
+	}
+
+	// Now, update the permission to "read-write"
+	updateRequestBody := map[string]interface{}{
+		"user_id":    collaboratorID,
+		"permission": "read-write",
+	}
+	updateBody, _ := json.Marshal(updateRequestBody)
+	updateReq := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(updateBody))
+	updateRR := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(updateRR, updateReq)
+
+	// Assert
+	if updateRR.Code != http.StatusCreated {
+		t.Errorf("expected status %d; got %d", http.StatusCreated, updateRR.Code)
+	}
+
+	note, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get note: %v", err)
+	}
+	perm, exists := note.Collaborators[collaboratorID]
+	if !exists {
+		t.Fatalf("expected collaborator '%s' to be in shares", collaboratorID)
+	}
+	if perm != "read-write" {
+		t.Errorf("expected permission to be 'read-write'; got '%s'", perm)
 	}
 }

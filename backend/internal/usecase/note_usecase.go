@@ -34,6 +34,9 @@ var ErrKeywordNotFound = errors.New("keyword not found")
 // ErrPermissionDenied is returned when a user is not authorized to perform an action.
 var ErrPermissionDenied = errors.New("permission denied")
 
+// ErrUnsupportedPermissionType is returned when an unsupported permission type is provided.
+var ErrUnsupportedPermissionType = errors.New("unsupported permission type")
+
 type ContentType string
 
 const (
@@ -329,6 +332,6 @@ func mapToDomainPermissionType(p string) (domain.Permission, error) {
 	case "read-write":
 		return domain.ReadWrite, nil
 	default:
-		return domain.ReadOnly, fmt.Errorf("invalid permission type: %s", p)
+		return domain.ReadOnly, ErrUnsupportedPermissionType
 	}
 }

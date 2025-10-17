@@ -73,7 +73,7 @@ User facing APIs should guard against illegal parameters
 - [ ] **F4:** Note Sharing and Access. An owner can share a note with other users, specifying their permissions (read-only or read-write), and users can view and access notes that have been shared with them.
     - [x] **T4.1:** In the `domain` layer, update the `Note` entity to include a list of collaborators and their permissions (e.g., read, read-write).
     - [x] **T4.2:** Create a `ShareNote` method in the `NoteUsecase` that allows a note owner to share a note with another user and set their permissions.
-    - [ ] **T4.3:** Implement a `POST /notes/{noteID}/shares` API endpoint to expose the `ShareNote` functionality. This endpoint will take a user ID and permission level in the request body.
+    - [x] **T4.3:** Implement a `POST /users/{ownerID}/notes/{noteID}/shares` API endpoint to expose the `ShareNote` functionality. This endpoint will take a user ID and permission level in the request body.
     - [ ] **T4.4:** Add a `GetSharedNotesForUser` method to the `NoteRepository` to retrieve all notes shared with a specific user.
     - [ ] **T4.5:** Implement a `GET /users/{userID}/shared-notes` API endpoint to allow users to see all the notes that have been shared with them.
 - [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time.

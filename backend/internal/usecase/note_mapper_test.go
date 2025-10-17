@@ -208,3 +208,24 @@ func TestNoteMapper_ToDomain_WithCollaborators(t *testing.T) {
 		t.Errorf("Expected collaborator 'user-1' to have permission '%s', but got '%s'", domain.ReadWrite, permission)
 	}
 }
+
+func TestNoteMapper_ToDTO_WithCollaborators(t *testing.T) {
+	// Arrange
+	note, _ := domain.NewNote("note-1", "Test Note", "owner-1")
+	note.AddCollaborator("owner-1", "user-1", domain.ReadWrite)
+	mapper := NewNoteMapper()
+
+	// Act
+	dto := mapper.toNoteDTO(note)
+
+	// Assert
+	if dto.OwnerID != "owner-1" {
+		t.Errorf("Expected OwnerID to be 'owner-1', but got '%s'", dto.OwnerID)
+	}
+	if len(dto.Collaborators) != 1 {
+		t.Fatalf("Expected 1 collaborator, but got %d", len(dto.Collaborators))
+	}
+	if permission, ok := dto.Collaborators["user-1"]; !ok || permission != PermissionReadWrite {
+		t.Errorf("Expected collaborator 'user-1' to have permission '%s', but got '%s'", PermissionReadWrite, permission)
+	}
+}

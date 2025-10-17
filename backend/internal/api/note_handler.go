@@ -46,6 +46,12 @@ type TagNoteRequest struct {
 	Keyword string `json:"keyword"`
 }
 
+// ShareNoteRequest represents the request body for sharing a note.
+type ShareNoteRequest struct {
+	UserID     string `json:"user_id"`
+	Permission string `json:"permission"`
+}
+
 var ErrUnsupportedContentType = errors.New("unsupported content type")
 
 // CreateNote is the handler for the POST /notes endpoint.
@@ -263,6 +269,34 @@ func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// ShareNote is the handler for the POST /users/{ownerID}/notes/{noteID}/shares endpoint.
+func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
+	ownerID := chi.URLParam(r, "ownerID")
+	noteID := chi.URLParam(r, "noteID")
+
+	var req ShareNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.usecase.ShareNote(noteID, ownerID, req.UserID, req.Permission); err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrPermissionDenied):
+			http.Error(w, err.Error(), http.StatusForbidden)
+		case errors.Is(err, usecase.ErrUnsupportedPermissionType):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
 
 func mapToDomainContentType(ct string) (usecase.ContentType, error) {
