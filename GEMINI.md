@@ -20,11 +20,15 @@ This file contains instructions to LLM. It is located in the project root direct
 
 @docs/IMPLEMENTATION.md
 
-@docs/TDD.md
-
 #### Review
 
 @docs/REVIEW.md
+
+### Apply **Test-Driven Development** in **Implementation**
+All coding work follows TDD
+
+@docs/TDD.md
+
 
 ### Other Rules
 

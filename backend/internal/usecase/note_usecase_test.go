@@ -13,6 +13,7 @@ type mockNoteRepository struct {
 	FindByIDFunc             func(id string) (*repository.NotePO, error)
 	DeleteFunc               func(id string) error
 	FindByKeywordForUserFunc func(userID, keyword string) ([]*repository.NotePO, error)
+	GetAccessibleNoteByUserIDFunc func(userID string) ([]*repository.NotePO, error)
 	LockNoteForUpdateFunc    func(noteID string) error
 	UnlockNoteForUpdateFunc  func(noteID string) error
 }
@@ -38,6 +39,12 @@ func (m *mockNoteRepository) Delete(id string) error {
 func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*repository.NotePO, error) {
 	if m.FindByKeywordForUserFunc != nil {
 		return m.FindByKeywordForUserFunc(userID, keyword)
+	}
+	return nil, nil
+}
+func (m *mockNoteRepository) GetAccessibleNoteByUserID(userID string) ([]*repository.NotePO, error) {
+	if m.GetAccessibleNoteByUserIDFunc != nil {
+		return m.GetAccessibleNoteByUserIDFunc(userID)
 	}
 	return nil, nil
 }

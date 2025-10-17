@@ -160,6 +160,54 @@ func TestInMemoryNoteRepository_FindByKeywordForUser(t *testing.T) {
 	}
 }
 
+func TestInMemoryNoteRepository_GetAccessibleNoteByUserID(t *testing.T) {
+	// Arrange
+	repo := NewInMemoryNoteRepository()
+	ownerID := "user-1"
+	otherUserID := "user-2"
+
+	// Note owned by the user
+	ownedNote := &NotePO{ID: "owned-note", OwnerID: ownerID}
+	repo.Save(ownedNote)
+
+	// Note shared with the user
+	sharedNote := &NotePO{ID: "shared-note", OwnerID: otherUserID, Collaborators: map[string]string{ownerID: "read"}}
+	repo.Save(sharedNote)
+
+	// Note not related to the user
+	otherNote := &NotePO{ID: "other-note", OwnerID: otherUserID}
+	repo.Save(otherNote)
+
+	// Act
+	notes, err := repo.GetAccessibleNoteByUserID(ownerID)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("GetAccessibleNoteByUserID() returned an unexpected error: %v", err)
+	}
+	if len(notes) != 2 {
+		t.Fatalf("Expected 2 notes, but got %d", len(notes))
+	}
+
+	foundOwned := false
+	foundShared := false
+	for _, note := range notes {
+		if note.ID == "owned-note" {
+			foundOwned = true
+		}
+		if note.ID == "shared-note" {
+			foundShared = true
+		}
+	}
+
+	if !foundOwned {
+		t.Error("Expected to find the owned note, but it was not returned")
+	}
+	if !foundShared {
+		t.Error("Expected to find the shared note, but it was not returned")
+	}
+}
+
 func TestInMemoryNoteRepository_ConcurrentContentAddOnSameNote(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
