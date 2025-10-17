@@ -88,6 +88,19 @@ func (n *Note) AddCollaborator(callerID, collaboratorID string, permission Permi
 	return nil
 }
 
+// RemoveCollaborator removes a collaborator from the note.
+func (n *Note) RemoveCollaborator(callerID string, collaboratorID string) error {
+	if n.OwnerID != callerID {
+		return ErrPermissionDenied
+	}
+	if _, ok := n.Collaborators[collaboratorID]; !ok {
+		return ErrUserNotFound
+	}
+	delete(n.Collaborators, collaboratorID)
+	delete(n.keywords, collaboratorID)
+	return nil
+}
+
 // Contents returns a copy of the note's contents.
 func (n *Note) Contents() []Content {
 	// Return a copy to prevent modification of the internal slice.

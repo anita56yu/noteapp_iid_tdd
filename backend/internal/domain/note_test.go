@@ -282,3 +282,57 @@ func TestNote_AddCollaborator_NotOwner(t *testing.T) {
 		t.Fatalf("Expected 0 collaborators, but got %d", len(note.Collaborators))
 	}
 }
+
+func TestNote_RemoveCollaborator_Success(t *testing.T) {
+	note, _ := NewNote("note1", "Test Note", "owner1")
+	ownerID := "owner1"
+	collaboratorID := "user1"
+	note.AddCollaborator(ownerID, collaboratorID, ReadOnly)
+	keyword, _ := NewKeyword("test")
+	note.AddKeyword(collaboratorID, keyword)
+
+	err := note.RemoveCollaborator(ownerID, collaboratorID)
+
+	if err != nil {
+		t.Fatalf("RemoveCollaborator returned an unexpected error: %v", err)
+	}
+	if len(note.Collaborators) != 0 {
+		t.Errorf("Expected 0 collaborators, but got %d", len(note.Collaborators))
+	}
+	if _, ok := note.keywords[collaboratorID]; ok {
+		t.Errorf("Expected collaborator's keywords to be removed, but they were not")
+	}
+}
+
+func TestNote_RemoveCollaborator_NotOwner(t *testing.T) {
+	note, _ := NewNote("note1", "Test Note", "owner1")
+	ownerID := "owner1"
+	collaboratorID := "user1"
+	nonOwnerID := "user2"
+	note.AddCollaborator(ownerID, collaboratorID, ReadOnly)
+
+	err := note.RemoveCollaborator(nonOwnerID, collaboratorID)
+
+	if err != ErrPermissionDenied {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
+	}
+	if len(note.Collaborators) != 1 {
+		t.Errorf("Expected 1 collaborator, but got %d", len(note.Collaborators))
+	}
+}
+
+func TestNote_RemoveCollaborator_CollaboratorNotFound(t *testing.T) {
+	note, _ := NewNote("note1", "Test Note", "owner1")
+	ownerID := "owner1"
+	collaboratorID := "user1"
+	note.AddCollaborator(ownerID, collaboratorID, ReadOnly)
+
+	err := note.RemoveCollaborator(ownerID, "non-existent-user")
+
+	if err != ErrUserNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrUserNotFound, err)
+	}
+	if len(note.Collaborators) != 1 {
+		t.Errorf("Expected 1 collaborator, but got %d", len(note.Collaborators))
+	}
+}

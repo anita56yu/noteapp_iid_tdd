@@ -77,6 +77,9 @@ User facing APIs should guard against illegal parameters
     - [x] **T4.4:** Add a `GetAccessibleNotesByUserID` method to the `NoteRepository` to retrieve all notes shared with or owned by a specific user.
     - [x] **T4.5:** Create a `GetAccessibleNotesForUser` method in `NoteUsecase`.
     - [x] **T4.6:** Implement a `GET /users/{userID}/accessible-notes` API endpoint to allow users to see all the accessible notes.
+    - [x] **T4.7:** Add a `RemoveCollaborator` method to the `Note` entity in the domain layer.
+    - [ ] **T4.8:** Create a `RevokeAccess` method in the `NoteUsecase`.
+    - [ ] **T4.9:** Implement a `DELETE /users/{ownerID}/notes/{noteID}/shares/{collaboratorID}` API endpoint.
 - [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time.
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.
