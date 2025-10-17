@@ -70,7 +70,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T3.8:** Implement the `GET /users/{userID}/notes?keyword={keyword}` API endpoint.
     - [x] **T3.9:** Implement an `UntagNote` method in `NoteUsecase`.
     - [x] **T3.10:** Implement a `DELETE /users/{userID}/notes/{noteID}/keywords/{keyword}` API endpoint.
-- [ ] **F4:** Note Sharing and Access. An owner can share a note with other users, specifying their permissions (read-only or read-write), and users can view and access notes that have been shared with them.
+- [x] **F4:** Note Sharing and Access. An owner can share a note with other users, specifying their permissions (read-only or read-write), and users can view and access notes that have been shared with them.
     - [x] **T4.1:** In the `domain` layer, update the `Note` entity to include a list of collaborators and their permissions (e.g., read, read-write).
     - [x] **T4.2:** Create a `ShareNote` method in the `NoteUsecase` that allows a note owner to share a note with another user and set their permissions.
     - [x] **T4.3:** Implement a `POST /users/{ownerID}/notes/{noteID}/shares` API endpoint to expose the `ShareNote` functionality. This endpoint will take a user ID and permission level in the request body.
@@ -79,7 +79,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T4.6:** Implement a `GET /users/{userID}/accessible-notes` API endpoint to allow users to see all the accessible notes.
     - [x] **T4.7:** Add a `RemoveCollaborator` method to the `Note` entity in the domain layer.
     - [x] **T4.8:** Create a `RevokeAccess` method in the `NoteUsecase`.
-    - [ ] **T4.9:** Implement a `DELETE /users/{ownerID}/notes/{noteID}/shares/{collaboratorID}` API endpoint.
+    - [x] **T4.9:** Implement a `DELETE /users/{ownerID}/notes/{noteID}/shares` API endpoint.
 - [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time.
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.

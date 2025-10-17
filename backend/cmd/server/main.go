@@ -28,6 +28,7 @@ func main() {
 	router.Put("/notes/{id}/contents/{contentId}", noteHandler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", noteHandler.DeleteContent)
 	router.Get("/users/{userID}/accessible-notes", noteHandler.GetAccessibleNotesForUser)
+	router.Delete("/users/{ownerID}/notes/{noteID}/shares", noteHandler.RevokeAccess)
 
 	// 3. Server Startup
 	port := ":8080"

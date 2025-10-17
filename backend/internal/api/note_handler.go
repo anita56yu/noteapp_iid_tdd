@@ -52,6 +52,10 @@ type ShareNoteRequest struct {
 	Permission string `json:"permission"`
 }
 
+type RevokeAccessRequest struct {
+	UserID string `json:"user_id"`
+}
+
 var ErrUnsupportedContentType = errors.New("unsupported content type")
 
 // CreateNote is the handler for the POST /notes endpoint.
@@ -312,6 +316,32 @@ func (h *NoteHandler) GetAccessibleNotesForUser(w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(notes)
+}
+
+// RevokeAccess is the handler for the DELETE /users/{ownerID}/notes/{noteID}/shares endpoint.
+func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
+	ownerID := chi.URLParam(r, "ownerID")
+	noteID := chi.URLParam(r, "noteID")
+
+	var req RevokeAccessRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.usecase.RevokeAccess(noteID, ownerID, req.UserID); err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrNoteNotFound), errors.Is(err, usecase.ErrUserNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case errors.Is(err, usecase.ErrPermissionDenied):
+			http.Error(w, err.Error(), http.StatusForbidden)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func mapToDomainContentType(ct string) (usecase.ContentType, error) {

@@ -30,6 +30,7 @@ func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
 	router.Get("/users/{userID}/notes", handler.FindNotesByKeyword)
 	router.Delete("/users/{userID}/notes/{noteID}/keyword/{keyword}", handler.UntagNote)
 	router.Post("/users/{ownerID}/notes/{noteID}/shares", handler.ShareNote)
+	router.Delete("/users/{ownerID}/notes/{noteID}/shares", handler.RevokeAccess)
 	router.Get("/users/{userID}/accessible-notes", handler.GetAccessibleNotesForUser)
 
 	return router, noteUsecase
@@ -957,5 +958,88 @@ func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
 
 	if len(notes) != 2 {
 		t.Fatalf("expected 2 accessible notes, but got %d", len(notes))
+	}
+}
+
+func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	ownerID := "owner-1"
+	collaboratorID1 := "user-1"
+	collaboratorID2 := "user-2"
+	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID1, "read")
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID2, "read")
+	noteUsecase.TagNote(noteID, collaboratorID1, "test-keyword-1")
+	noteUsecase.TagNote(noteID, collaboratorID2, "test-keyword-2")
+
+	body, _ := json.Marshal(map[string]string{
+		"user_id": collaboratorID1,
+	})
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
+	}
+	note, _ := noteUsecase.GetNoteByID(noteID)
+	if _, ok := note.Collaborators[collaboratorID1]; ok {
+		t.Errorf("Expected collaborator 1 to be removed, but they still exist")
+	}
+	if _, ok := note.Collaborators[collaboratorID2]; !ok {
+		t.Errorf("Expected collaborator 2 to remain, but they were removed")
+	}
+	if _, ok := note.Keywords[collaboratorID1]; ok {
+		t.Errorf("Expected collaborator 1's keywords to be removed, but they still exist")
+	}
+	if _, ok := note.Keywords[collaboratorID2]; !ok {
+		t.Errorf("Expected collaborator 2's keywords to remain, but they were removed")
+	}
+}
+
+func TestNoteHandler_RevokeAccess_NotOwner(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	ownerID := "owner-1"
+	collaboratorID := "user-1"
+	nonOwnerID := "user-2"
+	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+
+	body, _ := json.Marshal(map[string]string{"user_id": collaboratorID})
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+nonOwnerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
+	}
+}
+
+func TestNoteHandler_RevokeAccess_CollaboratorNotFound(t *testing.T) {
+	// Arrange
+	router, noteUsecase := setupTest()
+	ownerID := "owner-1"
+	collaboratorID := "user-1"
+	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
+	noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+
+	body, _ := json.Marshal(map[string]string{"user_id": "non-existent-user"})
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
 	}
 }
