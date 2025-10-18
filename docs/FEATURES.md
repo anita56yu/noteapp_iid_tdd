@@ -33,6 +33,9 @@ Keywords are user-specific and are private to the users. A shared note can have 
 A user can have multiple devices. These devices can access all the notes and keywords owned by the user. The notes and keywords should be synchronized among the devices owned by a user.
 User facing APIs should guard against illegal parameters
 
+## Design Decisions
+For concurrency of notes and contents, we will use optimistic locking on the repository side. On the client side(frontend), it will keep 2 copies of the note it is working on: the real copy and the working copy. The real copy is the closest to its counter part in the repository, and the working copy as the current content that is changed. Everytime the repository is updated, the client side receives an event, and updates the real copy accordingly. Simultaneously, the client side also need to merge the update into the working copy. If the update doesn't confict with the working content, it should be successfully merged, and update the version number. If the update conflict with the working content, the client side discard or manually merged the working content(stale).
+
 ## Features
 - [ ] **F1:** Note Lifecycle Management. Users can create, read, update, and delete their own notes.
     - [x] **T1.1:** Create a `Note` model with attributes like ID, title, and content.
