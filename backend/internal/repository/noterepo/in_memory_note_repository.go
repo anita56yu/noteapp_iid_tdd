@@ -1,6 +1,9 @@
-package repository
+package noterepo
 
-import "sync"
+import (
+	"noteapp/internal/repository"
+	"sync"
+)
 
 // InMemoryNoteRepository is an in-memory implementation of NoteRepository.
 type InMemoryNoteRepository struct {
@@ -20,7 +23,7 @@ func NewInMemoryNoteRepository() *InMemoryNoteRepository {
 // Save saves a note to the repository.
 func (r *InMemoryNoteRepository) Save(note *NotePO) error {
 	if note == nil {
-		return ErrNilNote
+		return repository.ErrNilNote
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -37,7 +40,7 @@ func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 	note, ok := r.notes[id]
 	r.mu.RUnlock()
 	if !ok {
-		return nil, ErrNoteNotFound
+		return nil, repository.ErrNoteNotFound
 	}
 
 	// Return a copy to prevent external modification
@@ -64,7 +67,7 @@ func (r *InMemoryNoteRepository) Delete(id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, ok := r.notes[id]; !ok {
-		return ErrNoteNotFound
+		return repository.ErrNoteNotFound
 	}
 	delete(r.notes, id)
 	delete(r.mutexes, id)
@@ -112,7 +115,7 @@ func (r *InMemoryNoteRepository) LockNoteForUpdate(noteID string) error {
 	noteMutex, ok := r.mutexes[noteID]
 	r.mu.RUnlock()
 	if !ok {
-		return ErrNoteNotFound
+		return repository.ErrNoteNotFound
 	}
 	noteMutex.Lock()
 	return nil
@@ -124,7 +127,7 @@ func (r *InMemoryNoteRepository) UnlockNoteForUpdate(noteID string) error {
 	noteMutex, ok := r.mutexes[noteID]
 	r.mu.RUnlock()
 	if !ok {
-		return ErrNoteNotFound
+		return repository.ErrNoteNotFound
 	}
 	noteMutex.Unlock()
 	return nil

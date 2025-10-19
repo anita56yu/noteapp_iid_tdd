@@ -34,7 +34,10 @@ A user can have multiple devices. These devices can access all the notes and key
 User facing APIs should guard against illegal parameters
 
 ## Design Decisions
-For concurrency of notes and contents, we will use optimistic locking on the repository side. On the client side(frontend), it will keep 2 copies of the note it is working on: the real copy and the working copy. The real copy is the closest to its counter part in the repository, and the working copy as the current content that is changed. Everytime the repository is updated, the client side receives an event, and updates the real copy accordingly. Simultaneously, the client side also need to merge the update into the working copy. If the update doesn't confict with the working content, it should be successfully merged, and update the version number. If the update conflict with the working content, the client side discard or manually merged the working content(stale).
+### Concurrency of Notes and Contents
+    **Solution #1:** For concurrency of notes and contents, we will use optimistic locking on the repository side. On the client side(frontend), it will keep 2 copies of the note it is working on: the real copy and the working copy. The real copy is the closest to its counter part in the repository, and the working copy as the current content that is changed. Everytime the repository is updated, the client side receives an event, and updates the real copy accordingly. Simultaneously, the client side also need to merge the update into the working copy. If the update doesn't confict with the working content, it should be successfully merged, and update the version number. If the update conflict with the working content, the client side discard or manually merged the working content(stale.)
+    
+    **Solution #2:** Treats content and note as respective aggregates which are built association with ids(notes will hold a slice of content ids, and content will hold a note id.) Each content and note will hold its version number and use optimistic lock for consistency. A content change will only trigger a content event; a deletion or insertion of content will trigger a note event. The client side will only keep a working copy and apply events received. In case of a conflict, which will be reflected by version number, the local change is stashed. 
 
 ## Features
 - [ ] **F1:** Note Lifecycle Management. Users can create, read, update, and delete their own notes.
@@ -83,7 +86,17 @@ For concurrency of notes and contents, we will use optimistic locking on the rep
     - [x] **T4.7:** Add a `RemoveCollaborator` method to the `Note` entity in the domain layer.
     - [x] **T4.8:** Create a `RevokeAccess` method in the `NoteUsecase`.
     - [x] **T4.9:** Implement a `DELETE /users/{ownerID}/notes/{noteID}/shares` API endpoint.
-- [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time.
+- [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time. Use **Solution #2** in the Design Decisions section above.
+    - [ ] **T5.1:** In the `domain` layer, make the `Content` entity a standalone aggregate by adding `ID`, `NoteID`, and `Version` fields.
+    - [ ] **T5.2:** In the `domain` layer, update the `Note` entity to hold a slice of content IDs and a `Version` field.
+    - [ ] **T5.3:** In the `repository` layer, define a `ContentRepository` interface.
+    - [ ] **T5.4:** In the `repository` layer, create a `ContentPO` and an `InMemoryContentRepository` that implements the `ContentRepository` interface, including optimistic locking.
+    - [ ] **T5.5:** In the `repository` layer, update `NotePO` and `InMemoryNoteRepository` to support optimistic locking using the `Version` field.
+    - [ ] **T5.6:** In the `usecase` layer, create a `ContentDTO`, a `ContentMapper`, and a `ContentUsecase` with `CreateContent`, `UpdateContent`, and `DeleteContent` methods.
+    - [ ] **T5.7:** In `NoteUsecase`, refactor the `AddContent` method to accept a `contentID` and add it to the note's list.
+    - [ ] **T5.8:** In `NoteUsecase`, refactor the `DeleteContent` method to accept a `contentID` and remove it from the note's list.
+    - [ ] **T5.9:** Update `NoteMapper` to only map content IDs between `NotePO` and `domain.Note`.
+    - [ ] **T5.10:** Create a `content_handler` for `Content` CRUD operations and update `note_handler` to orchestrate the relationship between notes and content.
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.
 - [ ] **F8:** Decouple Data Persistence with a Repository Layer.

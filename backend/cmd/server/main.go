@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"noteapp/internal/api"
-	"noteapp/internal/repository"
-	"noteapp/internal/usecase"
+	"noteapp/internal/repository/noterepo"
+	"noteapp/internal/usecase/noteuc"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,8 +14,8 @@ import (
 
 func main() {
 	// 1. Dependency Injection
-	repo := repository.NewInMemoryNoteRepository()
-	noteUsecase := usecase.NewNoteUsecase(repo)
+	repo := noterepo.NewInMemoryNoteRepository()
+	noteUsecase := noteuc.NewNoteUsecase(repo)
 	noteHandler := api.NewNoteHandler(noteUsecase)
 
 	// 2. Routing

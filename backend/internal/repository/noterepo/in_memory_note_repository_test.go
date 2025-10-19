@@ -1,8 +1,9 @@
-package repository
+package noterepo
 
 import (
 	"errors"
 	"fmt"
+	"noteapp/internal/repository"
 	"sync"
 	"testing"
 	"time"
@@ -43,8 +44,8 @@ func TestInMemoryNoteRepository_FindByID_NotFound(t *testing.T) {
 	_, err := repo.FindByID("non-existent-id")
 
 	// Assert
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error %v, got %v", ErrNoteNotFound, err)
+	if !errors.Is(err, repository.ErrNoteNotFound) {
+		t.Errorf("Expected error %v, got %v", repository.ErrNoteNotFound, err)
 	}
 }
 
@@ -76,8 +77,8 @@ func TestInMemoryNoteRepository_Save_NilNote(t *testing.T) {
 	err := repo.Save(nil)
 
 	// Assert
-	if !errors.Is(err, ErrNilNote) {
-		t.Errorf("Expected error %v, got %v", ErrNilNote, err)
+	if !errors.Is(err, repository.ErrNilNote) {
+		t.Errorf("Expected error %v, got %v", repository.ErrNilNote, err)
 	}
 }
 
@@ -95,8 +96,8 @@ func TestInMemoryNoteRepository_Delete(t *testing.T) {
 
 	// Assert
 	_, err = repo.FindByID("test-id")
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error %v after delete, got %v", ErrNoteNotFound, err)
+	if !errors.Is(err, repository.ErrNoteNotFound) {
+		t.Errorf("Expected error %v after delete, got %v", repository.ErrNoteNotFound, err)
 	}
 }
 
@@ -108,8 +109,8 @@ func TestInMemoryNoteRepository_Delete_NotFound(t *testing.T) {
 	err := repo.Delete("non-existent-id")
 
 	// Assert
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error %v, got %v", ErrNoteNotFound, err)
+	if !errors.Is(err, repository.ErrNoteNotFound) {
+		t.Errorf("Expected error %v, got %v", repository.ErrNoteNotFound, err)
 	}
 }
 
@@ -292,7 +293,7 @@ func TestInMemoryNoteRepository_ConcurrentMapReadWrite(t *testing.T) {
 		defer wg.Done()
 		for i := 0; i < numOperations; i++ {
 			_, err := repo.FindByID(readNoteID)
-			if err != nil && !errors.Is(err, ErrNoteNotFound) {
+			if err != nil && !errors.Is(err, repository.ErrNoteNotFound) {
 				t.Errorf("FindByID returned an unexpected error: %v", err)
 			}
 		}

@@ -1,4 +1,4 @@
-package usecase
+package noteuc
 
 // Permission represents the permission level of a user for a note.
 type Permission string

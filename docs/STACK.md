@@ -15,10 +15,16 @@ This file describes the language and tools for the project.
 │   │   └── server/
 │   │       └── main.go            # Main application entry point
 │   ├── internal/
-│   │   ├── api/                   # HTTP handlers & routing (your current 'controller')
-│   │   ├── domain/                # Core business models and logic (like your 'domain')
+│   │   ├── api/                   # HTTP handlers & routing
+│   │   ├── domain/                # Core business models and logic
+│   │   │   ├── note/              # Note aggregate
+│   │   │   └── content/           # Content aggregate
 │   │   ├── repository/            # Database interaction layer
-│   │   └── usecase/               # Business logic orchestration (your 'note_usecase')
+│   │   │   ├── noterepo/
+│   │   │   └── contentrepo/
+│   │   └── usecase/               # Business logic orchestration
+│   │       ├── noteuc/
+│   │       └── contentuc/
 │   ├── go.mod
 │   └── go.sum
 │

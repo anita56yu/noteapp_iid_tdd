@@ -1,4 +1,4 @@
-package repository
+package noterepo
 
 // ContentPO represents the persistent state of a content block.
 type ContentPO struct {

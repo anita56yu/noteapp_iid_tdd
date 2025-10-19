@@ -1,10 +1,12 @@
-package usecase
+package noteuc
 
 import (
 	"errors"
 	"fmt"
-	"noteapp/internal/domain"
+	"noteapp/internal/domain/note"
+	domainnote "noteapp/internal/domain/note"
 	"noteapp/internal/repository"
+	"noteapp/internal/repository/noterepo"
 )
 
 // ErrInvalidID is returned when an invalid ID is provided.
@@ -48,18 +50,18 @@ const (
 
 // NoteUsecase handles the business logic for notes.
 type NoteUsecase struct {
-	repo   repository.NoteRepository
+	repo   noterepo.NoteRepository
 	mapper *NoteMapper
 }
 
 // NewNoteUsecase creates a new NoteUsecase.
-func NewNoteUsecase(repo repository.NoteRepository) *NoteUsecase {
+func NewNoteUsecase(repo noterepo.NoteRepository) *NoteUsecase {
 	return &NoteUsecase{repo: repo, mapper: NewNoteMapper()}
 }
 
 // CreateNote creates a new note.
 func (uc *NoteUsecase) CreateNote(id, title, ownerID string) (string, error) {
-	note, err := domain.NewNote(id, title, ownerID)
+	note, err := note.NewNote(id, title, ownerID)
 	if err != nil {
 		return "", uc.mapDomainError(err)
 	}
@@ -188,7 +190,7 @@ func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
 	}
 	note := uc.mapper.ToDomain(notePO)
 
-	keyword, err := domain.NewKeyword(keywordStr)
+	keyword, err := domainnote.NewKeyword(keywordStr)
 	if err != nil {
 		return uc.mapDomainError(err)
 	}
@@ -216,7 +218,7 @@ func (uc *NoteUsecase) UntagNote(noteID, userID, keywordStr string) error {
 	}
 	note := uc.mapper.ToDomain(notePO)
 
-	keyword, err := domain.NewKeyword(keywordStr)
+	keyword, err := domainnote.NewKeyword(keywordStr)
 	if err != nil {
 		return uc.mapDomainError(err)
 	}
@@ -339,41 +341,41 @@ func (uc *NoteUsecase) mapRepositoryError(err error) error {
 
 func (uc *NoteUsecase) mapDomainError(err error) error {
 	switch {
-	case errors.Is(err, domain.ErrEmptyTitle):
+	case errors.Is(err, note.ErrEmptyTitle):
 		return ErrEmptyTitle
-	case errors.Is(err, domain.ErrContentNotFound):
+	case errors.Is(err, note.ErrContentNotFound):
 		return ErrContentNotFound
-	case errors.Is(err, domain.ErrEmptyKeyword):
+	case errors.Is(err, note.ErrEmptyKeyword):
 		return ErrEmptyKeyword
-	case errors.Is(err, domain.ErrUserNotFound):
+	case errors.Is(err, note.ErrUserNotFound):
 		return ErrUserNotFound
-	case errors.Is(err, domain.ErrKeywordNotFound):
+	case errors.Is(err, note.ErrKeywordNotFound):
 		return ErrKeywordNotFound
-	case errors.Is(err, domain.ErrPermissionDenied):
+	case errors.Is(err, note.ErrPermissionDenied):
 		return ErrPermissionDenied
 	default:
 		return fmt.Errorf("an unexpected domain error occurred: %w", err)
 	}
 }
 
-func mapToDomainContentType(ct ContentType) domain.ContentType {
+func mapToDomainContentType(ct ContentType) note.ContentType {
 	switch ct {
 	case TextContentType:
-		return domain.TextContentType
+		return note.TextContentType
 	case ImageContentType:
-		return domain.ImageContentType
+		return note.ImageContentType
 	default:
-		return domain.TextContentType // Default to text if unknown
+		return note.TextContentType // Default to text if unknown
 	}
 }
 
-func mapToDomainPermissionType(p string) (domain.Permission, error) {
+func mapToDomainPermissionType(p string) (note.Permission, error) {
 	switch p {
 	case "read":
-		return domain.ReadOnly, nil
+		return note.ReadOnly, nil
 	case "read-write":
-		return domain.ReadWrite, nil
+		return note.ReadWrite, nil
 	default:
-		return domain.ReadOnly, ErrUnsupportedPermissionType
+		return note.ReadOnly, ErrUnsupportedPermissionType
 	}
 }

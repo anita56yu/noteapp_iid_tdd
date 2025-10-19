@@ -1,8 +1,8 @@
-package usecase
+package noteuc
 
 import (
-	"noteapp/internal/domain"
-	"noteapp/internal/repository"
+	domainnote "noteapp/internal/domain/note"
+	"noteapp/internal/repository/noterepo"
 )
 
 // NoteMapper handles mapping between domain.Note and other representations.
@@ -14,10 +14,10 @@ func NewNoteMapper() *NoteMapper {
 }
 
 // ToPO converts a domain.Note to a repository.NotePO.
-func (m *NoteMapper) ToPO(note *domain.Note) *repository.NotePO {
-	contentPOs := make([]repository.ContentPO, len(note.Contents()))
+func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
+	contentPOs := make([]noterepo.ContentPO, len(note.Contents()))
 	for i, content := range note.Contents() {
-		contentPOs[i] = repository.ContentPO{
+		contentPOs[i] = noterepo.ContentPO{
 			ID:   content.ID,
 			Type: string(content.Type),
 			Data: content.Data,
@@ -36,7 +36,7 @@ func (m *NoteMapper) ToPO(note *domain.Note) *repository.NotePO {
 		collaboratorPOs[userID] = string(permission)
 	}
 
-	return &repository.NotePO{
+	return &noterepo.NotePO{
 		ID:            note.ID,
 		OwnerID:       note.OwnerID,
 		Title:         note.Title,
@@ -47,24 +47,24 @@ func (m *NoteMapper) ToPO(note *domain.Note) *repository.NotePO {
 }
 
 // ToDomain converts a repository.NotePO to a domain.Note.
-func (m *NoteMapper) ToDomain(po *repository.NotePO) *domain.Note {
-	note, _ := domain.NewNote(po.ID, po.Title, po.OwnerID)
+func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
+	note, _ := domainnote.NewNote(po.ID, po.Title, po.OwnerID)
 	for _, contentPO := range po.Contents {
-		note.AddContent(contentPO.ID, contentPO.Data, domain.ContentType(contentPO.Type))
+		note.AddContent(contentPO.ID, contentPO.Data, domainnote.ContentType(contentPO.Type))
 	}
 	for userID, keywords := range po.Keywords {
 		for _, keywordStr := range keywords {
-			keyword, _ := domain.NewKeyword(keywordStr)
+			keyword, _ := domainnote.NewKeyword(keywordStr)
 			note.AddKeyword(userID, keyword)
 		}
 	}
 	for userID, permission := range po.Collaborators {
-		note.AddCollaborator(note.OwnerID, userID, domain.Permission(permission))
+		note.AddCollaborator(note.OwnerID, userID, domainnote.Permission(permission))
 	}
 	return note
 }
 
-func (m *NoteMapper) toNoteDTO(note *domain.Note) *NoteDTO {
+func (m *NoteMapper) toNoteDTO(note *domainnote.Note) *NoteDTO {
 	contents := []*ContentDTO{}
 	for _, c := range note.Contents() {
 		contents = append(contents, &ContentDTO{

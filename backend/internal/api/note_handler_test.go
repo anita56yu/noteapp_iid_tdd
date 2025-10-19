@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"noteapp/internal/repository"
-	"noteapp/internal/usecase"
+	"noteapp/internal/repository/noterepo"
+	usecase "noteapp/internal/usecase/noteuc"
 	"strings"
 	"testing"
 
@@ -15,7 +15,7 @@ import (
 
 // setupTest initializes the necessary components for the tests.
 func setupTest() (*chi.Mux, *usecase.NoteUsecase) {
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := usecase.NewNoteUsecase(repo)
 	handler := NewNoteHandler(noteUsecase)
 

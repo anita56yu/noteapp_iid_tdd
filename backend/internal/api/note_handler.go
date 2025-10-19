@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"noteapp/internal/usecase"
+	usecase "noteapp/internal/usecase/noteuc"
 
 	"github.com/go-chi/chi/v5"
 )

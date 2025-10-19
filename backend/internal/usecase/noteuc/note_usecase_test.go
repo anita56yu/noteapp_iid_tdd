@@ -1,30 +1,31 @@
-package usecase
+package noteuc
 
 import (
 	"errors"
-	"noteapp/internal/domain"
+	domainnote "noteapp/internal/domain/note"
 	"noteapp/internal/repository"
+	"noteapp/internal/repository/noterepo"
 	"testing"
 )
 
 // mockNoteRepository is a mock implementation of the NoteRepository for testing error cases.
 type mockNoteRepository struct {
-	SaveFunc                       func(note *repository.NotePO) error
-	FindByIDFunc                   func(id string) (*repository.NotePO, error)
+	SaveFunc                       func(note *noterepo.NotePO) error
+	FindByIDFunc                   func(id string) (*noterepo.NotePO, error)
 	DeleteFunc                     func(id string) error
-	FindByKeywordForUserFunc       func(userID, keyword string) ([]*repository.NotePO, error)
-	GetAccessibleNotesByUserIDFunc func(userID string) ([]*repository.NotePO, error)
+	FindByKeywordForUserFunc       func(userID, keyword string) ([]*noterepo.NotePO, error)
+	GetAccessibleNotesByUserIDFunc func(userID string) ([]*noterepo.NotePO, error)
 	LockNoteForUpdateFunc          func(noteID string) error
 	UnlockNoteForUpdateFunc        func(noteID string) error
 }
 
-func (m *mockNoteRepository) Save(note *repository.NotePO) error {
+func (m *mockNoteRepository) Save(note *noterepo.NotePO) error {
 	if m.SaveFunc != nil {
 		return m.SaveFunc(note)
 	}
 	return nil
 }
-func (m *mockNoteRepository) FindByID(id string) (*repository.NotePO, error) {
+func (m *mockNoteRepository) FindByID(id string) (*noterepo.NotePO, error) {
 	if m.FindByIDFunc != nil {
 		return m.FindByIDFunc(id)
 	}
@@ -36,13 +37,13 @@ func (m *mockNoteRepository) Delete(id string) error {
 	}
 	return nil
 }
-func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*repository.NotePO, error) {
+func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*noterepo.NotePO, error) {
 	if m.FindByKeywordForUserFunc != nil {
 		return m.FindByKeywordForUserFunc(userID, keyword)
 	}
 	return nil, nil
 }
-func (m *mockNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*repository.NotePO, error) {
+func (m *mockNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*noterepo.NotePO, error) {
 	if m.GetAccessibleNotesByUserIDFunc != nil {
 		return m.GetAccessibleNotesByUserIDFunc(userID)
 	}
@@ -63,7 +64,7 @@ func (m *mockNoteRepository) UnlockNoteForUpdate(noteID string) error {
 
 func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	id := "test-id"
 	title := "Test Title"
@@ -93,7 +94,7 @@ func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
 
 func TestNoteUsecase_CreateNote_WithGeneratedID(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	title := "Test Title"
 	ownerID := "owner-1"
@@ -122,7 +123,7 @@ func TestNoteUsecase_CreateNote_WithGeneratedID(t *testing.T) {
 
 func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -140,7 +141,7 @@ func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 	// Arrange
 	mockRepo := &mockNoteRepository{
-		SaveFunc: func(note *repository.NotePO) error {
+		SaveFunc: func(note *noterepo.NotePO) error {
 			return repository.ErrNilNote
 		},
 	}
@@ -161,7 +162,7 @@ func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -188,7 +189,7 @@ func TestNoteUsecase_GetNoteByID(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -205,7 +206,7 @@ func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -222,7 +223,7 @@ func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
 
 func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -244,7 +245,7 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 
 func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -261,7 +262,7 @@ func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
 
 func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -278,7 +279,7 @@ func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 
 func TestNoteUsecase_AddContent_WithInjectedID(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	mapper := NewNoteMapper()
 	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
@@ -312,7 +313,7 @@ func TestNoteUsecase_AddContent_WithInjectedID(t *testing.T) {
 
 func TestNoteUsecase_AddContent_WithGeneratedID(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	mapper := NewNoteMapper()
 	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
@@ -345,7 +346,7 @@ func TestNoteUsecase_AddContent_WithGeneratedID(t *testing.T) {
 
 func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -362,15 +363,15 @@ func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	mapper := NewNoteMapper()
-	note, err := domain.NewNote("note-1", "Test Title", "owner-1")
+	note, err := domainnote.NewNote("note-1", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("NewNote() failed: %v", err)
 	}
-	note.AddContent("content-1", "Content 1", domain.TextContentType)
-	note.AddContent("content-2", "Content 2", domain.ImageContentType)
+	note.AddContent("content-1", "Content 1", domainnote.TextContentType)
+	note.AddContent("content-2", "Content 2", domainnote.ImageContentType)
 	repo.Save(mapper.ToPO(note))
 
 	// Act
@@ -405,7 +406,7 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 
 func TestNoteUsecase_UpdateContent_NormalCase(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	mapper := NewNoteMapper()
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
@@ -441,7 +442,7 @@ func TestNoteUsecase_UpdateContent_NormalCase(t *testing.T) {
 
 func TestNoteUsecase_UpdateContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -458,7 +459,7 @@ func TestNoteUsecase_UpdateContent_NoteNotFound(t *testing.T) {
 
 func TestNoteUsecase_UpdateContent_ContentNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -479,7 +480,7 @@ func TestNoteUsecase_UpdateContent_ContentNotFound(t *testing.T) {
 
 func TestNoteUsecase_DeleteContent_Success(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -518,7 +519,7 @@ func TestNoteUsecase_DeleteContent_Success(t *testing.T) {
 
 func TestNoteUsecase_DeleteContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 
 	// Act
@@ -535,7 +536,7 @@ func TestNoteUsecase_DeleteContent_NoteNotFound(t *testing.T) {
 
 func TestNoteUsecase_DeleteContent_ContentNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -556,7 +557,7 @@ func TestNoteUsecase_DeleteContent_ContentNotFound(t *testing.T) {
 
 func TestNoteUsecase_TagNote(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -586,7 +587,7 @@ func TestNoteUsecase_TagNote(t *testing.T) {
 
 func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -608,7 +609,7 @@ func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 
 func TestNoteUsecase_FindNotesByKeyword(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
 	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-1")
@@ -649,7 +650,7 @@ func TestNoteUsecase_FindNotesByKeyword(t *testing.T) {
 
 func TestNoteUsecase_FindNotesByKeyword_NoResults(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
 	noteUsecase.TagNote(note1, "user-1", "go")
@@ -668,7 +669,7 @@ func TestNoteUsecase_FindNotesByKeyword_NoResults(t *testing.T) {
 
 func TestNoteUsecase_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
 	noteUsecase.TagNote(note1, "user-1", "go")
@@ -687,7 +688,7 @@ func TestNoteUsecase_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 
 func TestNoteUsecase_UntagNote_Success(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -726,7 +727,7 @@ func TestNoteUsecase_UntagNote_Success(t *testing.T) {
 
 func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -750,7 +751,7 @@ func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
 
 func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
@@ -774,7 +775,7 @@ func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 
 func TestNoteUsecase_ShareNote_NotOwner(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	ownerID := "owner-1"
 	collaboratorID := "collaborator-1"
@@ -797,7 +798,7 @@ func TestNoteUsecase_ShareNote_NotOwner(t *testing.T) {
 
 func TestNoteUsecase_ShareNote_InvalidPermission(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	ownerID := "owner-1"
 	collaboratorID := "collaborator-1"
@@ -817,7 +818,7 @@ func TestNoteUsecase_ShareNote_InvalidPermission(t *testing.T) {
 
 func TestNoteUsecase_ShareNote_Success(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	ownerID := "owner-1"
 	collaboratorID := "collaborator-1"
@@ -850,7 +851,7 @@ func TestNoteUsecase_ShareNote_Success(t *testing.T) {
 
 func TestNoteUsecase_GetAccessibleNotesForUser(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	userID := "user-1"
 	otherUserID := "user-2"
@@ -892,7 +893,7 @@ func TestNoteUsecase_GetAccessibleNotesForUser(t *testing.T) {
 
 func TestNoteUsecase_RevokeAccess_Success(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	ownerID := "owner-1"
 	collaboratorID1 := "user-1"
@@ -927,7 +928,7 @@ func TestNoteUsecase_RevokeAccess_Success(t *testing.T) {
 
 func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	ownerID := "owner-1"
 	collaboratorID := "user-1"
@@ -946,7 +947,7 @@ func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
 
 func TestNoteUsecase_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	// Arrange
-	repo := repository.NewInMemoryNoteRepository()
+	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
 	ownerID := "owner-1"
 	collaboratorID := "user-1"
