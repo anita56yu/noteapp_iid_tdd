@@ -53,14 +53,16 @@ type Note struct {
 	ID            string
 	OwnerID       string
 	Title         string
+	Version       int
+	ContentIDs    []string
 	contents      []Content
 	keywords      map[string][]Keyword
 	Collaborators map[string]Permission
 }
 
-// NewNote creates a new Note instance.
+// NewNoteWithVersion creates a new Note instance with a specific version.
 // If id is empty, a new UUID will be generated.
-func NewNote(id, title, ownerID string) (*Note, error) {
+func NewNoteWithVersion(id, title, ownerID string, version int) (*Note, error) {
 	if title == "" {
 		return nil, ErrEmptyTitle
 	}
@@ -73,10 +75,18 @@ func NewNote(id, title, ownerID string) (*Note, error) {
 		ID:            id,
 		OwnerID:       ownerID,
 		Title:         title,
+		Version:       version,
+		ContentIDs:    []string{},
 		contents:      []Content{},
 		keywords:      make(map[string][]Keyword),
 		Collaborators: make(map[string]Permission),
 	}, nil
+}
+
+// NewNote creates a new Note instance with a default version of 0.
+// If id is empty, a new UUID will be generated.
+func NewNote(id, title, ownerID string) (*Note, error) {
+	return NewNoteWithVersion(id, title, ownerID, 0)
 }
 
 // AddCollaborator adds a user to the note's collaborators with a specific permission.

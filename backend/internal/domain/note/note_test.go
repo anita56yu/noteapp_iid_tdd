@@ -9,7 +9,7 @@ func TestNewNote_ValidCreation_WithInjectedID(t *testing.T) {
 	title := "Test Note"
 	ownerID := "owner-1"
 
-	note, err := NewNote(id, title, ownerID)
+	note, err := NewNoteWithVersion(id, title, ownerID, 0)
 	if err != nil {
 		t.Fatalf("Failed to create a valid note: %v", err)
 	}
@@ -25,12 +25,24 @@ func TestNewNote_ValidCreation_WithInjectedID(t *testing.T) {
 	if len(note.contents) != 0 {
 		t.Errorf("Expected contents to be empty, but got %d elements", len(note.contents))
 	}
+
+	if note.Version != 0 {
+		t.Errorf("Expected Version to be 0, but got %d", note.Version)
+	}
+
+	if note.ContentIDs == nil {
+		t.Fatalf("Expected ContentIDs to be an empty slice, but it was nil")
+	}
+
+	if len(note.ContentIDs) != 0 {
+		t.Errorf("Expected ContentIDs to be empty, but got %d elements", len(note.ContentIDs))
+	}
 }
 
 func TestNewNote_ValidCreation_WithGeneratedID(t *testing.T) {
 	title := "Test Note"
 	ownerID := "owner-1"
-	note, err := NewNote("", title, ownerID)
+	note, err := NewNoteWithVersion("", title, ownerID, 0)
 	if err != nil {
 		t.Fatalf("Failed to create a valid note: %v", err)
 	}
@@ -46,6 +58,18 @@ func TestNewNote_ValidCreation_WithGeneratedID(t *testing.T) {
 
 	if len(note.contents) != 0 {
 		t.Errorf("Expected contents to be empty, but got %d elements", len(note.contents))
+	}
+
+	if note.Version != 0 {
+		t.Errorf("Expected Version to be 0, but got %d", note.Version)
+	}
+
+	if note.ContentIDs == nil {
+		t.Fatalf("Expected ContentIDs to be an empty slice, but it was nil")
+	}
+
+	if len(note.ContentIDs) != 0 {
+		t.Errorf("Expected ContentIDs to be empty, but got %d elements", len(note.ContentIDs))
 	}
 }
 

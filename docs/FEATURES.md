@@ -88,7 +88,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T4.9:** Implement a `DELETE /users/{ownerID}/notes/{noteID}/shares` API endpoint.
 - [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time. Use **Solution #2** in the Design Decisions section above.
     - [x] **T5.1:** In the `domain` layer, make the `Content` entity a standalone aggregate by adding `ID`, `NoteID`, and `Version` fields.
-    - [ ] **T5.2:** In the `domain` layer, update the `Note` entity to hold a slice of content IDs and a `Version` field.
+    - [x] **T5.2:** In the `domain` layer, update the `Note` entity to hold a slice of content IDs and a `Version` field.
     - [ ] **T5.3:** In the `repository` layer, define a `ContentRepository` interface.
     - [ ] **T5.4:** In the `repository` layer, create a `ContentPO` and an `InMemoryContentRepository` that implements the `ContentRepository` interface, including optimistic locking.
     - [ ] **T5.5:** In the `repository` layer, update `NotePO` and `InMemoryNoteRepository` to support optimistic locking using the `Version` field.
