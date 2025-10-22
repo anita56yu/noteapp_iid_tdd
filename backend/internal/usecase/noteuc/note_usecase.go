@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"noteapp/internal/domain/note"
-	domainnote "noteapp/internal/domain/note"
 	"noteapp/internal/repository"
 	"noteapp/internal/repository/noterepo"
 )
@@ -61,17 +60,17 @@ func NewNoteUsecase(repo noterepo.NoteRepository) *NoteUsecase {
 
 // CreateNote creates a new note.
 func (uc *NoteUsecase) CreateNote(id, title, ownerID string) (string, error) {
-	note, err := note.NewNote(id, title, ownerID)
+	n, err := note.NewNote(id, title, ownerID)
 	if err != nil {
 		return "", uc.mapDomainError(err)
 	}
 
-	notePO := uc.mapper.ToPO(note)
+	notePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(notePO); err != nil {
 		return "", uc.mapRepositoryError(err)
 	}
 
-	return note.ID, nil
+	return n.ID, nil
 }
 
 // GetNoteByID retrieves a note by its ID.
@@ -84,8 +83,8 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 		return nil, uc.mapRepositoryError(err)
 	}
 
-	note := uc.mapper.ToDomain(notePO)
-	return uc.mapper.toNoteDTO(note), nil
+	n := uc.mapper.ToDomain(notePO)
+	return uc.mapper.toNoteDTO(n), nil
 }
 
 // DeleteNote deletes a note by its ID.
@@ -115,11 +114,11 @@ func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType Co
 	if err != nil {
 		return "", uc.mapRepositoryError(err)
 	}
-	note := uc.mapper.ToDomain(notePO)
+	n := uc.mapper.ToDomain(notePO)
 
-	newID := note.AddContent(contentID, data, mapToDomainContentType(contentType))
+	newID := n.AddContent(contentID, data, mapToDomainContentType(contentType))
 
-	updatedNotePO := uc.mapper.ToPO(note)
+	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return "", uc.mapRepositoryError(err)
 	}
@@ -138,13 +137,13 @@ func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
 	if err != nil {
 		return uc.mapRepositoryError(err)
 	}
-	note := uc.mapper.ToDomain(notePO)
+	n := uc.mapper.ToDomain(notePO)
 
-	if err := note.UpdateContent(contentID, data); err != nil {
+	if err := n.UpdateContent(contentID, data); err != nil {
 		return uc.mapDomainError(err)
 	}
 
-	updatedNotePO := uc.mapper.ToPO(note)
+	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return uc.mapRepositoryError(err)
 	}
@@ -163,13 +162,13 @@ func (uc *NoteUsecase) DeleteContent(noteID, contentID string) error {
 	if err != nil {
 		return uc.mapRepositoryError(err)
 	}
-	note := uc.mapper.ToDomain(notePO)
+	n := uc.mapper.ToDomain(notePO)
 
-	if err := note.DeleteContent(contentID); err != nil {
+	if err := n.DeleteContent(contentID); err != nil {
 		return uc.mapDomainError(err)
 	}
 
-	updatedNotePO := uc.mapper.ToPO(note)
+	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return uc.mapRepositoryError(err)
 	}
@@ -188,16 +187,16 @@ func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
 	if err != nil {
 		return uc.mapRepositoryError(err)
 	}
-	note := uc.mapper.ToDomain(notePO)
+	n := uc.mapper.ToDomain(notePO)
 
-	keyword, err := domainnote.NewKeyword(keywordStr)
+	keyword, err := note.NewKeyword(keywordStr)
 	if err != nil {
 		return uc.mapDomainError(err)
 	}
 
-	note.AddKeyword(userID, keyword)
+	n.AddKeyword(userID, keyword)
 
-	updatedNotePO := uc.mapper.ToPO(note)
+	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return uc.mapRepositoryError(err)
 	}
@@ -216,18 +215,18 @@ func (uc *NoteUsecase) UntagNote(noteID, userID, keywordStr string) error {
 	if err != nil {
 		return uc.mapRepositoryError(err)
 	}
-	note := uc.mapper.ToDomain(notePO)
+	n := uc.mapper.ToDomain(notePO)
 
-	keyword, err := domainnote.NewKeyword(keywordStr)
+	keyword, err := note.NewKeyword(keywordStr)
 	if err != nil {
 		return uc.mapDomainError(err)
 	}
 
-	if err := note.RemoveKeyword(userID, keyword); err != nil {
+	if err := n.RemoveKeyword(userID, keyword); err != nil {
 		return uc.mapDomainError(err)
 	}
 
-	updatedNotePO := uc.mapper.ToPO(note)
+	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return uc.mapRepositoryError(err)
 	}
@@ -248,8 +247,8 @@ func (uc *NoteUsecase) FindNotesByKeyword(userID, keyword string) ([]*NoteDTO, e
 
 	var noteDTOs []*NoteDTO
 	for _, notePO := range notePOs {
-		note := uc.mapper.ToDomain(notePO)
-		noteDTOs = append(noteDTOs, uc.mapper.toNoteDTO(note))
+		n := uc.mapper.ToDomain(notePO)
+		noteDTOs = append(noteDTOs, uc.mapper.toNoteDTO(n))
 	}
 
 	return noteDTOs, nil
@@ -267,18 +266,18 @@ func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission str
 		return uc.mapRepositoryError(err)
 	}
 
-	note := uc.mapper.ToDomain(notePO)
+	n := uc.mapper.ToDomain(notePO)
 
 	permissionType, err := mapToDomainPermissionType(permission)
 	if err != nil {
 		return err
 	}
 
-	if err := note.AddCollaborator(ownerID, collaboratorID, permissionType); err != nil {
+	if err := n.AddCollaborator(ownerID, collaboratorID, permissionType); err != nil {
 		return uc.mapDomainError(err)
 	}
 
-	updatedNotePO := uc.mapper.ToPO(note)
+	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return uc.mapRepositoryError(err)
 	}
@@ -295,8 +294,8 @@ func (uc *NoteUsecase) GetAccessibleNotesForUser(userID string) ([]*NoteDTO, err
 
 	var noteDTOs []*NoteDTO
 	for _, notePO := range notePOs {
-		note := uc.mapper.ToDomain(notePO)
-		noteDTOs = append(noteDTOs, uc.mapper.toNoteDTO(note))
+		n := uc.mapper.ToDomain(notePO)
+		noteDTOs = append(noteDTOs, uc.mapper.toNoteDTO(n))
 	}
 
 	return noteDTOs, nil
@@ -314,13 +313,13 @@ func (uc *NoteUsecase) RevokeAccess(noteID, ownerID, collaboratorID string) erro
 		return uc.mapRepositoryError(err)
 	}
 
-	note := uc.mapper.ToDomain(notePO)
+	n := uc.mapper.ToDomain(notePO)
 
-	if err := note.RemoveCollaborator(ownerID, collaboratorID); err != nil {
+	if err := n.RemoveCollaborator(ownerID, collaboratorID); err != nil {
 		return uc.mapDomainError(err)
 	}
 
-	updatedNotePO := uc.mapper.ToPO(note)
+	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
 		return uc.mapRepositoryError(err)
 	}

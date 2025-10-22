@@ -2,7 +2,6 @@ package noteuc
 
 import (
 	"errors"
-	domainnote "noteapp/internal/domain/note"
 	"noteapp/internal/repository"
 	"noteapp/internal/repository/noterepo"
 	"testing"
@@ -62,10 +61,47 @@ func (m *mockNoteRepository) UnlockNoteForUpdate(noteID string) error {
 	return nil
 }
 
-func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
-	// Arrange
+func setUpRepositoryAndUsecase() (*noterepo.InMemoryNoteRepository, *NoteUsecase) {
 	repo := noterepo.NewInMemoryNoteRepository()
 	noteUsecase := NewNoteUsecase(repo)
+	return repo, noteUsecase
+}
+
+func setUpRepositoryAndUsecaseWithNote() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string) {
+	repo, noteUsecase := setUpRepositoryAndUsecase()
+	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
+	return repo, noteUsecase, noteID
+}
+
+func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string, string, string) {
+	repo, noteUsecase := setUpRepositoryAndUsecase()
+	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
+	contentID, _ := noteUsecase.AddContent(noteID, "", "Content 1", TextContentType)
+	contentID1, _ := noteUsecase.AddContent(noteID, "", "Content 2", ImageContentType)
+	return repo, noteUsecase, noteID, contentID, contentID1
+}
+
+func setUpRepositoryAndUsecaseWithTaggedNotes() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string, string, string) {
+	repo, noteUsecase := setUpRepositoryAndUsecase()
+	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
+	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-2")
+	note3, _ := noteUsecase.CreateNote("", "Note 3", "owner-3")
+	noteUsecase.ShareNote(note2, "owner-2", "user-1", "read")
+	noteUsecase.ShareNote(note2, "owner-2", "user-2", "read")
+	noteUsecase.TagNote(note1, "user-1", "go")
+	noteUsecase.TagNote(note1, "user-1", "testing")
+	noteUsecase.TagNote(note1, "user-2", "go")
+	noteUsecase.TagNote(note2, "user-1", "testing")
+	noteUsecase.TagNote(note2, "user-2", "java")
+	noteUsecase.TagNote(note3, "user-2", "java")
+	noteUsecase.TagNote(note3, "user-2", "testing")
+
+	return repo, noteUsecase, note1, note2, note3
+}
+
+func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
+	// Arrange
+	repo, noteUsecase := setUpRepositoryAndUsecase()
 	id := "test-id"
 	title := "Test Title"
 	ownerID := "owner-1"
@@ -94,8 +130,7 @@ func TestNoteUsecase_CreateNote_WithInjectedID(t *testing.T) {
 
 func TestNoteUsecase_CreateNote_WithGeneratedID(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	repo, noteUsecase := setUpRepositoryAndUsecase()
 	title := "Test Title"
 	ownerID := "owner-1"
 
@@ -123,8 +158,7 @@ func TestNoteUsecase_CreateNote_WithGeneratedID(t *testing.T) {
 
 func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase := setUpRepositoryAndUsecase()
 
 	// Act
 	_, err := noteUsecase.CreateNote("", "", "owner-1") // Empty title
@@ -162,12 +196,7 @@ func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	_, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
 	noteDTO, err := noteUsecase.GetNoteByID(id)
@@ -189,8 +218,7 @@ func TestNoteUsecase_GetNoteByID(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
 	_, err := noteUsecase.GetNoteByID("non-existent-id")
@@ -206,8 +234,7 @@ func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
 	_, err := noteUsecase.GetNoteByID("") // Empty ID
@@ -223,15 +250,10 @@ func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
 
 func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err = noteUsecase.DeleteNote(id)
+	err := noteUsecase.DeleteNote(id)
 	if err != nil {
 		t.Fatalf("DeleteNote() returned an unexpected error: %v", err)
 	}
@@ -245,8 +267,7 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 
 func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase := setUpRepositoryAndUsecase()
 
 	// Act
 	err := noteUsecase.DeleteNote("non-existent-id")
@@ -262,8 +283,7 @@ func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
 
 func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
 	err := noteUsecase.DeleteNote("") // Empty ID
@@ -279,13 +299,7 @@ func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 
 func TestNoteUsecase_AddContent_WithInjectedID(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	mapper := NewNoteMapper()
-	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
 	content_id := "content-1"
 
 	// Act
@@ -302,24 +316,17 @@ func TestNoteUsecase_AddContent_WithInjectedID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to find note: %v", err)
 	}
-	note := mapper.ToDomain(notePO)
-	if len(note.Contents()) != 1 {
-		t.Errorf("Expected 1 content block, got %d", len(note.Contents()))
+	if len(notePO.Contents) != 1 {
+		t.Errorf("Expected 1 content block, got %d", len(notePO.Contents))
 	}
-	if note.Contents()[0].Data != "New Content" {
-		t.Errorf("Expected content to be 'New Content', got '%s'", note.Contents()[0].Data)
+	if notePO.Contents[0].Data != "New Content" {
+		t.Errorf("Expected content to be 'New Content', got '%s'", notePO.Contents[0].Data)
 	}
 }
 
 func TestNoteUsecase_AddContent_WithGeneratedID(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	mapper := NewNoteMapper()
-	id, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
 	contentId, err := noteUsecase.AddContent(id, "", "New Content", TextContentType)
@@ -332,22 +339,20 @@ func TestNoteUsecase_AddContent_WithGeneratedID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to find note: %v", err)
 	}
-	note := mapper.ToDomain(notePO)
-	if len(note.Contents()) != 1 {
-		t.Errorf("Expected 1 content block, got %d", len(note.Contents()))
+	if len(notePO.Contents) != 1 {
+		t.Errorf("Expected 1 content block, got %d", len(notePO.Contents))
 	}
-	if note.Contents()[0].ID != contentId {
-		t.Errorf("Expected content ID to be '%s', got '%s'", contentId, note.Contents()[0].ID)
+	if notePO.Contents[0].ID != contentId {
+		t.Errorf("Expected content ID to be '%s', got '%s'", contentId, notePO.Contents[0].ID)
 	}
-	if note.Contents()[0].Data != "New Content" {
-		t.Errorf("Expected content to be 'New Content', got '%s'", note.Contents()[0].Data)
+	if notePO.Contents[0].Data != "New Content" {
+		t.Errorf("Expected content to be 'New Content', got '%s'", notePO.Contents[0].Data)
 	}
 }
 
 func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
 	_, err := noteUsecase.AddContent("non-existent-id", "", "New Content", TextContentType)
@@ -363,19 +368,10 @@ func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 
 func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	mapper := NewNoteMapper()
-	note, err := domainnote.NewNote("note-1", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("NewNote() failed: %v", err)
-	}
-	note.AddContent("content-1", "Content 1", domainnote.TextContentType)
-	note.AddContent("content-2", "Content 2", domainnote.ImageContentType)
-	repo.Save(mapper.ToPO(note))
+	_, noteUsecase, noteID, contentID, contentID1 := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	noteDTO, err := noteUsecase.GetNoteByID("note-1")
+	noteDTO, err := noteUsecase.GetNoteByID(noteID)
 
 	// Assert
 	if err != nil {
@@ -384,8 +380,8 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	if len(noteDTO.Contents) != 2 {
 		t.Errorf("Expected 2 content blocks, got %d", len(noteDTO.Contents))
 	}
-	if noteDTO.Contents[0].ID != "content-1" {
-		t.Errorf("Expected content 1 ID to be 'content-1', got '%s'", noteDTO.Contents[0].ID)
+	if noteDTO.Contents[0].ID != contentID {
+		t.Errorf("Expected content 1 ID to be '%s', got '%s'", contentID, noteDTO.Contents[0].ID)
 	}
 	if noteDTO.Contents[0].Data != "Content 1" {
 		t.Errorf("Expected content 1 to be 'Content 1', got '%s'", noteDTO.Contents[0].Data)
@@ -393,8 +389,8 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	if noteDTO.Contents[0].Type != "text" {
 		t.Errorf("Expected content 1 type to be 'text', got '%s'", noteDTO.Contents[0].Type)
 	}
-	if noteDTO.Contents[1].ID != "content-2" {
-		t.Errorf("Expected content 2 ID to be 'content-2', got '%s'", noteDTO.Contents[1].ID)
+	if noteDTO.Contents[1].ID != contentID1 {
+		t.Errorf("Expected content 2 ID to be '%s', got '%s'", contentID1, noteDTO.Contents[1].ID)
 	}
 	if noteDTO.Contents[1].Data != "Content 2" {
 		t.Errorf("Expected content 2 to be 'Content 2', got '%s'", noteDTO.Contents[1].Data)
@@ -406,21 +402,11 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 
 func TestNoteUsecase_UpdateContent_NormalCase(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	mapper := NewNoteMapper()
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
-	contentID, err := noteUsecase.AddContent(noteID, "", "Initial Content", TextContentType)
-	if err != nil {
-		t.Fatalf("AddContent() failed: %v", err)
-	}
+	repo, noteUsecase, noteID, contentID, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 	updatedData := "Updated Content"
 
 	// Act
-	err = noteUsecase.UpdateContent(noteID, contentID, updatedData)
+	err := noteUsecase.UpdateContent(noteID, contentID, updatedData)
 
 	// Assert
 	if err != nil {
@@ -430,10 +416,9 @@ func TestNoteUsecase_UpdateContent_NormalCase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to find note: %v", err)
 	}
-	note := mapper.ToDomain(notePO)
-	contents := note.Contents()
-	if len(contents) != 1 {
-		t.Fatalf("Expected 1 content block, got %d", len(contents))
+	contents := notePO.Contents
+	if len(contents) != 2 {
+		t.Fatalf("Expected 2 content blocks, got %d", len(contents))
 	}
 	if contents[0].Data != updatedData {
 		t.Errorf("Expected content to be '%s', got '%s'", updatedData, contents[0].Data)
@@ -442,8 +427,7 @@ func TestNoteUsecase_UpdateContent_NormalCase(t *testing.T) {
 
 func TestNoteUsecase_UpdateContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
 	err := noteUsecase.UpdateContent("non-existent-note-id", "content-id", "Updated data")
@@ -459,15 +443,10 @@ func TestNoteUsecase_UpdateContent_NoteNotFound(t *testing.T) {
 
 func TestNoteUsecase_UpdateContent_ContentNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err = noteUsecase.UpdateContent(noteID, "non-existent-content-id", "Updated data")
+	err := noteUsecase.UpdateContent(noteID, "non-existent-content-id", "Updated data")
 
 	// Assert
 	if err == nil {
@@ -480,23 +459,10 @@ func TestNoteUsecase_UpdateContent_ContentNotFound(t *testing.T) {
 
 func TestNoteUsecase_DeleteContent_Success(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
-	contentID1, err := noteUsecase.AddContent(noteID, "", "Content 1", TextContentType)
-	if err != nil {
-		t.Fatalf("AddContent() failed: %v", err)
-	}
-	contentID2, err := noteUsecase.AddContent(noteID, "", "Content 2", TextContentType)
-	if err != nil {
-		t.Fatalf("AddContent() failed: %v", err)
-	}
+	_, noteUsecase, noteID, contentID1, contentID2 := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err = noteUsecase.DeleteContent(noteID, contentID1)
+	err := noteUsecase.DeleteContent(noteID, contentID1)
 
 	// Assert
 	if err != nil {
@@ -519,8 +485,7 @@ func TestNoteUsecase_DeleteContent_Success(t *testing.T) {
 
 func TestNoteUsecase_DeleteContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
 	err := noteUsecase.DeleteContent("non-existent-note-id", "content-id")
@@ -536,15 +501,10 @@ func TestNoteUsecase_DeleteContent_NoteNotFound(t *testing.T) {
 
 func TestNoteUsecase_DeleteContent_ContentNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err = noteUsecase.DeleteContent(noteID, "non-existent-content-id")
+	err := noteUsecase.DeleteContent(noteID, "non-existent-content-id")
 
 	// Assert
 	if err == nil {
@@ -557,17 +517,12 @@ func TestNoteUsecase_DeleteContent_ContentNotFound(t *testing.T) {
 
 func TestNoteUsecase_TagNote(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	repo, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 	userID := "user-1"
 	keyword := "test-keyword"
 
 	// Act
-	err = noteUsecase.TagNote(noteID, userID, keyword)
+	err := noteUsecase.TagNote(noteID, userID, keyword)
 
 	// Assert
 	if err != nil {
@@ -587,16 +542,11 @@ func TestNoteUsecase_TagNote(t *testing.T) {
 
 func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 	userID := "user-1"
 
 	// Act
-	err = noteUsecase.TagNote(noteID, userID, "") // Empty keyword
+	err := noteUsecase.TagNote(noteID, userID, "") // Empty keyword
 
 	// Assert
 	if err == nil {
@@ -609,17 +559,7 @@ func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 
 func TestNoteUsecase_FindNotesByKeyword(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
-	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-1")
-	note3, _ := noteUsecase.CreateNote("", "Note 3", "owner-1")
-	noteUsecase.TagNote(note1, "user-1", "go")
-	noteUsecase.TagNote(note1, "user-1", "testing")
-	noteUsecase.TagNote(note1, "user-2", "go")
-	noteUsecase.TagNote(note2, "user-1", "testing")
-	noteUsecase.TagNote(note3, "user-2", "java")
-	noteUsecase.TagNote(note3, "user-2", "testing")
+	_, noteUsecase, note1, note2, note3 := setUpRepositoryAndUsecaseWithTaggedNotes()
 
 	// Act
 	notes, err := noteUsecase.FindNotesByKeyword("user-1", "testing")
@@ -650,13 +590,10 @@ func TestNoteUsecase_FindNotesByKeyword(t *testing.T) {
 
 func TestNoteUsecase_FindNotesByKeyword_NoResults(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
-	noteUsecase.TagNote(note1, "user-1", "go")
+	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
 
 	// Act
-	notes, err := noteUsecase.FindNotesByKeyword("user-1", "testing")
+	notes, err := noteUsecase.FindNotesByKeyword("user-1", "java")
 
 	// Assert
 	if err != nil {
@@ -669,10 +606,7 @@ func TestNoteUsecase_FindNotesByKeyword_NoResults(t *testing.T) {
 
 func TestNoteUsecase_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
-	noteUsecase.TagNote(note1, "user-1", "go")
+	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
 
 	// Act
 	notes, err := noteUsecase.FindNotesByKeyword("user-1", "")
@@ -688,23 +622,14 @@ func TestNoteUsecase_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 
 func TestNoteUsecase_UntagNote_Success(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	repo, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
+	keywordToRemove := "go"
+	keywordToKeep := "testing"
 	userID1 := "user-1"
 	userID2 := "user-2"
-	keywordToKeep := "go"
-	keywordToRemove := "testing"
-	noteUsecase.TagNote(noteID, userID1, keywordToKeep)
-	noteUsecase.TagNote(noteID, userID1, keywordToRemove)
-	noteUsecase.TagNote(noteID, userID2, keywordToKeep)
-	noteUsecase.TagNote(noteID, userID2, keywordToRemove)
 
 	// Act
-	err = noteUsecase.UntagNote(noteID, userID1, keywordToRemove)
+	err := noteUsecase.UntagNote(noteID, userID1, keywordToRemove)
 
 	// Assert
 	if err != nil {
@@ -720,25 +645,18 @@ func TestNoteUsecase_UntagNote_Success(t *testing.T) {
 	if notePO.Keywords[userID1][0] != keywordToKeep {
 		t.Errorf("Expected keyword for user1 to be '%s', got '%s'", keywordToKeep, notePO.Keywords[userID1][0])
 	}
-	if len(notePO.Keywords[userID2]) != 2 {
-		t.Fatalf("Expected 2 keywords for user2, but got %d", len(notePO.Keywords[userID2]))
+	if len(notePO.Keywords[userID2]) != 1 {
+		t.Fatalf("Expected 1 keyword for user2, but got %d", len(notePO.Keywords[userID2]))
 	}
 }
 
 func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
-	userID := "user-1"
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
 	keyword := "go"
-	noteUsecase.TagNote(noteID, userID, keyword)
 
 	// Act
-	err = noteUsecase.UntagNote(noteID, "non-existent-user", keyword)
+	err := noteUsecase.UntagNote(noteID, "non-existent-user", keyword)
 
 	// Assert
 	if err == nil {
@@ -751,18 +669,11 @@ func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
 
 func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	noteID, err := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
 	userID := "user-1"
-	keyword := "go"
-	noteUsecase.TagNote(noteID, userID, keyword)
 
 	// Act
-	err = noteUsecase.UntagNote(noteID, userID, "non-existent-keyword")
+	err := noteUsecase.UntagNote(noteID, userID, "non-existent-keyword")
 
 	// Assert
 	if err == nil {
@@ -775,17 +686,11 @@ func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 
 func TestNoteUsecase_ShareNote_NotOwner(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	ownerID := "owner-1"
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 	collaboratorID := "collaborator-1"
-	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
 
 	// Act
-	err = noteUsecase.ShareNote(noteID, "not-the-owner", collaboratorID, "read")
+	err := noteUsecase.ShareNote(noteID, "not-the-owner", collaboratorID, "read")
 
 	// Assert
 	if err == nil {
@@ -798,17 +703,12 @@ func TestNoteUsecase_ShareNote_NotOwner(t *testing.T) {
 
 func TestNoteUsecase_ShareNote_InvalidPermission(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	ownerID := "owner-1"
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 	collaboratorID := "collaborator-1"
-	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	ownerID := "owner-1"
 
 	// Act
-	err = noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "invalid-permission")
+	err := noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "invalid-permission")
 
 	// Assert
 	if err == nil {
@@ -818,17 +718,12 @@ func TestNoteUsecase_ShareNote_InvalidPermission(t *testing.T) {
 
 func TestNoteUsecase_ShareNote_Success(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	ownerID := "owner-1"
+	repo, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 	collaboratorID := "collaborator-1"
-	noteID, err := noteUsecase.CreateNote("", "Test Title", ownerID)
-	if err != nil {
-		t.Fatalf("CreateNote() failed: %v", err)
-	}
+	ownerID := "owner-1"
 
 	// Act
-	err = noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+	err := noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
 
 	// Assert
 	if err != nil {
@@ -851,21 +746,11 @@ func TestNoteUsecase_ShareNote_Success(t *testing.T) {
 
 func TestNoteUsecase_GetAccessibleNotesForUser(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	userID := "user-1"
-	otherUserID := "user-2"
-
-	// Create notes
-	ownedNoteID, _ := noteUsecase.CreateNote("", "Owned Note", userID)
-	sharedNoteID, _ := noteUsecase.CreateNote("", "Shared Note", otherUserID)
-	unrelatedNoteID, _ := noteUsecase.CreateNote("", "Unrelated Note", otherUserID)
-
-	// Share a note with the user
-	noteUsecase.ShareNote(sharedNoteID, otherUserID, userID, "read")
+	_, noteUsecase, ownedNoteID, sharedNoteID, unrelatedNoteID := setUpRepositoryAndUsecaseWithTaggedNotes()
+	noteUsecase.ShareNote(sharedNoteID, "owner-2", "owner-1", "read")
 
 	// Act
-	notes, err := noteUsecase.GetAccessibleNotesForUser(userID)
+	notes, err := noteUsecase.GetAccessibleNotesForUser("owner-1")
 
 	// Assert
 	if err != nil {
@@ -893,16 +778,10 @@ func TestNoteUsecase_GetAccessibleNotesForUser(t *testing.T) {
 
 func TestNoteUsecase_RevokeAccess_Success(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	ownerID := "owner-1"
+	_, noteUsecase, _, noteID, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
+	ownerID := "owner-2"
 	collaboratorID1 := "user-1"
 	collaboratorID2 := "user-2"
-	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
-	noteUsecase.ShareNote(noteID, ownerID, collaboratorID1, "read")
-	noteUsecase.ShareNote(noteID, ownerID, collaboratorID2, "read")
-	noteUsecase.TagNote(noteID, collaboratorID1, "test")
-	noteUsecase.TagNote(noteID, collaboratorID2, "test")
 
 	// Act
 	err := noteUsecase.RevokeAccess(noteID, ownerID, collaboratorID1)
@@ -928,13 +807,9 @@ func TestNoteUsecase_RevokeAccess_Success(t *testing.T) {
 
 func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
-	ownerID := "owner-1"
-	collaboratorID := "user-1"
-	nonOwnerID := "user-2"
-	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
-	noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
+	nonOwnerID := "user-1"
+	collaboratorID := "user-2"
 
 	// Act
 	err := noteUsecase.RevokeAccess(noteID, nonOwnerID, collaboratorID)
@@ -947,12 +822,8 @@ func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
 
 func TestNoteUsecase_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	// Arrange
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
 	ownerID := "owner-1"
-	collaboratorID := "user-1"
-	noteID, _ := noteUsecase.CreateNote("", "Test Note", ownerID)
-	noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
 
 	// Act
 	err := noteUsecase.RevokeAccess(noteID, ownerID, "non-existent-user")
