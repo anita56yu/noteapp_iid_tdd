@@ -92,7 +92,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T5.3:** In the `repository` layer, define a `ContentRepository` interface and create a `ContentPO`.
     - [x] **T5.4:** In the `repository` layer, create an `InMemoryContentRepository` that implements the `ContentRepository` interface, including optimistic locking.
     - [x] **T5.5:** In the `repository` layer, update `NotePO` by adding a `Version` field and removing its mutex. Update `InMemoryNoteRepository` to use optimistic locking instead of a per-note lock.
-    - [ ] **T5.6:** In the `usecase` layer, create a `ContentDTO`, a `ContentMapper`, and a `ContentUsecase` with `CreateContent`, `UpdateContent`, and `DeleteContent` methods.
+    - [x] **T5.6:** In the `usecase` layer, create a `ContentDTO`, a `ContentMapper`, and a `ContentUsecase` with `CreateContent`, `UpdateContent`, and `DeleteContent` methods.
     - [ ] **T5.7:** In `NoteUsecase`, refactor the `AddContent` method to accept a `contentID` and add it to the note's list.
     - [ ] **T5.8:** In `NoteUsecase`, refactor the `DeleteContent` method to accept a `contentID` and remove it from the note's list.
     - [ ] **T5.9:** Update `NoteMapper` to only map content IDs between `NotePO` and `domain.Note`. Also, add a `Version` field to `NoteDTO` and update the mapper to handle it.

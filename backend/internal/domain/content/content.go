@@ -7,9 +7,9 @@ type ContentType string
 
 const (
 	// TextContentType is a text content type.
-	TextContentType ContentType = "text/plain"
+	TextContentType ContentType = "text"
 	// ImageContentType is an image content type.
-	ImageContentType ContentType = "image/jpeg"
+	ImageContentType ContentType = "image"
 )
 
 // Content represents a block of content within a note.
