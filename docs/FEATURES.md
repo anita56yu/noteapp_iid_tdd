@@ -90,7 +90,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T5.1:** In the `domain` layer, make the `Content` entity a standalone aggregate by adding `ID`, `NoteID`, and `Version` fields.
     - [x] **T5.2:** In the `domain` layer, update the `Note` entity to hold a slice of content IDs and a `Version` field.
     - [x] **T5.3:** In the `repository` layer, define a `ContentRepository` interface and create a `ContentPO`.
-    - [ ] **T5.4:** In the `repository` layer, create an `InMemoryContentRepository` that implements the `ContentRepository` interface, including optimistic locking.
+    - [x] **T5.4:** In the `repository` layer, create an `InMemoryContentRepository` that implements the `ContentRepository` interface, including optimistic locking.
     - [ ] **T5.5:** In the `repository` layer, update `NotePO` and `InMemoryNoteRepository` to support optimistic locking using the `Version` field.
     - [ ] **T5.6:** In the `usecase` layer, create a `ContentDTO`, a `ContentMapper`, and a `ContentUsecase` with `CreateContent`, `UpdateContent`, and `DeleteContent` methods.
     - [ ] **T5.7:** In `NoteUsecase`, refactor the `AddContent` method to accept a `contentID` and add it to the note's list.
