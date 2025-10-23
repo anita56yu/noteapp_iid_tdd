@@ -2,8 +2,6 @@ package noterepo
 
 import (
 	"errors"
-	"fmt"
-	"noteapp/internal/repository"
 	"sync"
 	"testing"
 	"time"
@@ -44,8 +42,8 @@ func TestInMemoryNoteRepository_FindByID_NotFound(t *testing.T) {
 	_, err := repo.FindByID("non-existent-id")
 
 	// Assert
-	if !errors.Is(err, repository.ErrNoteNotFound) {
-		t.Errorf("Expected error %v, got %v", repository.ErrNoteNotFound, err)
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error %v, got %v", ErrNoteNotFound, err)
 	}
 }
 
@@ -77,8 +75,8 @@ func TestInMemoryNoteRepository_Save_NilNote(t *testing.T) {
 	err := repo.Save(nil)
 
 	// Assert
-	if !errors.Is(err, repository.ErrNilNote) {
-		t.Errorf("Expected error %v, got %v", repository.ErrNilNote, err)
+	if !errors.Is(err, ErrNilNote) {
+		t.Errorf("Expected error %v, got %v", ErrNilNote, err)
 	}
 }
 
@@ -96,8 +94,8 @@ func TestInMemoryNoteRepository_Delete(t *testing.T) {
 
 	// Assert
 	_, err = repo.FindByID("test-id")
-	if !errors.Is(err, repository.ErrNoteNotFound) {
-		t.Errorf("Expected error %v after delete, got %v", repository.ErrNoteNotFound, err)
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error %v after delete, got %v", ErrNoteNotFound, err)
 	}
 }
 
@@ -109,8 +107,8 @@ func TestInMemoryNoteRepository_Delete_NotFound(t *testing.T) {
 	err := repo.Delete("non-existent-id")
 
 	// Assert
-	if !errors.Is(err, repository.ErrNoteNotFound) {
-		t.Errorf("Expected error %v, got %v", repository.ErrNoteNotFound, err)
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error %v, got %v", ErrNoteNotFound, err)
 	}
 }
 
@@ -209,106 +207,41 @@ func TestInMemoryNoteRepository_GetAccessibleNoteByUserID(t *testing.T) {
 	}
 }
 
-func TestInMemoryNoteRepository_ConcurrentContentAddOnSameNote(t *testing.T) {
-	// Arrange
+func TestInMemoryNoteRepository_Save_Conflict(t *testing.T) {
 	repo := NewInMemoryNoteRepository()
-	noteID := "concurrent-note"
-	initialNote := &NotePO{
-		ID:       noteID,
-		Title:    "Initial Title",
-		Contents: []ContentPO{},
+	note := &NotePO{
+		ID:      "n1",
+		Title:   "Test note",
+		Version: 0,
 	}
-	repo.Save(initialNote)
+	repo.Save(note)
 
 	var wg sync.WaitGroup
-	contentUser1 := ContentPO{ID: "content-1", Type: "text", Data: "Content from user 1"}
-	contentUser2 := ContentPO{ID: "content-2", Type: "text", Data: "Content from user 2"}
-
-	// Act
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		err := repo.LockNoteForUpdate(noteID)
-		if err != nil {
-			t.Errorf("Failed to lock note for update: %v", err)
-			return
-		}
-		defer repo.UnlockNoteForUpdate(noteID)
-		note, _ := repo.FindByID(noteID)
-		note.Contents = append(note.Contents, contentUser1)
-		time.Sleep(10 * time.Millisecond) // Simulate some processing time
-		repo.Save(note)
-	}()
-	go func() {
-		defer wg.Done()
-		time.Sleep(5 * time.Millisecond) // Ensure this runs slightly after the first goroutine starts
-		err := repo.LockNoteForUpdate(noteID)
-		if err != nil {
-			t.Errorf("Failed to lock note for update: %v", err)
-			return
-		}
-		defer repo.UnlockNoteForUpdate(noteID)
-		note, _ := repo.FindByID(noteID)
-		note.Contents = append(note.Contents, contentUser2)
-		repo.Save(note)
-	}()
-	wg.Wait()
-
-	// Assert
-	finalNote, _ := repo.FindByID(noteID)
-	if len(finalNote.Contents) != 2 {
-		t.Errorf("Expected 2 content items, got %d. A content update was lost.", len(finalNote.Contents))
-	}
-	if (finalNote.Contents[0].ID != "content-1" && finalNote.Contents[0].ID != "content-2") || (finalNote.Contents[1].ID != "content-1" && finalNote.Contents[1].ID != "content-2") {
-		t.Errorf("Content IDs do not match expected values: %v", finalNote.Contents)
-	}
-}
-
-// TestInMemoryNoteRepository_ConcurrentMapReadWrite simulates simultaneous reading and writing to the notes map.
-// This test will fail with a race condition if the map access is not protected by a mutex.
-func TestInMemoryNoteRepository_ConcurrentMapReadWrite(t *testing.T) {
-	// Arrange
-	repo := NewInMemoryNoteRepository()
-	var wg sync.WaitGroup
-	const numOperations = 100
-
-	// Pre-populate one note to read
-	const readNoteID = "read-note-id"
-	repo.Save(&NotePO{ID: readNoteID, Title: "A note to be read"})
-
-	// Act
 	wg.Add(2)
 
-	// Goroutine 1: Continuously writes new notes to the map
+	var err1, err2 error
+
+	// Goroutine 1
 	go func() {
 		defer wg.Done()
-		for i := 0; i < numOperations; i++ {
-			noteID := fmt.Sprintf("note-%d", i)
-			repo.Save(&NotePO{ID: noteID, Title: "New Note"})
-		}
+		savedNote, _ := repo.FindByID("n1")
+		savedNote.Title = "Goroutine 1"
+		time.Sleep(10 * time.Millisecond)
+		err1 = repo.Save(savedNote)
 	}()
 
-	// Goroutine 2: Continuously reads an existing note from the map
+	// Goroutine 2
 	go func() {
 		defer wg.Done()
-		for i := 0; i < numOperations; i++ {
-			_, err := repo.FindByID(readNoteID)
-			if err != nil && !errors.Is(err, repository.ErrNoteNotFound) {
-				t.Errorf("FindByID returned an unexpected error: %v", err)
-			}
-		}
+		savedNote, _ := repo.FindByID("n1")
+		savedNote.Title = "Goroutine 2"
+		time.Sleep(20 * time.Millisecond)
+		err2 = repo.Save(savedNote)
 	}()
 
 	wg.Wait()
 
-	// Assert
-	// The primary assertion is that the test completes without a race condition panic.
-	// We can do a final check to ensure the writes happened.
-	repo.mu.RLock()
-	finalCount := len(repo.notes)
-	repo.mu.RUnlock()
-
-	if finalCount != numOperations+1 { // +1 for the initial read-note
-		t.Errorf("Expected %d notes in the repository, but got %d", numOperations+1, finalCount)
+	if err1 != nil || err2 != ErrNoteConflict {
+		t.Errorf("Expected one of the saves to fail with a conflict error, but got err1: %v, err2: %v", err1, err2)
 	}
 }

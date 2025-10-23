@@ -91,11 +91,11 @@ User facing APIs should guard against illegal parameters
     - [x] **T5.2:** In the `domain` layer, update the `Note` entity to hold a slice of content IDs and a `Version` field.
     - [x] **T5.3:** In the `repository` layer, define a `ContentRepository` interface and create a `ContentPO`.
     - [x] **T5.4:** In the `repository` layer, create an `InMemoryContentRepository` that implements the `ContentRepository` interface, including optimistic locking.
-    - [ ] **T5.5:** In the `repository` layer, update `NotePO` and `InMemoryNoteRepository` to support optimistic locking using the `Version` field.
+    - [x] **T5.5:** In the `repository` layer, update `NotePO` by adding a `Version` field and removing its mutex. Update `InMemoryNoteRepository` to use optimistic locking instead of a per-note lock.
     - [ ] **T5.6:** In the `usecase` layer, create a `ContentDTO`, a `ContentMapper`, and a `ContentUsecase` with `CreateContent`, `UpdateContent`, and `DeleteContent` methods.
     - [ ] **T5.7:** In `NoteUsecase`, refactor the `AddContent` method to accept a `contentID` and add it to the note's list.
     - [ ] **T5.8:** In `NoteUsecase`, refactor the `DeleteContent` method to accept a `contentID` and remove it from the note's list.
-    - [ ] **T5.9:** Update `NoteMapper` to only map content IDs between `NotePO` and `domain.Note`.
+    - [ ] **T5.9:** Update `NoteMapper` to only map content IDs between `NotePO` and `domain.Note`. Also, add a `Version` field to `NoteDTO` and update the mapper to handle it.
     - [ ] **T5.10:** Create a `content_handler` for `Content` CRUD operations and update `note_handler` to orchestrate the relationship between notes and content.
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"noteapp/internal/domain/note"
-	"noteapp/internal/repository"
 	"noteapp/internal/repository/noterepo"
 )
 
@@ -37,6 +36,9 @@ var ErrPermissionDenied = errors.New("permission denied")
 
 // ErrUnsupportedPermissionType is returned when an unsupported permission type is provided.
 var ErrUnsupportedPermissionType = errors.New("unsupported permission type")
+
+// ErrConflict is returned when a version conflict occurs.
+var ErrConflict = errors.New("conflict")
 
 type ContentType string
 
@@ -93,10 +95,6 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 		return ErrInvalidID
 	}
 
-	if err := uc.repo.LockNoteForUpdate(id); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-
 	if err := uc.repo.Delete(id); err != nil {
 		return uc.mapRepositoryError(err)
 	}
@@ -105,11 +103,6 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 }
 
 func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType ContentType) (string, error) {
-	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
-		return "", uc.mapRepositoryError(err)
-	}
-	defer uc.repo.UnlockNoteForUpdate(noteID)
-
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return "", uc.mapRepositoryError(err)
@@ -128,11 +121,6 @@ func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType Co
 
 // UpdateContent updates the content of a note.
 func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
-	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	defer uc.repo.UnlockNoteForUpdate(noteID)
-
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -153,11 +141,6 @@ func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
 
 // DeleteContent deletes a content from a note.
 func (uc *NoteUsecase) DeleteContent(noteID, contentID string) error {
-	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	defer uc.repo.UnlockNoteForUpdate(noteID)
-
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -178,11 +161,6 @@ func (uc *NoteUsecase) DeleteContent(noteID, contentID string) error {
 
 // TagNote adds a keyword to a note for a specific user.
 func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
-	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	defer uc.repo.UnlockNoteForUpdate(noteID)
-
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -206,11 +184,6 @@ func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
 
 // UntagNote removes a keyword from a note for a specific user.
 func (uc *NoteUsecase) UntagNote(noteID, userID, keywordStr string) error {
-	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	defer uc.repo.UnlockNoteForUpdate(noteID)
-
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -256,11 +229,6 @@ func (uc *NoteUsecase) FindNotesByKeyword(userID, keyword string) ([]*NoteDTO, e
 
 // ShareNote shares a note with another user.
 func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission string) error {
-	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	defer uc.repo.UnlockNoteForUpdate(noteID)
-
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -303,11 +271,6 @@ func (uc *NoteUsecase) GetAccessibleNotesForUser(userID string) ([]*NoteDTO, err
 
 // RevokeAccess revokes a collaborator's access to a note.
 func (uc *NoteUsecase) RevokeAccess(noteID, ownerID, collaboratorID string) error {
-	if err := uc.repo.LockNoteForUpdate(noteID); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	defer uc.repo.UnlockNoteForUpdate(noteID)
-
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return uc.mapRepositoryError(err)
@@ -329,12 +292,14 @@ func (uc *NoteUsecase) RevokeAccess(noteID, ownerID, collaboratorID string) erro
 
 func (uc *NoteUsecase) mapRepositoryError(err error) error {
 	switch {
-	case errors.Is(err, repository.ErrNoteNotFound):
+	case errors.Is(err, noterepo.ErrNoteNotFound):
 		return ErrNoteNotFound
-	case errors.Is(err, repository.ErrNilNote):
+	case errors.Is(err, noterepo.ErrNilNote):
 		return ErrNilNote
+	case errors.Is(err, noterepo.ErrNoteConflict):
+		return ErrConflict
 	default:
-		return fmt.Errorf("an unexpected repositoryerror occurred: %w", err)
+		return fmt.Errorf("an unexpected repository error occurred: %w", err)
 	}
 }
 

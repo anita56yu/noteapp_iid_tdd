@@ -1,35 +1,39 @@
 package noterepo
 
 import (
-	"noteapp/internal/repository"
 	"sync"
 )
 
 // InMemoryNoteRepository is an in-memory implementation of NoteRepository.
 type InMemoryNoteRepository struct {
-	notes   map[string]*NotePO
-	mutexes map[string]*sync.Mutex
-	mu      sync.RWMutex
+	notes map[string]*NotePO
+	mu    sync.RWMutex
 }
 
 // NewInMemoryNoteRepository creates a new InMemoryNoteRepository.
 func NewInMemoryNoteRepository() *InMemoryNoteRepository {
 	return &InMemoryNoteRepository{
-		notes:   make(map[string]*NotePO),
-		mutexes: make(map[string]*sync.Mutex),
+		notes: make(map[string]*NotePO),
 	}
 }
 
 // Save saves a note to the repository.
 func (r *InMemoryNoteRepository) Save(note *NotePO) error {
 	if note == nil {
-		return repository.ErrNilNote
+		return ErrNilNote
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, ok := r.notes[note.ID]; !ok {
-		r.mutexes[note.ID] = &sync.Mutex{}
+
+	if existing, ok := r.notes[note.ID]; ok {
+		if existing.Version != note.Version {
+			return ErrNoteConflict
+		}
+		note.Version++
+	} else {
+		note.Version = 0
 	}
+
 	r.notes[note.ID] = note
 	return nil
 }
@@ -37,10 +41,10 @@ func (r *InMemoryNoteRepository) Save(note *NotePO) error {
 // FindByID finds a note by its ID.
 func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 	r.mu.RLock()
+	defer r.mu.RUnlock()
 	note, ok := r.notes[id]
-	r.mu.RUnlock()
 	if !ok {
-		return nil, repository.ErrNoteNotFound
+		return nil, ErrNoteNotFound
 	}
 
 	// Return a copy to prevent external modification
@@ -48,6 +52,7 @@ func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 		ID:      note.ID,
 		Title:   note.Title,
 		OwnerID: note.OwnerID,
+		Version: note.Version,
 	}
 	copiedNote.Contents = make([]ContentPO, len(note.Contents))
 	copy(copiedNote.Contents, note.Contents)
@@ -67,13 +72,12 @@ func (r *InMemoryNoteRepository) Delete(id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, ok := r.notes[id]; !ok {
-		return repository.ErrNoteNotFound
+		return ErrNoteNotFound
 	}
 	delete(r.notes, id)
-	delete(r.mutexes, id)
 	return nil
 }
-
+//TODO: add deep copy where necessary
 // FindByKeywordForUser finds notes by a specific keyword for a given user.
 func (r *InMemoryNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*NotePO, error) {
 	r.mu.RLock()
@@ -91,7 +95,7 @@ func (r *InMemoryNoteRepository) FindByKeywordForUser(userID, keyword string) ([
 	}
 	return foundNotes, nil
 }
-
+//TODO: add deep copy where necessary
 // GetAccessibleNotesByUserID retrieves all notes where the user is either the owner or a collaborator.
 func (r *InMemoryNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*NotePO, error) {
 	r.mu.RLock()
@@ -107,28 +111,4 @@ func (r *InMemoryNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*N
 		}
 	}
 	return accessibleNotes, nil
-}
-
-// LockNoteForUpdate locks a note for updating.
-func (r *InMemoryNoteRepository) LockNoteForUpdate(noteID string) error {
-	r.mu.RLock()
-	noteMutex, ok := r.mutexes[noteID]
-	r.mu.RUnlock()
-	if !ok {
-		return repository.ErrNoteNotFound
-	}
-	noteMutex.Lock()
-	return nil
-}
-
-// UnlockNoteForUpdate unlocks a note for updating.
-func (r *InMemoryNoteRepository) UnlockNoteForUpdate(noteID string) error {
-	r.mu.RLock()
-	noteMutex, ok := r.mutexes[noteID]
-	r.mu.RUnlock()
-	if !ok {
-		return repository.ErrNoteNotFound
-	}
-	noteMutex.Unlock()
-	return nil
 }

@@ -2,7 +2,6 @@ package noteuc
 
 import (
 	"errors"
-	"noteapp/internal/repository"
 	"noteapp/internal/repository/noterepo"
 	"testing"
 )
@@ -14,8 +13,6 @@ type mockNoteRepository struct {
 	DeleteFunc                     func(id string) error
 	FindByKeywordForUserFunc       func(userID, keyword string) ([]*noterepo.NotePO, error)
 	GetAccessibleNotesByUserIDFunc func(userID string) ([]*noterepo.NotePO, error)
-	LockNoteForUpdateFunc          func(noteID string) error
-	UnlockNoteForUpdateFunc        func(noteID string) error
 }
 
 func (m *mockNoteRepository) Save(note *noterepo.NotePO) error {
@@ -48,18 +45,6 @@ func (m *mockNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*noter
 	}
 	return nil, nil
 }
-func (m *mockNoteRepository) LockNoteForUpdate(noteID string) error {
-	if m.LockNoteForUpdateFunc != nil {
-		return m.LockNoteForUpdateFunc(noteID)
-	}
-	return nil
-}
-func (m *mockNoteRepository) UnlockNoteForUpdate(noteID string) error {
-	if m.UnlockNoteForUpdateFunc != nil {
-		return m.UnlockNoteForUpdateFunc(noteID)
-	}
-	return nil
-}
 
 func setUpRepositoryAndUsecase() (*noterepo.InMemoryNoteRepository, *NoteUsecase) {
 	repo := noterepo.NewInMemoryNoteRepository()
@@ -76,8 +61,14 @@ func setUpRepositoryAndUsecaseWithNote() (*noterepo.InMemoryNoteRepository, *Not
 func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string, string, string) {
 	repo, noteUsecase := setUpRepositoryAndUsecase()
 	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	contentID, _ := noteUsecase.AddContent(noteID, "", "Content 1", TextContentType)
-	contentID1, _ := noteUsecase.AddContent(noteID, "", "Content 2", ImageContentType)
+	contentID, err := noteUsecase.AddContent(noteID, "", "Content 1", TextContentType)
+	if err != nil {
+		return repo, noteUsecase, noteID, "", ""
+	}
+	contentID1, err2 := noteUsecase.AddContent(noteID, "", "Content 2", ImageContentType)
+	if err2 != nil {
+		return repo, noteUsecase, noteID, contentID, ""
+	}
 	return repo, noteUsecase, noteID, contentID, contentID1
 }
 
@@ -176,7 +167,7 @@ func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 	// Arrange
 	mockRepo := &mockNoteRepository{
 		SaveFunc: func(note *noterepo.NotePO) error {
-			return repository.ErrNilNote
+			return noterepo.ErrNilNote
 		},
 	}
 	noteUsecase := NewNoteUsecase(mockRepo)
@@ -260,8 +251,8 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 
 	// Assert
 	_, err = repo.FindByID(id)
-	if !errors.Is(err, repository.ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", repository.ErrNoteNotFound, err)
+	if !errors.Is(err, noterepo.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noterepo.ErrNoteNotFound, err)
 	}
 }
 

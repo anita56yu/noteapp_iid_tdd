@@ -40,6 +40,7 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 		ID:            note.ID,
 		OwnerID:       note.OwnerID,
 		Title:         note.Title,
+		Version:       note.Version,
 		Contents:      contentPOs,
 		Keywords:      keywordPOs,
 		Collaborators: collaboratorPOs,
@@ -48,7 +49,7 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 
 // ToDomain converts a repository.NotePO to a domain.Note.
 func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
-	note, _ := domainnote.NewNote(po.ID, po.Title, po.OwnerID)
+	note, _ := domainnote.NewNoteWithVersion(po.ID, po.Title, po.OwnerID, po.Version)
 	for _, contentPO := range po.Contents {
 		note.AddContent(contentPO.ID, contentPO.Data, domainnote.ContentType(contentPO.Type))
 	}
