@@ -144,7 +144,7 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentID, err := h.usecase.AddContent(noteID, "", req.Data, contentType)
+	contentID, err := h.usecase.CreateAndAddContent(noteID, "", req.Data, contentType)
 	if err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):

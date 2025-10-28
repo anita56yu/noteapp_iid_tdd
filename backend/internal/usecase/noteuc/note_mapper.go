@@ -36,11 +36,15 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 		collaboratorPOs[userID] = string(permission)
 	}
 
+	contentIDs := make([]string, len(note.ContentIDs))
+	copy(contentIDs, note.ContentIDs)
+
 	return &noterepo.NotePO{
 		ID:            note.ID,
 		OwnerID:       note.OwnerID,
 		Title:         note.Title,
 		Version:       note.Version,
+		ContentIDs:    contentIDs,
 		Contents:      contentPOs,
 		Keywords:      keywordPOs,
 		Collaborators: collaboratorPOs,
@@ -50,6 +54,10 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 // ToDomain converts a repository.NotePO to a domain.Note.
 func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
 	note, _ := domainnote.NewNoteWithVersion(po.ID, po.Title, po.OwnerID, po.Version)
+
+	note.ContentIDs = make([]string, len(po.ContentIDs))
+	copy(note.ContentIDs, po.ContentIDs)
+
 	for _, contentPO := range po.Contents {
 		note.AddContent(contentPO.ID, contentPO.Data, domainnote.ContentType(contentPO.Type))
 	}

@@ -13,6 +13,7 @@ type NotePO struct {
 	OwnerID       string
 	Title         string
 	Version       int
+	ContentIDs    []string
 	Contents      []ContentPO
 	Keywords      map[string][]string
 	Collaborators map[string]string

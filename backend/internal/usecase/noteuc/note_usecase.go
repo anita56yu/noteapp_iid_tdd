@@ -102,7 +102,7 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 	return nil
 }
 
-func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType ContentType) (string, error) {
+func (uc *NoteUsecase) CreateAndAddContent(noteID, contentID, data string, contentType ContentType) (string, error) {
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
 		return "", uc.mapRepositoryError(err)
@@ -117,6 +117,23 @@ func (uc *NoteUsecase) AddContent(noteID, contentID, data string, contentType Co
 	}
 
 	return newID, nil
+}
+
+func (uc *NoteUsecase) AddContent(noteID, contentID string) error {
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	n := uc.mapper.ToDomain(notePO)
+
+	n.AddContentID(contentID)
+
+	updatedNotePO := uc.mapper.ToPO(n)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
 }
 
 // UpdateContent updates the content of a note.

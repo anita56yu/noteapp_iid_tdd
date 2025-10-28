@@ -416,7 +416,7 @@ func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
-	contentID, err := nc.AddContent(noteID, "", "Initial Content", "text")
+	contentID, err := nc.CreateAndAddContent(noteID, "", "Initial Content", "text")
 	if err != nil {
 		t.Fatalf("setup: failed to add content: %v", err)
 	}
@@ -514,7 +514,7 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
-	contentID, err := nc.AddContent(noteID, "", "Initial Content", "text")
+	contentID, err := nc.CreateAndAddContent(noteID, "", "Initial Content", "text")
 	if err != nil {
 		t.Fatalf("setup: failed to add content: %v", err)
 	}

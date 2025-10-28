@@ -38,7 +38,8 @@ func (r *InMemoryNoteRepository) Save(note *NotePO) error {
 	return nil
 }
 
-// FindByID finds a note by its ID.
+// FindByID retrieves a note by its ID.
+
 func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -46,25 +47,28 @@ func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 	if !ok {
 		return nil, ErrNoteNotFound
 	}
-
-	// Return a copy to prevent external modification
-	copiedNote := &NotePO{
-		ID:      note.ID,
-		Title:   note.Title,
-		OwnerID: note.OwnerID,
-		Version: note.Version,
+	// Return a copy to prevent race conditions in concurrent tests
+	newNote := &NotePO{
+		ID:            note.ID,
+		OwnerID:       note.OwnerID,
+		Title:         note.Title,
+		Version:       note.Version,
+		ContentIDs:    make([]string, len(note.ContentIDs)),
+		Contents:      make([]ContentPO, len(note.Contents)),
+		Keywords:      make(map[string][]string),
+		Collaborators: make(map[string]string),
 	}
-	copiedNote.Contents = make([]ContentPO, len(note.Contents))
-	copy(copiedNote.Contents, note.Contents)
-	copiedNote.Keywords = make(map[string][]string)
+	copy(newNote.ContentIDs, note.ContentIDs)
+	copy(newNote.Contents, note.Contents)
 	for k, v := range note.Keywords {
-		copiedNote.Keywords[k] = append([]string(nil), v...)
+		newNote.Keywords[k] = append([]string{}, v...)
 	}
-	copiedNote.Collaborators = make(map[string]string)
+
 	for k, v := range note.Collaborators {
-		copiedNote.Collaborators[k] = v
+		newNote.Collaborators[k] = v
 	}
-	return copiedNote, nil
+	return newNote, nil
+
 }
 
 // Delete removes a note from the repository.
@@ -77,7 +81,8 @@ func (r *InMemoryNoteRepository) Delete(id string) error {
 	delete(r.notes, id)
 	return nil
 }
-//TODO: add deep copy where necessary
+
+// TODO: add deep copy where necessary
 // FindByKeywordForUser finds notes by a specific keyword for a given user.
 func (r *InMemoryNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*NotePO, error) {
 	r.mu.RLock()
@@ -95,7 +100,8 @@ func (r *InMemoryNoteRepository) FindByKeywordForUser(userID, keyword string) ([
 	}
 	return foundNotes, nil
 }
-//TODO: add deep copy where necessary
+
+// TODO: add deep copy where necessary
 // GetAccessibleNotesByUserID retrieves all notes where the user is either the owner or a collaborator.
 func (r *InMemoryNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*NotePO, error) {
 	r.mu.RLock()

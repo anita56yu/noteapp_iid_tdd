@@ -10,7 +10,11 @@ import (
 func TestInMemoryNoteRepository_SaveAndFindByID_Success(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note := &NotePO{ID: "test-id", Title: "Test Title"}
+	note := &NotePO{
+		ID:         "test-id",
+		Title:      "Test Title",
+		ContentIDs: []string{"c1", "c2"},
+	}
 
 	// Act
 	err := repo.Save(note)
@@ -31,6 +35,12 @@ func TestInMemoryNoteRepository_SaveAndFindByID_Success(t *testing.T) {
 	}
 	if foundNote.Title != note.Title {
 		t.Errorf("Expected Title %s, got %s", note.Title, foundNote.Title)
+	}
+	if len(foundNote.ContentIDs) != 2 {
+		t.Fatalf("Expected 2 content IDs, got %d", len(foundNote.ContentIDs))
+	}
+	if foundNote.ContentIDs[0] != "c1" || foundNote.ContentIDs[1] != "c2" {
+		t.Errorf("Expected ContentIDs to be [c1, c2], got %v", foundNote.ContentIDs)
 	}
 }
 

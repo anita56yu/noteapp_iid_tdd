@@ -156,6 +156,11 @@ func (n *Note) AddContent(id, data string, contentType ContentType) string {
 	return id
 }
 
+// AddContentID adds a new content ID to the note.
+func (n *Note) AddContentID(id string) {
+	n.ContentIDs = append(n.ContentIDs, id)
+}
+
 // AddKeyword adds a new keyword to the note for a specific user.
 func (n *Note) AddKeyword(userID string, keyword Keyword) {
 	n.keywords[userID] = append(n.keywords[userID], keyword)

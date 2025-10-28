@@ -75,6 +75,7 @@ func TestNoteMapper_ToPO(t *testing.T) {
 	// Arrange
 	n, _ := note.NewNote("note-1", "Test Note", "owner-1")
 	n.AddContent("content-1", "Hello", note.TextContentType)
+	n.AddContentID("content-1")
 	keyword, _ := note.NewKeyword("test-keyword")
 	n.AddKeyword("user-1", keyword)
 
@@ -96,6 +97,12 @@ func TestNoteMapper_ToPO(t *testing.T) {
 	if po.Contents[0].ID != "content-1" {
 		t.Errorf("Expected content ID to be 'content-1', but got '%s'", po.Contents[0].ID)
 	}
+	if len(po.ContentIDs) != 1 {
+		t.Fatalf("Expected 1 content ID, but got %d", len(po.ContentIDs))
+	}
+	if po.ContentIDs[0] != "content-1" {
+		t.Errorf("Expected content ID to be 'content-1', but got '%s'", po.ContentIDs[0])
+	}
 	if len(po.Keywords["user-1"]) != 1 {
 		t.Fatalf("Expected 1 keyword for user-1, but got %d", len(po.Keywords["user-1"]))
 	}
@@ -107,9 +114,10 @@ func TestNoteMapper_ToPO(t *testing.T) {
 func TestNoteMapper_ToDomain(t *testing.T) {
 	// Arrange
 	po := &noterepo.NotePO{
-		ID:      "note-1",
-		Title:   "Test Note",
-		OwnerID: "owner-1",
+		ID:         "note-1",
+		Title:      "Test Note",
+		OwnerID:    "owner-1",
+		ContentIDs: []string{"content-1"},
 		Contents: []noterepo.ContentPO{
 			{ID: "content-1", Type: "text", Data: "Hello"},
 		},
@@ -120,6 +128,7 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 
 	expectedNote, _ := note.NewNote("note-1", "Test Note", "owner-1")
 	expectedNote.AddContent("content-1", "Hello", note.TextContentType)
+	expectedNote.AddContentID("content-1")
 	keyword, _ := note.NewKeyword("test-keyword")
 	expectedNote.AddKeyword("user-1", keyword)
 
@@ -150,6 +159,13 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 	}
 	if contents[0].Data != expectedContents[0].Data {
 		t.Errorf("Expected content data to be '%s', got '%s'", expectedContents[0].Data, contents[0].Data)
+	}
+
+	if len(n.ContentIDs) != 1 {
+		t.Fatalf("Expected 1 content ID, but got %d", len(n.ContentIDs))
+	}
+	if n.ContentIDs[0] != expectedNote.ContentIDs[0] {
+		t.Errorf("Expected content ID to be 'content-1', but got '%s'", n.ContentIDs[0])
 	}
 
 	keywords := n.UserKeywords("user-1")
