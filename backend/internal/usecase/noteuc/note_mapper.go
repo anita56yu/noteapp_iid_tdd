@@ -102,6 +102,7 @@ func (m *NoteMapper) toNoteDTO(note *domainnote.Note) *NoteDTO {
 		ID:            note.ID,
 		Title:         note.Title,
 		OwnerID:       note.OwnerID,
+		Version:       note.Version,
 		ContentIDs:    contentIDs,
 		Contents:      contents,
 		Keywords:      keywords,

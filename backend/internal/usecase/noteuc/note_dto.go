@@ -22,6 +22,7 @@ type NoteDTO struct {
 	ID            string              `json:"id"`
 	Title         string              `json:"title"`
 	OwnerID       string              `json:"owner_id"`
+	Version       int                 `json:"version"`
 	ContentIDs    []string            `json:"content_ids"`
 	Contents      []*ContentDTO       `json:"contents"`
 	Keywords      map[string][]string `json:"keywords"`

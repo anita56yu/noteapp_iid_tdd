@@ -8,7 +8,7 @@ import (
 
 func TestToNoteDTO(t *testing.T) {
 	// Arrange
-	n, err := note.NewNote("note-1", "Test Title", "owner-1")
+	n, err := note.NewNoteWithVersion("note-1", "Test Title", "owner-1", 1)
 	if err != nil {
 		t.Fatalf("Failed to create note: %v", err)
 	}
@@ -31,6 +31,9 @@ func TestToNoteDTO(t *testing.T) {
 	}
 	if noteDTO.Title != "Test Title" {
 		t.Errorf("Expected DTO title to be 'Test Title', got '%s'", noteDTO.Title)
+	}
+	if noteDTO.Version != 1 {
+		t.Errorf("Expected DTO version to be 1, got %d", noteDTO.Version)
 	}
 	if len(noteDTO.Contents) != 2 {
 		t.Fatalf("Expected 2 content DTOs, got %d", len(noteDTO.Contents))
