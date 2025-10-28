@@ -14,6 +14,8 @@ func TestToNoteDTO(t *testing.T) {
 	}
 	n.AddContent("content-1", "Hello", note.TextContentType)
 	n.AddContent("content-2", "base64-encoded-image", note.ImageContentType)
+	n.AddContentID("content-1")
+	n.AddContentID("content-2")
 	keyword1, _ := note.NewKeyword("keyword1")
 	keyword2, _ := note.NewKeyword("keyword2")
 	n.AddKeyword("user-1", keyword1)
@@ -32,6 +34,12 @@ func TestToNoteDTO(t *testing.T) {
 	}
 	if len(noteDTO.Contents) != 2 {
 		t.Fatalf("Expected 2 content DTOs, got %d", len(noteDTO.Contents))
+	}
+	if len(noteDTO.ContentIDs) != 2 {
+		t.Fatalf("Expected 2 content IDs, got %d", len(noteDTO.ContentIDs))
+	}
+	if noteDTO.ContentIDs[0] != "content-1" || noteDTO.ContentIDs[1] != "content-2" {
+		t.Errorf("Expected ContentIDs to be [content-1, content-2], got %v", noteDTO.ContentIDs)
 	}
 
 	// Check content 1

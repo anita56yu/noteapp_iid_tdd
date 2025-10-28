@@ -65,10 +65,12 @@ func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepos
 	if err != nil {
 		return repo, noteUsecase, noteID, "", ""
 	}
+	noteUsecase.AddContent(noteID, contentID)
 	contentID1, err2 := noteUsecase.CreateAndAddContent(noteID, "", "Content 2", ImageContentType)
 	if err2 != nil {
 		return repo, noteUsecase, noteID, contentID, ""
 	}
+	noteUsecase.AddContent(noteID, contentID1)
 	return repo, noteUsecase, noteID, contentID, contentID1
 }
 
@@ -448,12 +450,12 @@ func TestNoteUsecase_UpdateContent_ContentNotFound(t *testing.T) {
 	}
 }
 
-func TestNoteUsecase_DeleteContent_Success(t *testing.T) {
+func TestNoteUsecase_DeleteAndRemoveContent_Success(t *testing.T) {
 	// Arrange
 	_, noteUsecase, noteID, contentID1, contentID2 := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err := noteUsecase.DeleteContent(noteID, contentID1)
+	err := noteUsecase.DeleteAndRemoveContent(noteID, contentID1)
 
 	// Assert
 	if err != nil {
@@ -474,12 +476,12 @@ func TestNoteUsecase_DeleteContent_Success(t *testing.T) {
 	}
 }
 
-func TestNoteUsecase_DeleteContent_NoteNotFound(t *testing.T) {
+func TestNoteUsecase_DeleteAndRemoveContent_NoteNotFound(t *testing.T) {
 	// Arrange
 	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err := noteUsecase.DeleteContent("non-existent-note-id", "content-id")
+	err := noteUsecase.DeleteAndRemoveContent("non-existent-note-id", "content-id")
 
 	// Assert
 	if err == nil {
@@ -490,12 +492,67 @@ func TestNoteUsecase_DeleteContent_NoteNotFound(t *testing.T) {
 	}
 }
 
-func TestNoteUsecase_DeleteContent_ContentNotFound(t *testing.T) {
+func TestNoteUsecase_DeleteAndRemoveContent_ContentNotFound(t *testing.T) {
 	// Arrange
 	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err := noteUsecase.DeleteContent(noteID, "non-existent-content-id")
+	err := noteUsecase.DeleteAndRemoveContent(noteID, "non-existent-content-id")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for non-existent content, but got nil")
+	}
+	if !errors.Is(err, ErrContentNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+	}
+}
+
+func TestNoteUsecase_RemoveContent_Success(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID, contentID1, contentID2 := setUpRepositoryAndUsecaseWithNoteAndContents()
+
+	// Act
+	err := noteUsecase.RemoveContent(noteID, contentID1)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("RemoveContent() returned an unexpected error: %v", err)
+	}
+	note, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("GetNoteByID() failed: %v", err)
+	}
+	if len(note.ContentIDs) != 1 {
+		t.Errorf("Expected 1 content ID, got %d", len(note.ContentIDs))
+	}
+	if note.ContentIDs[0] != contentID2 {
+		t.Errorf("Expected remaining content ID to be '%s', got '%s'", contentID2, note.ContentIDs[0])
+	}
+}
+
+func TestNoteUsecase_RemoveContent_NoteNotFound(t *testing.T) {
+	// Arrange
+	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
+
+	// Act
+	err := noteUsecase.RemoveContent("non-existent-note-id", "content-id")
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent note, but got nil")
+	}
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_RemoveContent_ContentNotFound(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
+
+	// Act
+	err := noteUsecase.RemoveContent(noteID, "non-existent-content-id")
 
 	// Assert
 	if err == nil {

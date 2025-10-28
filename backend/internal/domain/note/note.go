@@ -188,6 +188,17 @@ func (n *Note) DeleteContent(id string) error {
 	return ErrContentNotFound
 }
 
+// RemoveContentID removes a content ID from the note.
+func (n *Note) RemoveContentID(id string) error {
+	for i, contentID := range n.ContentIDs {
+		if contentID == id {
+			n.ContentIDs = append(n.ContentIDs[:i], n.ContentIDs[i+1:]...)
+			return nil
+		}
+	}
+	return ErrContentNotFound
+}
+
 // RemoveKeyword removes a keyword from the note for a specific user.
 func (n *Note) RemoveKeyword(userID string, keyword Keyword) error {
 	userKeywords, ok := n.keywords[userID]

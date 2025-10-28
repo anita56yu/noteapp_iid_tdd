@@ -95,10 +95,14 @@ func (m *NoteMapper) toNoteDTO(note *domainnote.Note) *NoteDTO {
 		collaborators[userID] = Permission(permission)
 	}
 
+	contentIDs := make([]string, len(note.ContentIDs))
+	copy(contentIDs, note.ContentIDs)
+
 	return &NoteDTO{
 		ID:            note.ID,
 		Title:         note.Title,
 		OwnerID:       note.OwnerID,
+		ContentIDs:    contentIDs,
 		Contents:      contents,
 		Keywords:      keywords,
 		Collaborators: collaborators,

@@ -196,7 +196,7 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
 	contentID := chi.URLParam(r, "contentId")
 
-	err := h.usecase.DeleteContent(noteID, contentID)
+	err := h.usecase.DeleteAndRemoveContent(noteID, contentID)
 	if err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrContentNotFound):
