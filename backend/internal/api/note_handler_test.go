@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"noteapp/internal/repository/contentrepo"
 	"noteapp/internal/repository/noterepo"
+	"noteapp/internal/usecase/contentuc"
 	"noteapp/internal/usecase/noteuc"
 	"strings"
 	"testing"
@@ -14,10 +16,12 @@ import (
 )
 
 // setupTest initializes the necessary components for the tests.
-func setupTest() (*chi.Mux, *noteuc.NoteUsecase) {
-	repo := noterepo.NewInMemoryNoteRepository()
-	nc := noteuc.NewNoteUsecase(repo)
-	handler := NewNoteHandler(nc)
+func setupTest() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase) {
+	noteRepo := noterepo.NewInMemoryNoteRepository()
+	contentRepo := contentrepo.NewInMemoryContentRepository()
+	nuc := noteuc.NewNoteUsecase(noteRepo)
+	cuc := contentuc.NewContentUsecase(contentRepo)
+	handler := NewNoteHandler(nuc, cuc)
 
 	router := chi.NewRouter()
 	router.Post("/notes", handler.CreateNote)
@@ -33,12 +37,12 @@ func setupTest() (*chi.Mux, *noteuc.NoteUsecase) {
 	router.Delete("/users/{ownerID}/notes/{noteID}/shares", handler.RevokeAccess)
 	router.Get("/users/{userID}/accessible-notes", handler.GetAccessibleNotesForUser)
 
-	return router, nc
+	return router, nuc, cuc
 }
 
 func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	note1, _ := nc.CreateNote("", "Note 1", "owner-1")
 	note2, _ := nc.CreateNote("", "Note 2", "owner-1")
 	note3, _ := nc.CreateNote("", "Note 3", "owner-1")
@@ -68,7 +72,7 @@ func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
 
 func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	note1, _ := nc.CreateNote("", "Note 1", "owner-1")
 	note2, _ := nc.CreateNote("", "Note 2", "owner-1")
 	note3, _ := nc.CreateNote("", "Note 3", "owner-1")
@@ -98,7 +102,7 @@ func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
 
 func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	note1, _ := nc.CreateNote("", "Note 1", "owner-1")
 
 	nc.TagNote(note1, "user-1", "testing")
@@ -124,8 +128,8 @@ func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 
 func TestNoteHandler_AddContent_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
-	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	router, nuc, cuc := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
@@ -156,11 +160,37 @@ func TestNoteHandler_AddContent_Success(t *testing.T) {
 	if response.ID == "" {
 		t.Error("expected a non-empty content ID")
 	}
+
+	// Verify that the content ID was added to the note.
+	note, err := nuc.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get note by ID: %v", err)
+	}
+
+	if len(note.ContentIDs) != 1 {
+		t.Fatalf("expected note to have 1 content ID, but got %d", len(note.ContentIDs))
+	}
+
+	if note.ContentIDs[0] != response.ID {
+		t.Errorf("expected content ID '%s' to be in note's content IDs, but it was not", response.ID)
+	}
+
+	// Verify that the content was created with the correct data.
+	content, err := cuc.GetContentByID(response.ID)
+	if err != nil {
+		t.Fatalf("failed to get content by ID: %v", err)
+	}
+	if content.Data != requestBody.Data {
+		t.Errorf("expected content data to be '%s', but got '%s'", requestBody.Data, content.Data)
+	}
+	if content.Type != string(contentuc.TextContentType) {
+		t.Errorf("expected content type to be '%s', but got '%s'", contentuc.TextContentType, content.Type)
+	}
 }
 
 func TestNoteHandler_AddContent_NotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	requestBody := AddContentRequest{
 		Type: "text",
 		Data: "Test content",
@@ -180,7 +210,7 @@ func TestNoteHandler_AddContent_NotFound(t *testing.T) {
 
 func TestNoteHandler_AddContent_InvalidJSON(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	invalidBody := []byte(`{"type": "text", "data":`) // Malformed JSON
 	req := httptest.NewRequest(http.MethodPost, "/notes/some-id/contents", bytes.NewBuffer(invalidBody))
 	rr := httptest.NewRecorder()
@@ -196,7 +226,7 @@ func TestNoteHandler_AddContent_InvalidJSON(t *testing.T) {
 
 func TestNoteHandler_AddContent_UnsupportedContentType(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -221,7 +251,7 @@ func TestNoteHandler_AddContent_UnsupportedContentType(t *testing.T) {
 
 func TestNoteHandler_DeleteNote_InvalidID(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	req := httptest.NewRequest(http.MethodDelete, "/notes/", nil) // Empty ID
 	rr := httptest.NewRecorder()
 
@@ -236,7 +266,7 @@ func TestNoteHandler_DeleteNote_InvalidID(t *testing.T) {
 
 func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id", nil)
 	rr := httptest.NewRecorder()
 
@@ -251,7 +281,7 @@ func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
 
 func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -277,7 +307,7 @@ func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 
 func TestNoteHandler_GetNoteByID_InvalidID(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	req := httptest.NewRequest(http.MethodGet, "/notes/", nil) // Empty ID
 	rr := httptest.NewRecorder()
 
@@ -292,7 +322,7 @@ func TestNoteHandler_GetNoteByID_InvalidID(t *testing.T) {
 
 func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	req := httptest.NewRequest(http.MethodGet, "/notes/non-existent-id", nil)
 	rr := httptest.NewRecorder()
 
@@ -307,7 +337,7 @@ func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
 
 func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -338,7 +368,7 @@ func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 
 func TestNoteHandler_CreateNote_Success(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	requestBody := CreateNoteRequest{
 		Title: "Test Title",
 	}
@@ -374,7 +404,7 @@ func TestNoteHandler_CreateNote_Success(t *testing.T) {
 
 func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	invalidBody := []byte(`{"title": "Test", "content":`) // Malformed JSON
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(invalidBody))
 	rr := httptest.NewRecorder()
@@ -390,7 +420,7 @@ func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 
 func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	requestBody := CreateNoteRequest{Title: ""}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
@@ -411,14 +441,17 @@ func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 
 func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
-	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	router, nuc, cuc := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
-	contentID, err := nc.CreateAndAddContent(noteID, "", "Initial Content", "text")
+	contentID, err := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
 	if err != nil {
-		t.Fatalf("setup: failed to add content: %v", err)
+		t.Fatalf("setup: failed to create content: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID); err != nil {
+		t.Fatalf("setup: failed to add content to note: %v", err)
 	}
 
 	requestBody := UpdateContentRequest{
@@ -436,21 +469,22 @@ func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
 	}
 
-	note, err := nc.GetNoteByID(noteID)
+	// Verify that the content was updated.
+	content, err := cuc.GetContentByID(contentID)
 	if err != nil {
-		t.Fatalf("failed to get note: %v", err)
+		t.Fatalf("failed to get content by ID: %v", err)
 	}
-	if len(note.Contents) != 1 {
-		t.Fatalf("expected 1 content block, got %d", len(note.Contents))
+	if content.Data != requestBody.Data {
+		t.Errorf("expected content data to be '%s', but got '%s'", requestBody.Data, content.Data)
 	}
-	if note.Contents[0].Data != "Updated Content" {
-		t.Errorf("expected content to be 'Updated Content', got '%s'", note.Contents[0].Data)
+	if content.Version != 1 {
+		t.Errorf("expected content version to be 1, but got %d", content.Version)
 	}
 }
 
 func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	requestBody := UpdateContentRequest{
 		Data: "Updated Content",
 	}
@@ -469,7 +503,7 @@ func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
 
 func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -493,7 +527,7 @@ func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
 
 func TestNoteHandler_UpdateContent_InvalidJSON(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	invalidBody := []byte(`{"data":`) // Malformed JSON
 	req := httptest.NewRequest(http.MethodPut, "/notes/some-id/contents/some-content-id", bytes.NewBuffer(invalidBody))
 	rr := httptest.NewRecorder()
@@ -509,14 +543,17 @@ func TestNoteHandler_UpdateContent_InvalidJSON(t *testing.T) {
 
 func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
-	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	router, nuc, cuc := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
-	contentID, err := nc.CreateAndAddContent(noteID, "", "Initial Content", "text")
+	contentID, err := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
 	if err != nil {
-		t.Fatalf("setup: failed to add content: %v", err)
+		t.Fatalf("setup: failed to create content: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID); err != nil {
+		t.Fatalf("setup: failed to add content to note: %v", err)
 	}
 
 	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, nil)
@@ -530,18 +567,25 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
 	}
 
-	note, err := nc.GetNoteByID(noteID)
+	// Verify that the content ID was removed from the note.
+	note, err := nuc.GetNoteByID(noteID)
 	if err != nil {
 		t.Fatalf("failed to get note: %v", err)
 	}
-	if len(note.Contents) != 0 {
-		t.Errorf("expected 0 content blocks, got %d", len(note.Contents))
+	if len(note.ContentIDs) != 0 {
+		t.Errorf("expected 0 content blocks, got %d", len(note.ContentIDs))
+	}
+
+	// Verify that the content was deleted from the repository.
+	_, err = cuc.GetContentByID(contentID)
+	if err != contentuc.ErrContentNotFound {
+		t.Errorf("expected ErrContentNotFound, but got %v", err)
 	}
 }
 
 func TestNoteHandler_DeleteContent_NoteNotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id/contents/some-content-id", nil)
 	rr := httptest.NewRecorder()
 
@@ -556,7 +600,7 @@ func TestNoteHandler_DeleteContent_NoteNotFound(t *testing.T) {
 
 func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -576,7 +620,7 @@ func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 
 func TestNoteHandler_TagNote_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -609,7 +653,7 @@ func TestNoteHandler_TagNote_Success(t *testing.T) {
 
 func TestNoteHandler_TagNote_NoteNotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	userID := "user-1"
 	keyword := "test-keyword"
 	requestBody := TagNoteRequest{Keyword: keyword}
@@ -628,7 +672,7 @@ func TestNoteHandler_TagNote_NoteNotFound(t *testing.T) {
 
 func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -650,7 +694,7 @@ func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 
 func TestNoteHandler_UntagNote_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -685,7 +729,7 @@ func TestNoteHandler_UntagNote_Success(t *testing.T) {
 
 func TestNoteHandler_UntagNote_NoteNotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	req := httptest.NewRequest(http.MethodDelete, "/users/user-1/notes/non-existent-id/keyword/test-keyword", nil)
 	rr := httptest.NewRecorder()
 
@@ -700,7 +744,7 @@ func TestNoteHandler_UntagNote_NoteNotFound(t *testing.T) {
 
 func TestNoteHandler_UntagNote_UserNotFound(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -723,7 +767,7 @@ func TestNoteHandler_UntagNote_UserNotFound(t *testing.T) {
 
 func TestNoteHandler_UntagNote_KeywordNotFound(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
@@ -746,7 +790,7 @@ func TestNoteHandler_UntagNote_KeywordNotFound(t *testing.T) {
 
 func TestNoteHandler_ShareNote_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	ownerID := "owner-1"
 	collaboratorID := "user-2"
 	noteID, err := nc.CreateNote("", "Test Title", ownerID)
@@ -784,7 +828,7 @@ func TestNoteHandler_ShareNote_Success(t *testing.T) {
 
 func TestNoteHandler_ShareNote_Unauthorized(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	ownerID := "owner-1"
 	nonOwnerID := "non-owner"
 	collaboratorID := "user-2"
@@ -812,7 +856,7 @@ func TestNoteHandler_ShareNote_Unauthorized(t *testing.T) {
 
 func TestNoteHandler_ShareNote_NoteNotFound(t *testing.T) {
 	// Arrange
-	router, _ := setupTest()
+	router, _, _ := setupTest()
 	ownerID := "owner-1"
 	collaboratorID := "user-2"
 	nonExistentNoteID := "non-existent-note-id"
@@ -836,7 +880,7 @@ func TestNoteHandler_ShareNote_NoteNotFound(t *testing.T) {
 
 func TestNoteHandler_ShareNote_InvalidPermission(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	ownerID := "owner-1"
 	collaboratorID := "user-2"
 	noteID, err := nc.CreateNote("", "Test Title", ownerID)
@@ -863,7 +907,7 @@ func TestNoteHandler_ShareNote_InvalidPermission(t *testing.T) {
 
 func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	ownerID := "owner-1"
 	collaboratorID := "user-2"
 	noteID, err := nc.CreateNote("", "Test Title", ownerID)
@@ -916,7 +960,7 @@ func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 
 func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	userID := "user-1"
 	ownerID := "owner-1"
 
@@ -963,7 +1007,7 @@ func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
 
 func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	ownerID := "owner-1"
 	collaboratorID1 := "user-1"
 	collaboratorID2 := "user-2"
@@ -1003,7 +1047,7 @@ func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
 
 func TestNoteHandler_RevokeAccess_NotOwner(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	ownerID := "owner-1"
 	collaboratorID := "user-1"
 	nonOwnerID := "user-2"
@@ -1025,7 +1069,7 @@ func TestNoteHandler_RevokeAccess_NotOwner(t *testing.T) {
 
 func TestNoteHandler_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	// Arrange
-	router, nc := setupTest()
+	router, nc, _ := setupTest()
 	ownerID := "owner-1"
 	collaboratorID := "user-1"
 	noteID, _ := nc.CreateNote("", "Test Note", ownerID)

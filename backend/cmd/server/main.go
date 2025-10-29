@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"noteapp/internal/api"
+	"noteapp/internal/repository/contentrepo"
 	"noteapp/internal/repository/noterepo"
+	"noteapp/internal/usecase/contentuc"
 	"noteapp/internal/usecase/noteuc"
 
 	"github.com/go-chi/chi/v5"
@@ -14,9 +16,13 @@ import (
 
 func main() {
 	// 1. Dependency Injection
-	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := noteuc.NewNoteUsecase(repo)
-	noteHandler := api.NewNoteHandler(noteUsecase)
+	noteRepo := noterepo.NewInMemoryNoteRepository()
+	contentRepo := contentrepo.NewInMemoryContentRepository()
+
+	noteUsecase := noteuc.NewNoteUsecase(noteRepo)
+	contentUsecase := contentuc.NewContentUsecase(contentRepo)
+
+	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase)
 
 	// 2. Routing
 	router := chi.NewRouter()

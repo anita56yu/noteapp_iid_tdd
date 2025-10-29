@@ -32,6 +32,19 @@ func (uc *ContentUsecase) CreateContent(noteID, contentID, data string, contentT
 	return c.ID, nil
 }
 
+// GetContentByID retrieves a content by its ID.
+func (uc *ContentUsecase) GetContentByID(id string) (*ContentDTO, error) {
+	if id == "" {
+		return nil, ErrInvalidID
+	}
+	po, err := uc.repo.GetByID(id)
+	if err != nil {
+		return nil, uc.mapRepositoryError(err)
+	}
+	c := uc.mapper.ToDomain(po)
+	return uc.mapper.ToDTO(c), nil
+}
+
 // UpdateContent updates a content.
 func (uc *ContentUsecase) UpdateContent(id, data string) error {
 	po, err := uc.repo.GetByID(id)

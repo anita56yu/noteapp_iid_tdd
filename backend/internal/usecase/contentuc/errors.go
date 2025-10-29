@@ -2,6 +2,9 @@ package contentuc
 
 import "errors"
 
+// ErrInvalidID is returned when an invalid ID is provided.
+var ErrInvalidID = errors.New("invalid ID")
+
 // ErrUnsupportedContentType is returned when an unsupported content type is provided.
 var ErrUnsupportedContentType = errors.New("unsupported content type")
 

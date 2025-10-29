@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"noteapp/internal/usecase/contentuc"
 	"noteapp/internal/usecase/noteuc"
 
 	"github.com/go-chi/chi/v5"
@@ -12,12 +13,13 @@ import (
 
 // NoteHandler handles HTTP requests for notes.
 type NoteHandler struct {
-	usecase *noteuc.NoteUsecase
+	noteUsecase    *noteuc.NoteUsecase
+	contentUsecase *contentuc.ContentUsecase
 }
 
 // NewNoteHandler creates a new NoteHandler.
-func NewNoteHandler(uc *noteuc.NoteUsecase) *NoteHandler {
-	return &NoteHandler{usecase: uc}
+func NewNoteHandler(nuc *noteuc.NoteUsecase, cuc *contentuc.ContentUsecase) *NoteHandler {
+	return &NoteHandler{noteUsecase: nuc, contentUsecase: cuc}
 }
 
 // CreateNoteRequest represents the request body for creating a note.
@@ -70,7 +72,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	// This will be replaced with actual user authentication later.
 	ownerID := "placeholder-owner-id"
 
-	noteID, err := h.usecase.CreateNote("", req.Title, ownerID)
+	noteID, err := h.noteUsecase.CreateNote("", req.Title, ownerID)
 	if err != nil {
 		if errors.Is(err, noteuc.ErrEmptyTitle) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -90,7 +92,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	note, err := h.usecase.GetNoteByID(id)
+	note, err := h.noteUsecase.GetNoteByID(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
@@ -112,7 +114,7 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	err := h.usecase.DeleteNote(id)
+	err := h.noteUsecase.DeleteNote(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
@@ -138,14 +140,22 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentType, err := mapToDomainContentType(req.Type)
+	contentType, err := mapToContentUsecaseContentType(req.Type)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	contentID, err := h.usecase.CreateAndAddContent(noteID, "", req.Data, contentType)
+	// Create the content first.
+	contentID, err := h.contentUsecase.CreateContent(noteID, "", req.Data, contentType)
 	if err != nil {
+		// Error handling for content creation can be added here.
+		http.Error(w, "Failed to create content", http.StatusInternalServerError)
+		return
+	}
+
+	// Then, add the content ID to the note.
+	if err := h.noteUsecase.AddContent(noteID, contentID); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -166,7 +176,6 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 
 // UpdateContent is the handler for the PUT /notes/{id}/contents/{contentId} endpoint.
 func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
-	noteID := chi.URLParam(r, "id")
 	contentID := chi.URLParam(r, "contentId")
 
 	var req UpdateContentRequest
@@ -175,13 +184,12 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.usecase.UpdateContent(noteID, contentID, req.Data)
-	if err != nil {
+	if err := h.contentUsecase.UpdateContent(contentID, req.Data); err != nil {
 		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrContentNotFound):
+		case errors.Is(err, contentuc.ErrContentNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrInvalidID):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, contentuc.ErrConflict):
+			http.Error(w, err.Error(), http.StatusConflict)
 		default:
 			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 		}
@@ -196,13 +204,24 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
 	contentID := chi.URLParam(r, "contentId")
 
-	err := h.usecase.DeleteAndRemoveContent(noteID, contentID)
-	if err != nil {
+	// First, remove the content ID from the note.
+	if err := h.noteUsecase.RemoveContent(noteID, contentID); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrContentNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
 		case errors.Is(err, noteuc.ErrInvalidID):
 			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Then, delete the content itself.
+	if err := h.contentUsecase.DeleteContent(contentID); err != nil {
+		switch {
+		case errors.Is(err, contentuc.ErrContentNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
 		default:
 			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 		}
@@ -223,7 +242,7 @@ func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.usecase.TagNote(noteID, userID, req.Keyword); err != nil {
+	if err := h.noteUsecase.TagNote(noteID, userID, req.Keyword); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -243,7 +262,7 @@ func (h *NoteHandler) FindNotesByKeyword(w http.ResponseWriter, r *http.Request)
 	userID := chi.URLParam(r, "userID")
 	keyword := r.URL.Query().Get("keyword")
 
-	notes, err := h.usecase.FindNotesByKeyword(userID, keyword)
+	notes, err := h.noteUsecase.FindNotesByKeyword(userID, keyword)
 	if err != nil {
 		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 		return
@@ -260,7 +279,7 @@ func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "noteID")
 	keyword := chi.URLParam(r, "keyword")
 
-	if err := h.usecase.UntagNote(noteID, userID, keyword); err != nil {
+	if err := h.noteUsecase.UntagNote(noteID, userID, keyword); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrUserNotFound), errors.Is(err, noteuc.ErrKeywordNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -286,7 +305,7 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.usecase.ShareNote(noteID, ownerID, req.UserID, req.Permission); err != nil {
+	if err := h.noteUsecase.ShareNote(noteID, ownerID, req.UserID, req.Permission); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -307,7 +326,7 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetAccessibleNotesForUser(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 
-	notes, err := h.usecase.GetAccessibleNotesForUser(userID)
+	notes, err := h.noteUsecase.GetAccessibleNotesForUser(userID)
 	if err != nil {
 		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 		return
@@ -329,7 +348,7 @@ func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.usecase.RevokeAccess(noteID, ownerID, req.UserID); err != nil {
+	if err := h.noteUsecase.RevokeAccess(noteID, ownerID, req.UserID); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrUserNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -344,13 +363,13 @@ func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func mapToDomainContentType(ct string) (noteuc.ContentType, error) {
+func mapToContentUsecaseContentType(ct string) (contentuc.ContentType, error) {
 	switch ct {
 	case "text":
-		return noteuc.TextContentType, nil
+		return contentuc.TextContentType, nil
 	case "image":
-		return noteuc.ImageContentType, nil
+		return contentuc.ImageContentType, nil
 	default:
-		return noteuc.TextContentType, ErrUnsupportedContentType
+		return contentuc.TextContentType, ErrUnsupportedContentType
 	}
 }

@@ -88,6 +88,43 @@ func TestContentUsecase_CreateContent_UnsupportedType(t *testing.T) {
 	}
 }
 
+func TestContentUsecase_GetContentByID(t *testing.T) {
+	repo := contentrepo.NewInMemoryContentRepository()
+	usecase := contentuc.NewContentUsecase(repo)
+	noteID := "n1"
+	data := "Test content"
+	contentType := contentuc.TextContentType
+
+	id, _ := usecase.CreateContent(noteID, "", data, contentType)
+
+	t.Run("should get content by id", func(t *testing.T) {
+		dto, err := usecase.GetContentByID(id)
+		if err != nil {
+			t.Fatalf("GetContentByID() returned an unexpected error: %v", err)
+		}
+		if dto.ID != id {
+			t.Errorf("Expected ID to be '%s', got '%s'", id, dto.ID)
+		}
+		if dto.Data != data {
+			t.Errorf("Expected Data to be '%s', got '%s'", data, dto.Data)
+		}
+	})
+
+	t.Run("should return not found error for non-existent id", func(t *testing.T) {
+		_, err := usecase.GetContentByID("non-existent-id")
+		if err != contentuc.ErrContentNotFound {
+			t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrContentNotFound, err)
+		}
+	})
+
+	t.Run("should return invalid id error for empty id", func(t *testing.T) {
+		_, err := usecase.GetContentByID("")
+		if err != contentuc.ErrInvalidID {
+			t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrInvalidID, err)
+		}
+	})
+}
+
 func TestContentUsecase_UpdateContent(t *testing.T) {
 	repo := contentrepo.NewInMemoryContentRepository()
 	usecase := contentuc.NewContentUsecase(repo)
