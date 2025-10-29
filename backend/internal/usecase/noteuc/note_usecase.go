@@ -102,23 +102,6 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 	return nil
 }
 
-func (uc *NoteUsecase) CreateAndAddContent(noteID, contentID, data string, contentType ContentType) (string, error) {
-	notePO, err := uc.repo.FindByID(noteID)
-	if err != nil {
-		return "", uc.mapRepositoryError(err)
-	}
-	n := uc.mapper.ToDomain(notePO)
-
-	newID := n.AddContent(contentID, data, mapToDomainContentType(contentType))
-
-	updatedNotePO := uc.mapper.ToPO(n)
-	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return "", uc.mapRepositoryError(err)
-	}
-
-	return newID, nil
-}
-
 func (uc *NoteUsecase) AddContent(noteID, contentID string) error {
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
@@ -127,46 +110,6 @@ func (uc *NoteUsecase) AddContent(noteID, contentID string) error {
 	n := uc.mapper.ToDomain(notePO)
 
 	n.AddContentID(contentID)
-
-	updatedNotePO := uc.mapper.ToPO(n)
-	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-
-	return nil
-}
-
-// UpdateContent updates the content of a note.
-func (uc *NoteUsecase) UpdateContent(noteID, contentID, data string) error {
-	notePO, err := uc.repo.FindByID(noteID)
-	if err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	n := uc.mapper.ToDomain(notePO)
-
-	if err := n.UpdateContent(contentID, data); err != nil {
-		return uc.mapDomainError(err)
-	}
-
-	updatedNotePO := uc.mapper.ToPO(n)
-	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
-	}
-
-	return nil
-}
-
-// DeleteContent deletes a content from a note.
-func (uc *NoteUsecase) DeleteAndRemoveContent(noteID, contentID string) error {
-	notePO, err := uc.repo.FindByID(noteID)
-	if err != nil {
-		return uc.mapRepositoryError(err)
-	}
-	n := uc.mapper.ToDomain(notePO)
-
-	if err := n.DeleteContent(contentID); err != nil {
-		return uc.mapDomainError(err)
-	}
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
@@ -355,17 +298,6 @@ func (uc *NoteUsecase) mapDomainError(err error) error {
 		return ErrPermissionDenied
 	default:
 		return fmt.Errorf("an unexpected domain error occurred: %w", err)
-	}
-}
-
-func mapToDomainContentType(ct ContentType) note.ContentType {
-	switch ct {
-	case TextContentType:
-		return note.TextContentType
-	case ImageContentType:
-		return note.ImageContentType
-	default:
-		return note.TextContentType // Default to text if unknown
 	}
 }
 

@@ -31,23 +31,6 @@ const (
 	ReadWrite Permission = "read-write"
 )
 
-// ContentType defines the type of content in a note.
-type ContentType string
-
-const (
-	// TextContentType represents a text content block.
-	TextContentType ContentType = "text"
-	// ImageContentType represents an image content block.
-	ImageContentType ContentType = "image"
-)
-
-// Content represents a block of content within a note.
-type Content struct {
-	ID   string
-	Type ContentType
-	Data string
-}
-
 // Note represents a note in the application.
 type Note struct {
 	ID            string
@@ -55,7 +38,6 @@ type Note struct {
 	Title         string
 	Version       int
 	ContentIDs    []string
-	contents      []Content
 	keywords      map[string][]Keyword
 	Collaborators map[string]Permission
 }
@@ -77,7 +59,6 @@ func NewNoteWithVersion(id, title, ownerID string, version int) (*Note, error) {
 		Title:         title,
 		Version:       version,
 		ContentIDs:    []string{},
-		contents:      []Content{},
 		keywords:      make(map[string][]Keyword),
 		Collaborators: make(map[string]Permission),
 	}, nil
@@ -111,14 +92,6 @@ func (n *Note) RemoveCollaborator(callerID string, collaboratorID string) error 
 	return nil
 }
 
-// Contents returns a copy of the note's contents.
-func (n *Note) Contents() []Content {
-	// Return a copy to prevent modification of the internal slice.
-	contentsCopy := make([]Content, len(n.contents))
-	copy(contentsCopy, n.contents)
-	return contentsCopy
-}
-
 // Keywords returns a deep copy of the note's keywords.
 func (n *Note) Keywords() map[string][]Keyword {
 	keywordsCopy := make(map[string][]Keyword)
@@ -138,24 +111,6 @@ func (n *Note) UserKeywords(userID string) []Keyword {
 	return keywordsCopy
 }
 
-// AddContent adds a new content block to the note.
-// If id is empty, a new UUID will be generated.
-func (n *Note) AddContent(id, data string, contentType ContentType) string {
-	if id == "" {
-		id = uuid.New().String()
-	}
-
-	newContent := Content{
-		ID:   id,
-		Type: contentType,
-		Data: data,
-	}
-
-	n.contents = append(n.contents, newContent)
-
-	return id
-}
-
 // AddContentID adds a new content ID to the note.
 func (n *Note) AddContentID(id string) {
 	n.ContentIDs = append(n.ContentIDs, id)
@@ -164,28 +119,6 @@ func (n *Note) AddContentID(id string) {
 // AddKeyword adds a new keyword to the note for a specific user.
 func (n *Note) AddKeyword(userID string, keyword Keyword) {
 	n.keywords[userID] = append(n.keywords[userID], keyword)
-}
-
-// UpdateContent updates an existing content block in the note.
-func (n *Note) UpdateContent(id, data string) error {
-	for i, content := range n.contents {
-		if content.ID == id {
-			n.contents[i].Data = data
-			return nil
-		}
-	}
-	return ErrContentNotFound
-}
-
-// DeleteContent removes a content block from the note.
-func (n *Note) DeleteContent(id string) error {
-	for i, content := range n.contents {
-		if content.ID == id {
-			n.contents = append(n.contents[:i], n.contents[i+1:]...)
-			return nil
-		}
-	}
-	return ErrContentNotFound
 }
 
 // RemoveContentID removes a content ID from the note.

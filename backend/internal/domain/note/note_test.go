@@ -18,14 +18,6 @@ func TestNewNote_ValidCreation_WithInjectedID(t *testing.T) {
 		t.Errorf("Expected ID to be '%s', but got '%s'", id, note.ID)
 	}
 
-	if note.contents == nil {
-		t.Fatalf("Expected contents to be an empty slice, but it was nil")
-	}
-
-	if len(note.contents) != 0 {
-		t.Errorf("Expected contents to be empty, but got %d elements", len(note.contents))
-	}
-
 	if note.Version != 0 {
 		t.Errorf("Expected Version to be 0, but got %d", note.Version)
 	}
@@ -52,13 +44,6 @@ func TestNewNote_ValidCreation_WithGeneratedID(t *testing.T) {
 	if note.Title != title {
 		t.Errorf("Expected title to be '%s', but got '%s'", title, note.Title)
 	}
-	if note.contents == nil {
-		t.Fatalf("Expected contents to be an empty slice, but it was nil")
-	}
-
-	if len(note.contents) != 0 {
-		t.Errorf("Expected contents to be empty, but got %d elements", len(note.contents))
-	}
 
 	if note.Version != 0 {
 		t.Errorf("Expected Version to be 0, but got %d", note.Version)
@@ -83,127 +68,58 @@ func TestNewNote_EmptyTitle(t *testing.T) {
 	}
 }
 
-func TestNote_AddContent_WithInjectedID(t *testing.T) {
+func TestNote_AddContentID(t *testing.T) {
 	// Arrange
 	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	contentID := "content-1"
-	contentData := "Hello, world!"
 
 	// Act
-	newid := note.AddContent(contentID, contentData, TextContentType)
+	note.AddContentID(contentID)
 
 	// Assert
-	contents := note.Contents()
-	if newid != contentID {
-		t.Errorf("Expected returned content ID to be '%s', but got '%s'", contentID, newid)
+	if len(note.ContentIDs) != 1 {
+		t.Fatalf("Expected 1 content ID, but got %d", len(note.ContentIDs))
 	}
-	if len(contents) != 1 {
-		t.Fatalf("Expected 1 content block, but got %d", len(contents))
-	}
-	if contents[0].ID != contentID {
-		t.Errorf("Expected content ID to be '%s', but got '%s'", contentID, contents[0].ID)
-	}
-	if contents[0].Data != contentData {
-		t.Errorf("Expected content data to be '%s', but got '%s'", contentData, contents[0].Data)
+	if note.ContentIDs[0] != contentID {
+		t.Errorf("Expected content ID to be '%s', but got '%s'", contentID, note.ContentIDs[0])
 	}
 }
 
-func TestNote_AddContent_WithGeneratedID(t *testing.T) {
-	// Arrange
-	note, _ := NewNote("note-1", "Test Note", "owner-1")
-	contentData := "Hello, world!"
+func TestNote_RemoveContentID(t *testing.T) {
+	t.Run("should remove content ID successfully", func(t *testing.T) {
+		// Arrange
+		note, _ := NewNote("note-1", "Test Note", "owner-1")
+		note.AddContentID("content-1")
+		note.AddContentID("content-2")
 
-	// Act
-	note.AddContent("", contentData, TextContentType)
+		// Act
+		err := note.RemoveContentID("content-1")
 
-	// Assert
-	contents := note.Contents()
-	if len(contents) != 1 {
-		t.Fatalf("Expected 1 content block, but got %d", len(contents))
-	}
-	if contents[0].ID == "" {
-		t.Error("Expected content ID to be non-empty")
-	}
-	if contents[0].Data != contentData {
-		t.Errorf("Expected content data to be '%s', but got '%s'", contentData, contents[0].Data)
-	}
-}
+		// Assert
+		if err != nil {
+			t.Fatalf("RemoveContentID returned an unexpected error: %v", err)
+		}
+		if len(note.ContentIDs) != 1 {
+			t.Fatalf("Expected 1 content ID, but got %d", len(note.ContentIDs))
+		}
+		if note.ContentIDs[0] != "content-2" {
+			t.Errorf("Expected remaining content ID to be 'content-2', but got '%s'", note.ContentIDs[0])
+		}
+	})
 
-func TestNote_UpdateContent_NormalCase(t *testing.T) {
-	// Arrange
-	note, _ := NewNote("note-1", "Test Note", "owner-1")
-	contentID := "content-1"
-	initialData := "Initial content"
-	note.AddContent(contentID, initialData, TextContentType)
-	updatedData := "Updated content"
+	t.Run("should return error when content ID not found", func(t *testing.T) {
+		// Arrange
+		note, _ := NewNote("note-1", "Test Note", "owner-1")
+		note.AddContentID("content-1")
 
-	// Act
-	err := note.UpdateContent(contentID, updatedData)
+		// Act
+		err := note.RemoveContentID("non-existent-id")
 
-	// Assert
-	if err != nil {
-		t.Fatalf("UpdateContent returned an unexpected error: %v", err)
-	}
-	contents := note.Contents()
-	if contents[0].Data != updatedData {
-		t.Errorf("Expected content data to be '%s', but got '%s'", updatedData, contents[0].Data)
-	}
-}
-
-func TestNote_UpdateContent_NotFound(t *testing.T) {
-	// Arrange
-	note, _ := NewNote("note-1", "Test Note", "owner-1")
-	note.AddContent("content-1", "Initial data", TextContentType)
-
-	// Act
-	err := note.UpdateContent("non-existent-id", "Updated data")
-
-	// Assert
-	if err == nil {
-		t.Fatal("Expected an error when updating non-existent content, but got nil")
-	}
-	if err != ErrContentNotFound {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
-	}
-}
-
-func TestNote_DeleteContent_Success(t *testing.T) {
-	// Arrange
-	note, _ := NewNote("note-1", "Test Note", "owner-1")
-	contentID1 := note.AddContent("", "Content 1", TextContentType)
-	contentID2 := note.AddContent("", "Content 2", TextContentType)
-
-	// Act
-	err := note.DeleteContent(contentID1)
-
-	// Assert
-	if err != nil {
-		t.Fatalf("DeleteContent returned an unexpected error: %v", err)
-	}
-	contents := note.Contents()
-	if len(contents) != 1 {
-		t.Fatalf("Expected 1 content block after deletion, but got %d", len(contents))
-	}
-	if contents[0].ID != contentID2 {
-		t.Errorf("Expected remaining content ID to be '%s', but got '%s'", contentID2, contents[0].ID)
-	}
-}
-
-func TestNote_DeleteContent_NotFound(t *testing.T) {
-	// Arrange
-	note, _ := NewNote("note-1", "Test Note", "owner-1")
-	note.AddContent("content-1", "Initial data", TextContentType)
-
-	// Act
-	err := note.DeleteContent("non-existent-id")
-
-	// Assert
-	if err == nil {
-		t.Fatal("Expected an error when deleting non-existent content, but got nil")
-	}
-	if err != ErrContentNotFound {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
-	}
+		// Assert
+		if err != ErrContentNotFound {
+			t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+		}
+	})
 }
 
 func TestNote_AddKeyword(t *testing.T) {

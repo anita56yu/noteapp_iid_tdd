@@ -61,15 +61,9 @@ func setUpRepositoryAndUsecaseWithNote() (*noterepo.InMemoryNoteRepository, *Not
 func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string, string, string) {
 	repo, noteUsecase := setUpRepositoryAndUsecase()
 	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
-	contentID, err := noteUsecase.CreateAndAddContent(noteID, "", "Content 1", TextContentType)
-	if err != nil {
-		return repo, noteUsecase, noteID, "", ""
-	}
+	contentID := "content-1"
+	contentID1 := "content-2"
 	noteUsecase.AddContent(noteID, contentID)
-	contentID1, err2 := noteUsecase.CreateAndAddContent(noteID, "", "Content 2", ImageContentType)
-	if err2 != nil {
-		return repo, noteUsecase, noteID, contentID, ""
-	}
 	noteUsecase.AddContent(noteID, contentID1)
 	return repo, noteUsecase, noteID, contentID, contentID1
 }
@@ -290,75 +284,6 @@ func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 	}
 }
 
-func TestNoteUsecase_CreateAndAddContent_WithInjectedID(t *testing.T) {
-	// Arrange
-	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
-	content_id := "content-1"
-
-	// Act
-	newContentId, err := noteUsecase.CreateAndAddContent(id, content_id, "New Content", TextContentType)
-
-	// Assert
-	if err != nil {
-		t.Fatalf("AddContent() returned an unexpected error: %v", err)
-	}
-	if newContentId != content_id {
-		t.Errorf("Expected content ID to be '%s', got '%s'", content_id, newContentId)
-	}
-	notePO, err := repo.FindByID(id)
-	if err != nil {
-		t.Fatalf("Failed to find note: %v", err)
-	}
-	if len(notePO.Contents) != 1 {
-		t.Errorf("Expected 1 content block, got %d", len(notePO.Contents))
-	}
-	if notePO.Contents[0].Data != "New Content" {
-		t.Errorf("Expected content to be 'New Content', got '%s'", notePO.Contents[0].Data)
-	}
-}
-
-func TestNoteUsecase_CreateAndAddContent_WithGeneratedID(t *testing.T) {
-	// Arrange
-	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
-
-	// Act
-	contentId, err := noteUsecase.CreateAndAddContent(id, "", "New Content", TextContentType)
-
-	// Assert
-	if err != nil {
-		t.Fatalf("AddContent() returned an unexpected error: %v", err)
-	}
-	notePO, err := repo.FindByID(id)
-	if err != nil {
-		t.Fatalf("Failed to find note: %v", err)
-	}
-	if len(notePO.Contents) != 1 {
-		t.Errorf("Expected 1 content block, got %d", len(notePO.Contents))
-	}
-	if notePO.Contents[0].ID != contentId {
-		t.Errorf("Expected content ID to be '%s', got '%s'", contentId, notePO.Contents[0].ID)
-	}
-	if notePO.Contents[0].Data != "New Content" {
-		t.Errorf("Expected content to be 'New Content', got '%s'", notePO.Contents[0].Data)
-	}
-}
-
-func TestNoteUsecase_CreateAndAddContent_NoteNotFound(t *testing.T) {
-	// Arrange
-	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
-
-	// Act
-	_, err := noteUsecase.CreateAndAddContent("non-existent-id", "", "New Content", TextContentType)
-
-	// Assert
-	if err == nil {
-		t.Fatal("Expected an error for a non-existent note, but got nil")
-	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
-	}
-}
-
 func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	// Arrange
 	_, noteUsecase, noteID, contentID, contentID1 := setUpRepositoryAndUsecaseWithNoteAndContents()
@@ -370,141 +295,14 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetNoteByID() returned an unexpected error: %v", err)
 	}
-	if len(noteDTO.Contents) != 2 {
-		t.Errorf("Expected 2 content blocks, got %d", len(noteDTO.Contents))
+	if len(noteDTO.ContentIDs) != 2 {
+		t.Errorf("Expected 2 content blocks, got %d", len(noteDTO.ContentIDs))
 	}
-	if noteDTO.Contents[0].ID != contentID {
-		t.Errorf("Expected content 1 ID to be '%s', got '%s'", contentID, noteDTO.Contents[0].ID)
+	if noteDTO.ContentIDs[0] != contentID {
+		t.Errorf("Expected content 1 ID to be '%s', got '%s'", contentID, noteDTO.ContentIDs[0])
 	}
-	if noteDTO.Contents[0].Data != "Content 1" {
-		t.Errorf("Expected content 1 to be 'Content 1', got '%s'", noteDTO.Contents[0].Data)
-	}
-	if noteDTO.Contents[0].Type != "text" {
-		t.Errorf("Expected content 1 type to be 'text', got '%s'", noteDTO.Contents[0].Type)
-	}
-	if noteDTO.Contents[1].ID != contentID1 {
-		t.Errorf("Expected content 2 ID to be '%s', got '%s'", contentID1, noteDTO.Contents[1].ID)
-	}
-	if noteDTO.Contents[1].Data != "Content 2" {
-		t.Errorf("Expected content 2 to be 'Content 2', got '%s'", noteDTO.Contents[1].Data)
-	}
-	if noteDTO.Contents[1].Type != "image" {
-		t.Errorf("Expected content 2 type to be 'image', got '%s'", noteDTO.Contents[1].Type)
-	}
-}
-
-func TestNoteUsecase_UpdateContent_NormalCase(t *testing.T) {
-	// Arrange
-	repo, noteUsecase, noteID, contentID, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
-	updatedData := "Updated Content"
-
-	// Act
-	err := noteUsecase.UpdateContent(noteID, contentID, updatedData)
-
-	// Assert
-	if err != nil {
-		t.Fatalf("UpdateContent() returned an unexpected error: %v", err)
-	}
-	notePO, err := repo.FindByID(noteID)
-	if err != nil {
-		t.Fatalf("Failed to find note: %v", err)
-	}
-	contents := notePO.Contents
-	if len(contents) != 2 {
-		t.Fatalf("Expected 2 content blocks, got %d", len(contents))
-	}
-	if contents[0].Data != updatedData {
-		t.Errorf("Expected content to be '%s', got '%s'", updatedData, contents[0].Data)
-	}
-}
-
-func TestNoteUsecase_UpdateContent_NoteNotFound(t *testing.T) {
-	// Arrange
-	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
-
-	// Act
-	err := noteUsecase.UpdateContent("non-existent-note-id", "content-id", "Updated data")
-
-	// Assert
-	if err == nil {
-		t.Fatal("Expected an error for a non-existent note, but got nil")
-	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
-	}
-}
-
-func TestNoteUsecase_UpdateContent_ContentNotFound(t *testing.T) {
-	// Arrange
-	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
-
-	// Act
-	err := noteUsecase.UpdateContent(noteID, "non-existent-content-id", "Updated data")
-
-	// Assert
-	if err == nil {
-		t.Fatal("Expected an error for non-existent content, but got nil")
-	}
-	if !errors.Is(err, ErrContentNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
-	}
-}
-
-func TestNoteUsecase_DeleteAndRemoveContent_Success(t *testing.T) {
-	// Arrange
-	_, noteUsecase, noteID, contentID1, contentID2 := setUpRepositoryAndUsecaseWithNoteAndContents()
-
-	// Act
-	err := noteUsecase.DeleteAndRemoveContent(noteID, contentID1)
-
-	// Assert
-	if err != nil {
-		t.Fatalf("DeleteContent() returned an unexpected error: %v", err)
-	}
-	note, err := noteUsecase.GetNoteByID(noteID)
-	if err != nil {
-		t.Fatalf("GetNoteByID() failed: %v", err)
-	}
-	if len(note.Contents) != 1 {
-		t.Errorf("Expected 1 content block, got %d", len(note.Contents))
-	}
-	if note.Contents[0].ID != contentID2 {
-		t.Errorf("Expected remaining content ID to be '%s', got '%s'", contentID2, note.Contents[0].ID)
-	}
-	if note.Contents[0].Data != "Content 2" {
-		t.Errorf("Expected content to be 'Content 2', got '%s'", note.Contents[0].Data)
-	}
-}
-
-func TestNoteUsecase_DeleteAndRemoveContent_NoteNotFound(t *testing.T) {
-	// Arrange
-	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
-
-	// Act
-	err := noteUsecase.DeleteAndRemoveContent("non-existent-note-id", "content-id")
-
-	// Assert
-	if err == nil {
-		t.Fatal("Expected an error for a non-existent note, but got nil")
-	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
-	}
-}
-
-func TestNoteUsecase_DeleteAndRemoveContent_ContentNotFound(t *testing.T) {
-	// Arrange
-	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
-
-	// Act
-	err := noteUsecase.DeleteAndRemoveContent(noteID, "non-existent-content-id")
-
-	// Assert
-	if err == nil {
-		t.Fatal("Expected an error for non-existent content, but got nil")
-	}
-	if !errors.Is(err, ErrContentNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+	if noteDTO.ContentIDs[1] != contentID1 {
+		t.Errorf("Expected content 2 ID to be '%s', got '%s'", contentID1, noteDTO.ContentIDs[1])
 	}
 }
 

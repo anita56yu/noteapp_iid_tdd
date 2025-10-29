@@ -14,7 +14,6 @@ type NotePO struct {
 	Title         string
 	Version       int
 	ContentIDs    []string
-	Contents      []ContentPO
 	Keywords      map[string][]string
 	Collaborators map[string]string
 }

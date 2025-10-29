@@ -12,8 +12,6 @@ func TestToNoteDTO(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create note: %v", err)
 	}
-	n.AddContent("content-1", "Hello", note.TextContentType)
-	n.AddContent("content-2", "base64-encoded-image", note.ImageContentType)
 	n.AddContentID("content-1")
 	n.AddContentID("content-2")
 	keyword1, _ := note.NewKeyword("keyword1")
@@ -35,36 +33,11 @@ func TestToNoteDTO(t *testing.T) {
 	if noteDTO.Version != 1 {
 		t.Errorf("Expected DTO version to be 1, got %d", noteDTO.Version)
 	}
-	if len(noteDTO.Contents) != 2 {
-		t.Fatalf("Expected 2 content DTOs, got %d", len(noteDTO.Contents))
-	}
 	if len(noteDTO.ContentIDs) != 2 {
 		t.Fatalf("Expected 2 content IDs, got %d", len(noteDTO.ContentIDs))
 	}
 	if noteDTO.ContentIDs[0] != "content-1" || noteDTO.ContentIDs[1] != "content-2" {
 		t.Errorf("Expected ContentIDs to be [content-1, content-2], got %v", noteDTO.ContentIDs)
-	}
-
-	// Check content 1
-	if noteDTO.Contents[0].ID != "content-1" {
-		t.Errorf("Expected content 1 ID to be 'content-1', got '%s'", noteDTO.Contents[0].ID)
-	}
-	if noteDTO.Contents[0].Type != "text" {
-		t.Errorf("Expected content 1 type to be 'text', got '%s'", noteDTO.Contents[0].Type)
-	}
-	if noteDTO.Contents[0].Data != "Hello" {
-		t.Errorf("Expected content 1 data to be 'Hello', got '%s'", noteDTO.Contents[0].Data)
-	}
-
-	// Check content 2
-	if noteDTO.Contents[1].ID != "content-2" {
-		t.Errorf("Expected content 2 ID to be 'content-2', got '%s'", noteDTO.Contents[1].ID)
-	}
-	if noteDTO.Contents[1].Type != "image" {
-		t.Errorf("Expected content 2 type to be 'image', got '%s'", noteDTO.Contents[1].Type)
-	}
-	if noteDTO.Contents[1].Data != "base64-encoded-image" {
-		t.Errorf("Expected content 2 data to be 'base64-encoded-image', got '%s'", noteDTO.Contents[1].Data)
 	}
 
 	// Check keywords
@@ -85,7 +58,6 @@ func TestToNoteDTO(t *testing.T) {
 func TestNoteMapper_ToPO(t *testing.T) {
 	// Arrange
 	n, _ := note.NewNote("note-1", "Test Note", "owner-1")
-	n.AddContent("content-1", "Hello", note.TextContentType)
 	n.AddContentID("content-1")
 	keyword, _ := note.NewKeyword("test-keyword")
 	n.AddKeyword("user-1", keyword)
@@ -101,12 +73,6 @@ func TestNoteMapper_ToPO(t *testing.T) {
 	}
 	if po.Title != "Test Note" {
 		t.Errorf("Expected Title to be 'Test Note', but got '%s'", po.Title)
-	}
-	if len(po.Contents) != 1 {
-		t.Fatalf("Expected 1 content block, but got %d", len(po.Contents))
-	}
-	if po.Contents[0].ID != "content-1" {
-		t.Errorf("Expected content ID to be 'content-1', but got '%s'", po.Contents[0].ID)
 	}
 	if len(po.ContentIDs) != 1 {
 		t.Fatalf("Expected 1 content ID, but got %d", len(po.ContentIDs))
@@ -129,16 +95,12 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 		Title:      "Test Note",
 		OwnerID:    "owner-1",
 		ContentIDs: []string{"content-1"},
-		Contents: []noterepo.ContentPO{
-			{ID: "content-1", Type: "text", Data: "Hello"},
-		},
 		Keywords: map[string][]string{
 			"user-1": {"test-keyword"},
 		},
 	}
 
 	expectedNote, _ := note.NewNote("note-1", "Test Note", "owner-1")
-	expectedNote.AddContent("content-1", "Hello", note.TextContentType)
 	expectedNote.AddContentID("content-1")
 	keyword, _ := note.NewKeyword("test-keyword")
 	expectedNote.AddKeyword("user-1", keyword)
@@ -154,22 +116,6 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 	}
 	if n.Title != expectedNote.Title {
 		t.Errorf("Expected note title to be '%s', got '%s'", expectedNote.Title, n.Title)
-	}
-
-	contents := n.Contents()
-	expectedContents := expectedNote.Contents()
-	if len(contents) != len(expectedContents) {
-		t.Fatalf("Expected %d content blocks, got %d", len(expectedContents), len(contents))
-	}
-
-	if contents[0].ID != expectedContents[0].ID {
-		t.Errorf("Expected content ID to be '%s', got '%s'", expectedContents[0].ID, contents[0].ID)
-	}
-	if contents[0].Type != expectedContents[0].Type {
-		t.Errorf("Expected content type to be '%s', got '%s'", expectedContents[0].Type, contents[0].Type)
-	}
-	if contents[0].Data != expectedContents[0].Data {
-		t.Errorf("Expected content data to be '%s', got '%s'", expectedContents[0].Data, contents[0].Data)
 	}
 
 	if len(n.ContentIDs) != 1 {

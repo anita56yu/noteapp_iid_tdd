@@ -54,12 +54,10 @@ func (r *InMemoryNoteRepository) FindByID(id string) (*NotePO, error) {
 		Title:         note.Title,
 		Version:       note.Version,
 		ContentIDs:    make([]string, len(note.ContentIDs)),
-		Contents:      make([]ContentPO, len(note.Contents)),
 		Keywords:      make(map[string][]string),
 		Collaborators: make(map[string]string),
 	}
 	copy(newNote.ContentIDs, note.ContentIDs)
-	copy(newNote.Contents, note.Contents)
 	for k, v := range note.Keywords {
 		newNote.Keywords[k] = append([]string{}, v...)
 	}

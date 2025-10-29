@@ -15,15 +15,6 @@ func NewNoteMapper() *NoteMapper {
 
 // ToPO converts a domain.Note to a repository.NotePO.
 func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
-	contentPOs := make([]noterepo.ContentPO, len(note.Contents()))
-	for i, content := range note.Contents() {
-		contentPOs[i] = noterepo.ContentPO{
-			ID:   content.ID,
-			Type: string(content.Type),
-			Data: content.Data,
-		}
-	}
-
 	keywordPOs := make(map[string][]string)
 	for userID, keywords := range note.Keywords() {
 		for _, keyword := range keywords {
@@ -45,7 +36,6 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 		Title:         note.Title,
 		Version:       note.Version,
 		ContentIDs:    contentIDs,
-		Contents:      contentPOs,
 		Keywords:      keywordPOs,
 		Collaborators: collaboratorPOs,
 	}
@@ -58,9 +48,6 @@ func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
 	note.ContentIDs = make([]string, len(po.ContentIDs))
 	copy(note.ContentIDs, po.ContentIDs)
 
-	for _, contentPO := range po.Contents {
-		note.AddContent(contentPO.ID, contentPO.Data, domainnote.ContentType(contentPO.Type))
-	}
 	for userID, keywords := range po.Keywords {
 		for _, keywordStr := range keywords {
 			keyword, _ := domainnote.NewKeyword(keywordStr)
@@ -74,15 +61,6 @@ func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
 }
 
 func (m *NoteMapper) toNoteDTO(note *domainnote.Note) *NoteDTO {
-	contents := []*ContentDTO{}
-	for _, c := range note.Contents() {
-		contents = append(contents, &ContentDTO{
-			ID:   c.ID,
-			Type: string(c.Type),
-			Data: c.Data,
-		})
-	}
-
 	keywords := make(map[string][]string)
 	for userID, userKeywords := range note.Keywords() {
 		for _, keyword := range userKeywords {
@@ -104,7 +82,6 @@ func (m *NoteMapper) toNoteDTO(note *domainnote.Note) *NoteDTO {
 		OwnerID:       note.OwnerID,
 		Version:       note.Version,
 		ContentIDs:    contentIDs,
-		Contents:      contents,
 		Keywords:      keywords,
 		Collaborators: collaborators,
 	}

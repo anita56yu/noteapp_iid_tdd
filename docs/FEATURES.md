@@ -97,7 +97,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T5.8:** In `NoteUsecase`, refactor the `DeleteContent` method to `RemoveContent` to accept a `contentID` and remove it from the note's list.
     - [x] **T5.9:** Update `NoteMapper` to include `Version` field to `NoteDTO` and update the mapper to handle it.
     - [x] **T5.10:** Refactor the content-related API endpoints in `note_handler` to orchestrate operations using both `ContentUsecase` and `NoteUsecase`.
-    - [ ] **T5.11:** In the `note` domain, usecase, and DTO layers, remove the original content methods that directly access the content as an entity, not through an ID. This includes removing the `Contents` field from `NotePO` and `NoteDTO`, and removing the `AddContent`, `UpdateContent`, and `DeleteContent` methods from the `note` domain and `noteuc` usecase.
+    - [x] **T5.11:** In the `note` domain, usecase, and DTO layers, remove the original content methods that directly access the content as an entity, not through an ID. This includes removing the `Contents` field from `NotePO` and `NoteDTO`, and removing the `AddContent`, `UpdateContent`, and `DeleteContent` methods from the `note` domain and `noteuc` usecase.
     - [ ] **T5.12:** Expose the `version` number in the API for both `Note` and `Content` DTOs. The front end will send the version back on updates, and the use case layer will check it to prevent stale updates, returning a 409 Conflict error on version mismatch.
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.
