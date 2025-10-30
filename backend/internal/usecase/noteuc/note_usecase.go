@@ -90,9 +90,10 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 }
 
 // DeleteNote deletes a note by its ID.
-func (uc *NoteUsecase) DeleteNote(id string) error {
-	if id == "" {
-		return ErrInvalidID
+func (uc *NoteUsecase) DeleteNote(id string, version int) error {
+	_, err := uc.getNotePOAndCheckVersion(id, version)
+	if err != nil {
+		return err
 	}
 
 	if err := uc.repo.Delete(id); err != nil {
@@ -102,11 +103,12 @@ func (uc *NoteUsecase) DeleteNote(id string) error {
 	return nil
 }
 
-func (uc *NoteUsecase) AddContent(noteID, contentID string) error {
-	notePO, err := uc.repo.FindByID(noteID)
+func (uc *NoteUsecase) AddContent(noteID, contentID string, version int) error {
+	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
+
 	n := uc.mapper.ToDomain(notePO)
 
 	n.AddContentID(contentID)
@@ -119,10 +121,10 @@ func (uc *NoteUsecase) AddContent(noteID, contentID string) error {
 	return nil
 }
 
-func (uc *NoteUsecase) RemoveContent(noteID, contentID string) error {
-	notePO, err := uc.repo.FindByID(noteID)
+func (uc *NoteUsecase) RemoveContent(noteID, contentID string, version int) error {
+	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 	n := uc.mapper.ToDomain(notePO)
 
@@ -139,10 +141,10 @@ func (uc *NoteUsecase) RemoveContent(noteID, contentID string) error {
 }
 
 // TagNote adds a keyword to a note for a specific user.
-func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
-	notePO, err := uc.repo.FindByID(noteID)
+func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string, version int) error {
+	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 	n := uc.mapper.ToDomain(notePO)
 
@@ -162,10 +164,10 @@ func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string) error {
 }
 
 // UntagNote removes a keyword from a note for a specific user.
-func (uc *NoteUsecase) UntagNote(noteID, userID, keywordStr string) error {
-	notePO, err := uc.repo.FindByID(noteID)
+func (uc *NoteUsecase) UntagNote(noteID, userID, keywordStr string, version int) error {
+	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 	n := uc.mapper.ToDomain(notePO)
 
@@ -207,10 +209,10 @@ func (uc *NoteUsecase) FindNotesByKeyword(userID, keyword string) ([]*NoteDTO, e
 }
 
 // ShareNote shares a note with another user.
-func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission string) error {
-	notePO, err := uc.repo.FindByID(noteID)
+func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission string, version int) error {
+	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	n := uc.mapper.ToDomain(notePO)
@@ -249,10 +251,10 @@ func (uc *NoteUsecase) GetAccessibleNotesForUser(userID string) ([]*NoteDTO, err
 }
 
 // RevokeAccess revokes a collaborator's access to a note.
-func (uc *NoteUsecase) RevokeAccess(noteID, ownerID, collaboratorID string) error {
-	notePO, err := uc.repo.FindByID(noteID)
+func (uc *NoteUsecase) RevokeAccess(noteID, ownerID, collaboratorID string, version int) error {
+	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	n := uc.mapper.ToDomain(notePO)
@@ -310,4 +312,17 @@ func mapToDomainPermissionType(p string) (note.Permission, error) {
 	default:
 		return note.ReadOnly, ErrUnsupportedPermissionType
 	}
+}
+
+func (uc *NoteUsecase) getNotePOAndCheckVersion(noteID string, version int) (*noterepo.NotePO, error) {
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		return nil, uc.mapRepositoryError(err)
+	}
+
+	if notePO.Version != version {
+		return nil, ErrConflict
+	}
+
+	return notePO, nil
 }

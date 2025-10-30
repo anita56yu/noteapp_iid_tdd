@@ -47,9 +47,9 @@ func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
 	note2, _ := nc.CreateNote("", "Note 2", "owner-1")
 	note3, _ := nc.CreateNote("", "Note 3", "owner-1")
 
-	nc.TagNote(note1, "user-1", "testing")
-	nc.TagNote(note2, "user-1", "testing")
-	nc.TagNote(note3, "user-2", "testing")
+	nc.TagNote(note1, "user-1", "testing", 0)
+	nc.TagNote(note2, "user-1", "testing", 0)
+	nc.TagNote(note3, "user-2", "testing", 0)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=testing", nil)
 	rr := httptest.NewRecorder()
@@ -77,9 +77,9 @@ func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
 	note2, _ := nc.CreateNote("", "Note 2", "owner-1")
 	note3, _ := nc.CreateNote("", "Note 3", "owner-1")
 
-	nc.TagNote(note1, "user-1", "testing")
-	nc.TagNote(note2, "user-1", "testing")
-	nc.TagNote(note3, "user-2", "testing")
+	nc.TagNote(note1, "user-1", "testing", 0)
+	nc.TagNote(note2, "user-1", "testing", 0)
+	nc.TagNote(note3, "user-2", "testing", 0)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=go", nil)
 	rr := httptest.NewRecorder()
@@ -105,7 +105,7 @@ func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 	router, nc, _ := setupTest()
 	note1, _ := nc.CreateNote("", "Note 1", "owner-1")
 
-	nc.TagNote(note1, "user-1", "testing")
+	nc.TagNote(note1, "user-1", "testing", 0)
 
 	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=", nil)
 	rr := httptest.NewRecorder()
@@ -135,8 +135,9 @@ func TestNoteHandler_AddContent_Success(t *testing.T) {
 	}
 
 	requestBody := AddContentRequest{
-		Type: "text",
-		Data: "Test content",
+		Type:        "text",
+		Data:        "Test content",
+		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
@@ -192,8 +193,9 @@ func TestNoteHandler_AddContent_NotFound(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
 	requestBody := AddContentRequest{
-		Type: "text",
-		Data: "Test content",
+		Type:        "text",
+		Data:        "Test content",
+		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes/non-existent-id/contents", bytes.NewBuffer(body))
@@ -252,7 +254,11 @@ func TestNoteHandler_AddContent_UnsupportedContentType(t *testing.T) {
 func TestNoteHandler_DeleteNote_InvalidID(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
-	req := httptest.NewRequest(http.MethodDelete, "/notes/", nil) // Empty ID
+	requestBody := DeleteNoteRequest{
+		NoteVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodDelete, "/notes/", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -267,7 +273,11 @@ func TestNoteHandler_DeleteNote_InvalidID(t *testing.T) {
 func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
-	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id", nil)
+	requestBody := DeleteNoteRequest{
+		NoteVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -287,7 +297,12 @@ func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, nil)
+	requestBody := DeleteNoteRequest{
+		NoteVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -439,6 +454,10 @@ func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 	}
 }
 
+func intPtr(i int) *int {
+	return &i
+}
+
 func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	// Arrange
 	router, nuc, cuc := setupTest()
@@ -450,12 +469,13 @@ func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create content: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID); err != nil {
+	if err := nuc.AddContent(noteID, contentID, 0); err != nil {
 		t.Fatalf("setup: failed to add content to note: %v", err)
 	}
 
 	requestBody := UpdateContentRequest{
-		Data: "Updated Content",
+		Data:    "Updated Content",
+		Version: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
@@ -486,7 +506,8 @@ func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
 	requestBody := UpdateContentRequest{
-		Data: "Updated Content",
+		Data:    "Updated Content",
+		Version: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPut, "/notes/non-existent-id/contents/some-content-id", bytes.NewBuffer(body))
@@ -510,7 +531,8 @@ func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
 	}
 
 	requestBody := UpdateContentRequest{
-		Data: "Updated Content",
+		Data:    "Updated Content",
+		Version: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/non-existent-content-id", bytes.NewBuffer(body))
@@ -541,6 +563,30 @@ func TestNoteHandler_UpdateContent_InvalidJSON(t *testing.T) {
 	}
 }
 
+func TestNoteHandler_UpdateContent_MissingVersion(t *testing.T) {
+	// Arrange
+	router, nuc, cuc := setupTest()
+	noteID, _ := nuc.CreateNote("", "Test Title", "owner-1")
+	contentID, _ := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
+	nuc.AddContent(noteID, contentID, 0)
+
+	// Request body without version
+	requestBody := map[string]string{
+		"data": "Updated Content",
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
+}
+
 func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	// Arrange
 	router, nuc, cuc := setupTest()
@@ -552,11 +598,16 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create content: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID); err != nil {
+	if err := nuc.AddContent(noteID, contentID, 0); err != nil {
 		t.Fatalf("setup: failed to add content to note: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, nil)
+	deleteReq := DeleteContentRequest{
+		ContentVersion: intPtr(0),
+		NoteVersion:    intPtr(1),
+	}
+	body, _ := json.Marshal(deleteReq)
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -586,7 +637,12 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 func TestNoteHandler_DeleteContent_NoteNotFound(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
-	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id/contents/some-content-id", nil)
+	deleteReq := DeleteContentRequest{
+		ContentVersion: intPtr(0),
+		NoteVersion:    intPtr(0),
+	}
+	body, _ := json.Marshal(deleteReq)
+	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id/contents/some-content-id", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -606,7 +662,12 @@ func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/non-existent-content-id", nil)
+	deleteReq := DeleteContentRequest{
+		ContentVersion: intPtr(0),
+		NoteVersion:    intPtr(0),
+	}
+	body, _ := json.Marshal(deleteReq)
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/non-existent-content-id", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -615,6 +676,26 @@ func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 	// Assert
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_DeleteContent_MissingVersion(t *testing.T) {
+	// Arrange
+	router, nuc, cuc := setupTest()
+	noteID, _ := nuc.CreateNote("", "Test Title", "owner-1")
+	contentID, _ := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
+	nuc.AddContent(noteID, contentID, 0)
+
+	// Empty body
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
 	}
 }
 
@@ -627,7 +708,7 @@ func TestNoteHandler_TagNote_Success(t *testing.T) {
 	}
 	userID := "user-1"
 	keyword := "test-keyword"
-	requestBody := TagNoteRequest{Keyword: keyword}
+	requestBody := TagNoteRequest{Keyword: keyword, NoteVersion: intPtr(0)}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
@@ -656,7 +737,7 @@ func TestNoteHandler_TagNote_NoteNotFound(t *testing.T) {
 	router, _, _ := setupTest()
 	userID := "user-1"
 	keyword := "test-keyword"
-	requestBody := TagNoteRequest{Keyword: keyword}
+	requestBody := TagNoteRequest{Keyword: keyword, NoteVersion: intPtr(0)}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/non-existent-id/keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
@@ -678,7 +759,7 @@ func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
 	userID := "user-1"
-	requestBody := TagNoteRequest{Keyword: ""}
+	requestBody := TagNoteRequest{Keyword: "", NoteVersion: intPtr(0)}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
@@ -702,10 +783,12 @@ func TestNoteHandler_UntagNote_Success(t *testing.T) {
 	userID1 := "user-1"
 	userID2 := "user-2"
 	keyword := "test-keyword"
-	nc.TagNote(noteID, userID1, keyword)
-	nc.TagNote(noteID, userID2, keyword)
+	nc.TagNote(noteID, userID1, keyword, 0)
+	nc.TagNote(noteID, userID2, keyword, 1)
+	requestBody := UntagNoteRequest{NoteVersion: intPtr(2)}
+	body, _ := json.Marshal(requestBody)
 
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID1+"/notes/"+noteID+"/keyword/"+keyword, nil)
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID1+"/notes/"+noteID+"/keyword/"+keyword, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -730,7 +813,9 @@ func TestNoteHandler_UntagNote_Success(t *testing.T) {
 func TestNoteHandler_UntagNote_NoteNotFound(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
-	req := httptest.NewRequest(http.MethodDelete, "/users/user-1/notes/non-existent-id/keyword/test-keyword", nil)
+	requestBody := UntagNoteRequest{NoteVersion: intPtr(0)}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodDelete, "/users/user-1/notes/non-existent-id/keyword/test-keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -751,9 +836,10 @@ func TestNoteHandler_UntagNote_UserNotFound(t *testing.T) {
 	}
 	userID := "user-1"
 	keyword := "test-keyword"
-	nc.TagNote(noteID, userID, keyword)
-
-	req := httptest.NewRequest(http.MethodDelete, "/users/non-existent-user/notes/"+noteID+"/keyword/"+keyword, nil)
+	nc.TagNote(noteID, userID, keyword, 0)
+	requestBody := UntagNoteRequest{NoteVersion: intPtr(1)}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodDelete, "/users/non-existent-user/notes/"+noteID+"/keyword/"+keyword, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -774,9 +860,11 @@ func TestNoteHandler_UntagNote_KeywordNotFound(t *testing.T) {
 	}
 	userID := "user-1"
 	keyword := "test-keyword"
-	nc.TagNote(noteID, userID, keyword)
+	nc.TagNote(noteID, userID, keyword, 0)
+	requestBody := UntagNoteRequest{NoteVersion: intPtr(1)}
+	body, _ := json.Marshal(requestBody)
 
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID+"/notes/"+noteID+"/keyword/non-existent-keyword", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID+"/notes/"+noteID+"/keyword/non-existent-keyword", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -799,8 +887,9 @@ func TestNoteHandler_ShareNote_Success(t *testing.T) {
 	}
 
 	requestBody := map[string]interface{}{
-		"user_id":    collaboratorID,
-		"permission": "read",
+		"user_id":      collaboratorID,
+		"permission":   "read",
+		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
@@ -838,8 +927,9 @@ func TestNoteHandler_ShareNote_Unauthorized(t *testing.T) {
 	}
 
 	requestBody := map[string]interface{}{
-		"user_id":    collaboratorID,
-		"permission": "read",
+		"user_id":      collaboratorID,
+		"permission":   "read",
+		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/users/"+nonOwnerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
@@ -862,8 +952,9 @@ func TestNoteHandler_ShareNote_NoteNotFound(t *testing.T) {
 	nonExistentNoteID := "non-existent-note-id"
 
 	requestBody := map[string]interface{}{
-		"user_id":    collaboratorID,
-		"permission": "read",
+		"user_id":      collaboratorID,
+		"permission":   "read",
+		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+nonExistentNoteID+"/shares", bytes.NewBuffer(body))
@@ -889,8 +980,9 @@ func TestNoteHandler_ShareNote_InvalidPermission(t *testing.T) {
 	}
 
 	requestBody := map[string]interface{}{
-		"user_id":    collaboratorID,
-		"permission": "invalid-permission",
+		"user_id":      collaboratorID,
+		"permission":   "invalid-permission",
+		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
@@ -917,8 +1009,9 @@ func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 
 	// First, share with "read" permission
 	initialRequestBody := map[string]interface{}{
-		"user_id":    collaboratorID,
-		"permission": "read",
+		"user_id":      collaboratorID,
+		"permission":   "read",
+		"note_version": 0,
 	}
 	initialBody, _ := json.Marshal(initialRequestBody)
 	initialReq := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(initialBody))
@@ -930,8 +1023,9 @@ func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 
 	// Now, update the permission to "read-write"
 	updateRequestBody := map[string]interface{}{
-		"user_id":    collaboratorID,
-		"permission": "read-write",
+		"user_id":      collaboratorID,
+		"permission":   "read-write",
+		"note_version": 1,
 	}
 	updateBody, _ := json.Marshal(updateRequestBody)
 	updateReq := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(updateBody))
@@ -979,7 +1073,7 @@ func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
 	}
 
 	// Share the note
-	err = nc.ShareNote(sharedNoteID, ownerID, userID, "read")
+	err = nc.ShareNote(sharedNoteID, ownerID, userID, "read", 0)
 	if err != nil {
 		t.Fatalf("failed to share note: %v", err)
 	}
@@ -1012,13 +1106,14 @@ func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
 	collaboratorID1 := "user-1"
 	collaboratorID2 := "user-2"
 	noteID, _ := nc.CreateNote("", "Test Note", ownerID)
-	nc.ShareNote(noteID, ownerID, collaboratorID1, "read")
-	nc.ShareNote(noteID, ownerID, collaboratorID2, "read")
-	nc.TagNote(noteID, collaboratorID1, "test-keyword-1")
-	nc.TagNote(noteID, collaboratorID2, "test-keyword-2")
+	nc.ShareNote(noteID, ownerID, collaboratorID1, "read", 0)
+	nc.ShareNote(noteID, ownerID, collaboratorID2, "read", 1)
+	nc.TagNote(noteID, collaboratorID1, "test-keyword-1", 2)
+	nc.TagNote(noteID, collaboratorID2, "test-keyword-2", 3)
 
-	body, _ := json.Marshal(map[string]string{
-		"user_id": collaboratorID1,
+	body, _ := json.Marshal(map[string]interface{}{
+		"user_id":      collaboratorID1,
+		"note_version": intPtr(4),
 	})
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
@@ -1052,9 +1147,9 @@ func TestNoteHandler_RevokeAccess_NotOwner(t *testing.T) {
 	collaboratorID := "user-1"
 	nonOwnerID := "user-2"
 	noteID, _ := nc.CreateNote("", "Test Note", ownerID)
-	nc.ShareNote(noteID, ownerID, collaboratorID, "read")
+	nc.ShareNote(noteID, ownerID, collaboratorID, "read", 0)
 
-	body, _ := json.Marshal(map[string]string{"user_id": collaboratorID})
+	body, _ := json.Marshal(map[string]interface{}{"user_id": collaboratorID, "note_version": intPtr(1)})
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+nonOwnerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
@@ -1073,9 +1168,9 @@ func TestNoteHandler_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	ownerID := "owner-1"
 	collaboratorID := "user-1"
 	noteID, _ := nc.CreateNote("", "Test Note", ownerID)
-	nc.ShareNote(noteID, ownerID, collaboratorID, "read")
+	nc.ShareNote(noteID, ownerID, collaboratorID, "read", 0)
 
-	body, _ := json.Marshal(map[string]string{"user_id": "non-existent-user"})
+	body, _ := json.Marshal(map[string]interface{}{"user_id": "non-existent-user", "note_version": intPtr(1)})
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 

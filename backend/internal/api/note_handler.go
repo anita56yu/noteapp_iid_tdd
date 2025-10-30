@@ -34,28 +34,49 @@ type CreateNoteResponse struct {
 
 // AddContentRequest represents the request body for adding content to a note.
 type AddContentRequest struct {
-	Type string `json:"type"`
-	Data string `json:"data"`
+	Type        string `json:"type"`
+	Data        string `json:"data"`
+	NoteVersion *int   `json:"note_version"`
 }
 
 // UpdateContentRequest represents the request body for updating content in a note.
 type UpdateContentRequest struct {
-	Data string `json:"data"`
+	Data    string `json:"data"`
+	Version *int   `json:"version"`
+}
+
+// DeleteContentRequest represents the request body for deleting content in a note.
+type DeleteContentRequest struct {
+	ContentVersion *int `json:"content_version"`
+	NoteVersion    *int `json:"note_version"`
+}
+
+// DeleteNoteRequest represents the request body for deleting a note.
+type DeleteNoteRequest struct {
+	NoteVersion *int `json:"note_version"`
 }
 
 // TagNoteRequest represents the request body for tagging a note.
 type TagNoteRequest struct {
-	Keyword string `json:"keyword"`
+	Keyword     string `json:"keyword"`
+	NoteVersion *int   `json:"note_version"`
+}
+
+// UntagNoteRequest represents the request body for untagging a note.
+type UntagNoteRequest struct {
+	NoteVersion *int `json:"note_version"`
 }
 
 // ShareNoteRequest represents the request body for sharing a note.
 type ShareNoteRequest struct {
-	UserID     string `json:"user_id"`
-	Permission string `json:"permission"`
+	UserID      string `json:"user_id"`
+	Permission  string `json:"permission"`
+	NoteVersion *int   `json:"note_version"`
 }
 
 type RevokeAccessRequest struct {
-	UserID string `json:"user_id"`
+	UserID      string `json:"user_id"`
+	NoteVersion *int   `json:"note_version"`
 }
 
 var ErrUnsupportedContentType = errors.New("unsupported content type")
@@ -114,7 +135,18 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	err := h.noteUsecase.DeleteNote(id)
+	var req DeleteNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.NoteVersion == nil {
+		http.Error(w, "note_version is required", http.StatusBadRequest)
+		return
+	}
+
+	err := h.noteUsecase.DeleteNote(id, *req.NoteVersion)
 	if err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
@@ -140,6 +172,11 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.NoteVersion == nil {
+		http.Error(w, "note_version is required", http.StatusBadRequest)
+		return
+	}
+
 	contentType, err := mapToContentUsecaseContentType(req.Type)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -155,7 +192,7 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Then, add the content ID to the note.
-	if err := h.noteUsecase.AddContent(noteID, contentID); err != nil {
+	if err := h.noteUsecase.AddContent(noteID, contentID, *req.NoteVersion); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -184,7 +221,12 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.contentUsecase.UpdateContent(contentID, req.Data); err != nil {
+	if req.Version == nil {
+		http.Error(w, "version is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.contentUsecase.UpdateContent(contentID, req.Data, *req.Version); err != nil {
 		switch {
 		case errors.Is(err, contentuc.ErrContentNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -204,8 +246,19 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
 	contentID := chi.URLParam(r, "contentId")
 
+	var req DeleteContentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.ContentVersion == nil || req.NoteVersion == nil {
+		http.Error(w, "content_version and note_version are required", http.StatusBadRequest)
+		return
+	}
+
 	// First, remove the content ID from the note.
-	if err := h.noteUsecase.RemoveContent(noteID, contentID); err != nil {
+	if err := h.noteUsecase.RemoveContent(noteID, contentID, *req.NoteVersion); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrContentNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -218,7 +271,7 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Then, delete the content itself.
-	if err := h.contentUsecase.DeleteContent(contentID); err != nil {
+	if err := h.contentUsecase.DeleteContent(contentID, *req.ContentVersion); err != nil {
 		switch {
 		case errors.Is(err, contentuc.ErrContentNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -242,7 +295,12 @@ func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.noteUsecase.TagNote(noteID, userID, req.Keyword); err != nil {
+	if req.NoteVersion == nil {
+		http.Error(w, "note_version is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.noteUsecase.TagNote(noteID, userID, req.Keyword, *req.NoteVersion); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -279,7 +337,18 @@ func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "noteID")
 	keyword := chi.URLParam(r, "keyword")
 
-	if err := h.noteUsecase.UntagNote(noteID, userID, keyword); err != nil {
+	var req UntagNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.NoteVersion == nil {
+		http.Error(w, "note_version is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.noteUsecase.UntagNote(noteID, userID, keyword, *req.NoteVersion); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrUserNotFound), errors.Is(err, noteuc.ErrKeywordNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -305,7 +374,12 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.noteUsecase.ShareNote(noteID, ownerID, req.UserID, req.Permission); err != nil {
+	if req.NoteVersion == nil {
+		http.Error(w, "note_version is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.noteUsecase.ShareNote(noteID, ownerID, req.UserID, req.Permission, *req.NoteVersion); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -348,7 +422,12 @@ func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.noteUsecase.RevokeAccess(noteID, ownerID, req.UserID); err != nil {
+	if req.NoteVersion == nil {
+		http.Error(w, "note_version is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.noteUsecase.RevokeAccess(noteID, ownerID, req.UserID, *req.NoteVersion); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrUserNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)

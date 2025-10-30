@@ -135,7 +135,7 @@ func TestContentUsecase_UpdateContent(t *testing.T) {
 	id, _ := usecase.CreateContent(noteID, "", data, contentType)
 
 	updatedData := "Updated data"
-	err := usecase.UpdateContent(id, updatedData)
+	err := usecase.UpdateContent(id, updatedData, 0)
 	if err != nil {
 		t.Fatalf("UpdateContent() returned an unexpected error: %v", err)
 	}
@@ -155,9 +155,25 @@ func TestContentUsecase_UpdateContent(t *testing.T) {
 func TestContentUsecase_UpdateContent_NotFound(t *testing.T) {
 	usecase := contentuc.NewContentUsecase(contentrepo.NewInMemoryContentRepository())
 
-	err := usecase.UpdateContent("non-existent-id", "updated data")
+	err := usecase.UpdateContent("non-existent-id", "updated data", 0)
 	if err != contentuc.ErrContentNotFound {
 		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrContentNotFound, err)
+	}
+}
+
+func TestContentUsecase_UpdateContent_Conflict(t *testing.T) {
+	repo := contentrepo.NewInMemoryContentRepository()
+	usecase := contentuc.NewContentUsecase(repo)
+	noteID := "n1"
+	data := "Test content"
+	contentType := contentuc.TextContentType
+
+	id, _ := usecase.CreateContent(noteID, "", data, contentType)
+
+	// Attempt to update with an incorrect version
+	err := usecase.UpdateContent(id, "updated data", 99)
+	if err != contentuc.ErrConflict {
+		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrConflict, err)
 	}
 }
 
@@ -170,7 +186,7 @@ func TestContentUsecase_DeleteContent(t *testing.T) {
 
 	id, _ := usecase.CreateContent(noteID, "", data, contentType)
 
-	err := usecase.DeleteContent(id)
+	err := usecase.DeleteContent(id, 0)
 	if err != nil {
 		t.Fatalf("DeleteContent() returned an unexpected error: %v", err)
 	}
@@ -184,8 +200,23 @@ func TestContentUsecase_DeleteContent(t *testing.T) {
 func TestContentUsecase_DeleteContent_NotFound(t *testing.T) {
 	usecase := contentuc.NewContentUsecase(contentrepo.NewInMemoryContentRepository())
 
-	err := usecase.DeleteContent("non-existent-id")
+	err := usecase.DeleteContent("non-existent-id", 0)
 	if err != contentuc.ErrContentNotFound {
 		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrContentNotFound, err)
+	}
+}
+
+func TestContentUsecase_DeleteContent_Conflict(t *testing.T) {
+	repo := contentrepo.NewInMemoryContentRepository()
+	usecase := contentuc.NewContentUsecase(repo)
+	noteID := "n1"
+	data := "Test content"
+	contentType := contentuc.TextContentType
+
+	id, _ := usecase.CreateContent(noteID, "", data, contentType)
+
+	err := usecase.DeleteContent(id, 99)
+	if err != contentuc.ErrConflict {
+		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrConflict, err)
 	}
 }

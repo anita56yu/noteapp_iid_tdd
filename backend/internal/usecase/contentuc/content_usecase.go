@@ -46,11 +46,16 @@ func (uc *ContentUsecase) GetContentByID(id string) (*ContentDTO, error) {
 }
 
 // UpdateContent updates a content.
-func (uc *ContentUsecase) UpdateContent(id, data string) error {
+func (uc *ContentUsecase) UpdateContent(id, data string, version int) error {
 	po, err := uc.repo.GetByID(id)
 	if err != nil {
 		return uc.mapRepositoryError(err)
 	}
+
+	if po.Version != version {
+		return ErrConflict
+	}
+
 	c := uc.mapper.ToDomain(po)
 
 	// For now, we only support updating the data.
@@ -64,7 +69,16 @@ func (uc *ContentUsecase) UpdateContent(id, data string) error {
 }
 
 // DeleteContent deletes a content.
-func (uc *ContentUsecase) DeleteContent(id string) error {
+func (uc *ContentUsecase) DeleteContent(id string, version int) error {
+	po, err := uc.repo.GetByID(id)
+	if err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	if po.Version != version {
+		return ErrConflict
+	}
+
 	if err := uc.repo.Delete(id); err != nil {
 		return uc.mapRepositoryError(err)
 	}

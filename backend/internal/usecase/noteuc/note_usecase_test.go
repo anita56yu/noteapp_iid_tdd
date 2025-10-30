@@ -63,8 +63,8 @@ func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepos
 	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	contentID := "content-1"
 	contentID1 := "content-2"
-	noteUsecase.AddContent(noteID, contentID)
-	noteUsecase.AddContent(noteID, contentID1)
+	noteUsecase.AddContent(noteID, contentID, 0)
+	noteUsecase.AddContent(noteID, contentID1, 1)
 	return repo, noteUsecase, noteID, contentID, contentID1
 }
 
@@ -73,15 +73,15 @@ func setUpRepositoryAndUsecaseWithTaggedNotes() (*noterepo.InMemoryNoteRepositor
 	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
 	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-2")
 	note3, _ := noteUsecase.CreateNote("", "Note 3", "owner-3")
-	noteUsecase.ShareNote(note2, "owner-2", "user-1", "read")
-	noteUsecase.ShareNote(note2, "owner-2", "user-2", "read")
-	noteUsecase.TagNote(note1, "user-1", "go")
-	noteUsecase.TagNote(note1, "user-1", "testing")
-	noteUsecase.TagNote(note1, "user-2", "go")
-	noteUsecase.TagNote(note2, "user-1", "testing")
-	noteUsecase.TagNote(note2, "user-2", "java")
-	noteUsecase.TagNote(note3, "user-2", "java")
-	noteUsecase.TagNote(note3, "user-2", "testing")
+	noteUsecase.ShareNote(note2, "owner-2", "user-1", "read", 0)
+	noteUsecase.ShareNote(note2, "owner-2", "user-2", "read", 1)
+	noteUsecase.TagNote(note1, "user-1", "go", 0)
+	noteUsecase.TagNote(note1, "user-1", "testing", 1)
+	noteUsecase.TagNote(note1, "user-2", "go", 2)
+	noteUsecase.TagNote(note2, "user-1", "testing", 2)
+	noteUsecase.TagNote(note2, "user-2", "java", 3)
+	noteUsecase.TagNote(note3, "user-2", "java", 0)
+	noteUsecase.TagNote(note3, "user-2", "testing", 1)
 
 	return repo, noteUsecase, note1, note2, note3
 }
@@ -240,7 +240,7 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.DeleteNote(id)
+	err := noteUsecase.DeleteNote(id, 0)
 	if err != nil {
 		t.Fatalf("DeleteNote() returned an unexpected error: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
 	_, noteUsecase := setUpRepositoryAndUsecase()
 
 	// Act
-	err := noteUsecase.DeleteNote("non-existent-id")
+	err := noteUsecase.DeleteNote("non-existent-id", 0)
 
 	// Assert
 	if err == nil {
@@ -273,14 +273,30 @@ func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.DeleteNote("") // Empty ID
+	err := noteUsecase.DeleteNote("", 0) // Empty ID
 
 	// Assert
 	if err == nil {
 		t.Fatal("Expected an error for an invalid ID, but got nil")
 	}
-	if !errors.Is(err, ErrInvalidID) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_DeleteNote_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+
+	// Act
+	err := noteUsecase.DeleteNote(noteID, 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
 	}
 }
 
@@ -311,7 +327,7 @@ func TestNoteUsecase_RemoveContent_Success(t *testing.T) {
 	_, noteUsecase, noteID, contentID1, contentID2 := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err := noteUsecase.RemoveContent(noteID, contentID1)
+	err := noteUsecase.RemoveContent(noteID, contentID1, 2)
 
 	// Assert
 	if err != nil {
@@ -334,7 +350,7 @@ func TestNoteUsecase_RemoveContent_NoteNotFound(t *testing.T) {
 	_, noteUsecase, _, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err := noteUsecase.RemoveContent("non-existent-note-id", "content-id")
+	err := noteUsecase.RemoveContent("non-existent-note-id", "content-id", 0)
 
 	// Assert
 	if err == nil {
@@ -350,7 +366,7 @@ func TestNoteUsecase_RemoveContent_ContentNotFound(t *testing.T) {
 	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	err := noteUsecase.RemoveContent(noteID, "non-existent-content-id")
+	err := noteUsecase.RemoveContent(noteID, "non-existent-content-id", 2)
 
 	// Assert
 	if err == nil {
@@ -361,6 +377,22 @@ func TestNoteUsecase_RemoveContent_ContentNotFound(t *testing.T) {
 	}
 }
 
+func TestNoteUsecase_RemoveContent_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID, contentID, _ := setUpRepositoryAndUsecaseWithNoteAndContents()
+
+	// Act
+	err := noteUsecase.RemoveContent(noteID, contentID, 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	}
+}
+
 func TestNoteUsecase_TagNote(t *testing.T) {
 	// Arrange
 	repo, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
@@ -368,7 +400,7 @@ func TestNoteUsecase_TagNote(t *testing.T) {
 	keyword := "test-keyword"
 
 	// Act
-	err := noteUsecase.TagNote(noteID, userID, keyword)
+	err := noteUsecase.TagNote(noteID, userID, keyword, 0)
 
 	// Assert
 	if err != nil {
@@ -392,7 +424,7 @@ func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 	userID := "user-1"
 
 	// Act
-	err := noteUsecase.TagNote(noteID, userID, "") // Empty keyword
+	err := noteUsecase.TagNote(noteID, userID, "", 0) // Empty keyword
 
 	// Assert
 	if err == nil {
@@ -400,6 +432,24 @@ func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 	}
 	if !errors.Is(err, ErrEmptyKeyword) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyKeyword, err)
+	}
+}
+
+func TestNoteUsecase_TagNote_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+	userID := "user-1"
+	keyword := "test-keyword"
+
+	// Act
+	err := noteUsecase.TagNote(noteID, userID, keyword, 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
 	}
 }
 
@@ -475,7 +525,7 @@ func TestNoteUsecase_UntagNote_Success(t *testing.T) {
 	userID2 := "user-2"
 
 	// Act
-	err := noteUsecase.UntagNote(noteID, userID1, keywordToRemove)
+	err := noteUsecase.UntagNote(noteID, userID1, keywordToRemove, 3)
 
 	// Assert
 	if err != nil {
@@ -502,7 +552,7 @@ func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
 	keyword := "go"
 
 	// Act
-	err := noteUsecase.UntagNote(noteID, "non-existent-user", keyword)
+	err := noteUsecase.UntagNote(noteID, "non-existent-user", keyword, 3)
 
 	// Assert
 	if err == nil {
@@ -519,7 +569,7 @@ func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 	userID := "user-1"
 
 	// Act
-	err := noteUsecase.UntagNote(noteID, userID, "non-existent-keyword")
+	err := noteUsecase.UntagNote(noteID, userID, "non-existent-keyword", 3)
 
 	// Assert
 	if err == nil {
@@ -530,13 +580,31 @@ func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 	}
 }
 
+func TestNoteUsecase_UntagNote_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID, _, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
+	userID := "user-1"
+	keyword := "go"
+
+	// Act
+	err := noteUsecase.UntagNote(noteID, userID, keyword, 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	}
+}
+
 func TestNoteUsecase_ShareNote_NotOwner(t *testing.T) {
 	// Arrange
 	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 	collaboratorID := "collaborator-1"
 
 	// Act
-	err := noteUsecase.ShareNote(noteID, "not-the-owner", collaboratorID, "read")
+	err := noteUsecase.ShareNote(noteID, "not-the-owner", collaboratorID, "read", 0)
 
 	// Assert
 	if err == nil {
@@ -554,7 +622,7 @@ func TestNoteUsecase_ShareNote_InvalidPermission(t *testing.T) {
 	ownerID := "owner-1"
 
 	// Act
-	err := noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "invalid-permission")
+	err := noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "invalid-permission", 0)
 
 	// Assert
 	if err == nil {
@@ -569,7 +637,7 @@ func TestNoteUsecase_ShareNote_Success(t *testing.T) {
 	ownerID := "owner-1"
 
 	// Act
-	err := noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read")
+	err := noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read", 0)
 
 	// Assert
 	if err != nil {
@@ -590,10 +658,28 @@ func TestNoteUsecase_ShareNote_Success(t *testing.T) {
 	}
 }
 
+func TestNoteUsecase_ShareNote_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+	collaboratorID := "collaborator-1"
+	ownerID := "owner-1"
+
+	// Act
+	err := noteUsecase.ShareNote(noteID, ownerID, collaboratorID, "read", 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	}
+}
+
 func TestNoteUsecase_GetAccessibleNotesForUser(t *testing.T) {
 	// Arrange
 	_, noteUsecase, ownedNoteID, sharedNoteID, unrelatedNoteID := setUpRepositoryAndUsecaseWithTaggedNotes()
-	noteUsecase.ShareNote(sharedNoteID, "owner-2", "owner-1", "read")
+	noteUsecase.ShareNote(sharedNoteID, "owner-2", "owner-1", "read", 4)
 
 	// Act
 	notes, err := noteUsecase.GetAccessibleNotesForUser("owner-1")
@@ -630,7 +716,7 @@ func TestNoteUsecase_RevokeAccess_Success(t *testing.T) {
 	collaboratorID2 := "user-2"
 
 	// Act
-	err := noteUsecase.RevokeAccess(noteID, ownerID, collaboratorID1)
+	err := noteUsecase.RevokeAccess(noteID, ownerID, collaboratorID1, 4)
 
 	// Assert
 	if err != nil {
@@ -658,7 +744,7 @@ func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
 	collaboratorID := "user-2"
 
 	// Act
-	err := noteUsecase.RevokeAccess(noteID, nonOwnerID, collaboratorID)
+	err := noteUsecase.RevokeAccess(noteID, nonOwnerID, collaboratorID, 3)
 
 	// Assert
 	if err != ErrPermissionDenied {
@@ -672,11 +758,29 @@ func TestNoteUsecase_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	ownerID := "owner-1"
 
 	// Act
-	err := noteUsecase.RevokeAccess(noteID, ownerID, "non-existent-user")
+	err := noteUsecase.RevokeAccess(noteID, ownerID, "non-existent-user", 3)
 
 	// Assert
 	if err != ErrUserNotFound {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrUserNotFound, err)
+	}
+}
+
+func TestNoteUsecase_RevokeAccess_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, _, noteID, _ := setUpRepositoryAndUsecaseWithTaggedNotes()
+	ownerID := "owner-2"
+	collaboratorID := "user-1"
+
+	// Act
+	err := noteUsecase.RevokeAccess(noteID, ownerID, collaboratorID, 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
 	}
 }
 
@@ -686,7 +790,7 @@ func TestNoteUsecase_AddContent_Success(t *testing.T) {
 	contentID := "new-content-id"
 
 	// Act
-	err := noteUsecase.AddContent(noteID, contentID)
+	err := noteUsecase.AddContent(noteID, contentID, 0)
 
 	// Assert
 	if err != nil {
@@ -710,7 +814,7 @@ func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 	contentID := "new-content-id"
 
 	// Act
-	err := noteUsecase.AddContent("non-existent-id", contentID)
+	err := noteUsecase.AddContent("non-existent-id", contentID, 0)
 
 	// Assert
 	if err == nil {
@@ -718,5 +822,22 @@ func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 	}
 	if !errors.Is(err, ErrNoteNotFound) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_AddContent_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+	contentID := "new-content-id"
+
+	// Act
+	err := noteUsecase.AddContent(noteID, contentID, 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
 	}
 }
