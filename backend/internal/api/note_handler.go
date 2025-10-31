@@ -95,11 +95,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 
 	noteID, err := h.noteUsecase.CreateNote("", req.Title, ownerID)
 	if err != nil {
-		if errors.Is(err, noteuc.ErrEmptyTitle) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -115,14 +111,7 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 
 	note, err := h.noteUsecase.GetNoteByID(id)
 	if err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrInvalidID):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -145,23 +134,12 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "note_version is required", http.StatusBadRequest)
 		return
 	}
-
-
-
 	// Now, delete the note itself.
 	if err := h.noteUsecase.DeleteNote(id, *req.NoteVersion); err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrInvalidID):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
-
-		// First, delete all associated content.
+	// First, delete all associated content.
 	if err := h.contentUsecase.DeleteAllContentsByNoteID(id); err != nil {
 		http.Error(w, "An internal error occurred while deleting content", http.StatusInternalServerError)
 		return
@@ -201,14 +179,7 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 
 	// Then, add the content ID to the note.
 	if err := h.noteUsecase.AddContent(noteID, contentID, *req.NoteVersion); err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrInvalidID):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -235,14 +206,7 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.contentUsecase.UpdateContent(contentID, req.Data, *req.Version); err != nil {
-		switch {
-		case errors.Is(err, contentuc.ErrContentNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, contentuc.ErrConflict):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -267,25 +231,13 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 
 	// First, remove the content ID from the note.
 	if err := h.noteUsecase.RemoveContent(noteID, contentID, *req.NoteVersion); err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrContentNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrInvalidID):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
 	// Then, delete the content itself.
 	if err := h.contentUsecase.DeleteContent(contentID, *req.ContentVersion); err != nil {
-		switch {
-		case errors.Is(err, contentuc.ErrContentNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -309,14 +261,7 @@ func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.noteUsecase.TagNote(noteID, userID, req.Keyword, *req.NoteVersion); err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrEmptyKeyword):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -357,14 +302,7 @@ func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.noteUsecase.UntagNote(noteID, userID, keyword, *req.NoteVersion); err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrUserNotFound), errors.Is(err, noteuc.ErrKeywordNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrEmptyKeyword):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -388,16 +326,7 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.noteUsecase.ShareNote(noteID, ownerID, req.UserID, req.Permission, *req.NoteVersion); err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrPermissionDenied):
-			http.Error(w, err.Error(), http.StatusForbidden)
-		case errors.Is(err, noteuc.ErrUnsupportedPermissionType):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -436,14 +365,7 @@ func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.noteUsecase.RevokeAccess(noteID, ownerID, req.UserID, *req.NoteVersion); err != nil {
-		switch {
-		case errors.Is(err, noteuc.ErrNoteNotFound), errors.Is(err, noteuc.ErrUserNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, noteuc.ErrPermissionDenied):
-			http.Error(w, err.Error(), http.StatusForbidden)
-		default:
-			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
-		}
+		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
@@ -458,5 +380,34 @@ func mapToContentUsecaseContentType(ct string) (contentuc.ContentType, error) {
 		return contentuc.ImageContentType, nil
 	default:
 		return contentuc.TextContentType, ErrUnsupportedContentType
+	}
+}
+
+func mapErrorToHTTPStatus(w http.ResponseWriter, err error) {
+	switch {
+	// NoteUsecase errors
+	case errors.Is(err, noteuc.ErrNoteNotFound),
+		errors.Is(err, noteuc.ErrContentNotFound),
+		errors.Is(err, noteuc.ErrUserNotFound),
+		errors.Is(err, noteuc.ErrKeywordNotFound):
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errors.Is(err, noteuc.ErrInvalidID),
+		errors.Is(err, noteuc.ErrEmptyTitle),
+		errors.Is(err, noteuc.ErrEmptyKeyword),
+		errors.Is(err, noteuc.ErrUnsupportedPermissionType):
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	case errors.Is(err, noteuc.ErrPermissionDenied):
+		http.Error(w, err.Error(), http.StatusForbidden)
+	case errors.Is(err, noteuc.ErrConflict):
+		http.Error(w, err.Error(), http.StatusConflict)
+
+	// ContentUsecase errors
+	case errors.Is(err, contentuc.ErrContentNotFound):
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errors.Is(err, contentuc.ErrConflict):
+		http.Error(w, err.Error(), http.StatusConflict)
+
+	default:
+		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 	}
 }
