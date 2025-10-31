@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"noteapp/internal/repository/contentrepo"
@@ -1180,5 +1181,60 @@ func TestNoteHandler_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	// Assert
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_DeleteNote_DeletesAssociatedContent(t *testing.T) {
+	// Arrange
+	router, nuc, cuc := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	contentID1, err := cuc.CreateContent(noteID, "", "Content 1", contentuc.TextContentType)
+	if err != nil {
+		t.Fatalf("setup: failed to create content 1: %v", err)
+	}
+	contentID2, err := cuc.CreateContent(noteID, "", "Content 2", contentuc.TextContentType)
+	if err != nil {
+		t.Fatalf("setup: failed to create content 2: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID1, 0); err != nil {
+		t.Fatalf("setup: failed to add content 1 to note: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID2, 1); err != nil {
+		t.Fatalf("setup: failed to add content 2 to note: %v", err)
+	}
+
+	requestBody := DeleteNoteRequest{
+		NoteVersion: intPtr(2),
+	}
+	body, _ := json.Marshal(requestBody)
+
+	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
+	}
+
+	// Verify the note is deleted
+	_, err = nuc.GetNoteByID(noteID)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("expected ErrNoteNotFound after deletion, but got %v", err)
+	}
+
+	// Verify the associated contents are deleted
+	_, err = cuc.GetContentByID(contentID1)
+	if !errors.Is(err, contentuc.ErrContentNotFound) {
+		t.Errorf("expected content 1 to be deleted, but got error %v", err)
+	}
+	_, err = cuc.GetContentByID(contentID2)
+	if !errors.Is(err, contentuc.ErrContentNotFound) {
+		t.Errorf("expected content 2 to be deleted, but got error %v", err)
 	}
 }

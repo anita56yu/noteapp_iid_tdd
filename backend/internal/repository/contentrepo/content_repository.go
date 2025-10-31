@@ -6,4 +6,5 @@ type ContentRepository interface {
 	GetByID(id string) (*ContentPO, error)
 	GetAllByNoteID(noteID string) ([]*ContentPO, error)
 	Delete(id string) error
+	DeleteAllByNoteID(noteID string) error
 }

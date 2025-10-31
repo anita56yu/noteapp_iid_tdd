@@ -85,6 +85,14 @@ func (uc *ContentUsecase) DeleteContent(id string, version int) error {
 	return nil
 }
 
+// DeleteAllContentsByNoteID deletes all content associated with a given note ID.
+func (uc *ContentUsecase) DeleteAllContentsByNoteID(noteID string) error {
+	if err := uc.repo.DeleteAllByNoteID(noteID); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+	return nil
+}
+
 func (uc *ContentUsecase) mapRepositoryError(err error) error {
 	switch {
 	case errors.Is(err, contentrepo.ErrContentNotFound):

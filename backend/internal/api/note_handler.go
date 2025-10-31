@@ -146,8 +146,10 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.noteUsecase.DeleteNote(id, *req.NoteVersion)
-	if err != nil {
+
+
+	// Now, delete the note itself.
+	if err := h.noteUsecase.DeleteNote(id, *req.NoteVersion); err != nil {
 		switch {
 		case errors.Is(err, noteuc.ErrNoteNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -156,6 +158,12 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		default:
 			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 		}
+		return
+	}
+
+		// First, delete all associated content.
+	if err := h.contentUsecase.DeleteAllContentsByNoteID(id); err != nil {
+		http.Error(w, "An internal error occurred while deleting content", http.StatusInternalServerError)
 		return
 	}
 

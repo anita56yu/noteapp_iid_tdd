@@ -73,3 +73,16 @@ func (r *InMemoryContentRepository) Delete(id string) error {
 	delete(r.contents, id)
 	return nil
 }
+
+// DeleteAllByNoteID removes all contents associated with a given note ID.
+func (r *InMemoryContentRepository) DeleteAllByNoteID(noteID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for id, c := range r.contents {
+		if c.NoteID == noteID {
+			delete(r.contents, id)
+		}
+	}
+	return nil
+}

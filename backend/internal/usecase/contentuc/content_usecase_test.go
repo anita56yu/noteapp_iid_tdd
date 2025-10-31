@@ -220,3 +220,32 @@ func TestContentUsecase_DeleteContent_Conflict(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrConflict, err)
 	}
 }
+
+func TestContentUsecase_DeleteAllContentsByNoteID(t *testing.T) {
+	// Arrange
+	repo := contentrepo.NewInMemoryContentRepository()
+	uc := contentuc.NewContentUsecase(repo)
+	noteID1 := "note-1"
+	noteID2 := "note-2"
+	uc.CreateContent(noteID1, "content-1", "Data 1", contentuc.TextContentType)
+	uc.CreateContent(noteID1, "content-2", "Data 2", contentuc.TextContentType)
+	uc.CreateContent(noteID2, "content-3", "Data 3", contentuc.TextContentType)
+
+	// Act
+	err := uc.DeleteAllContentsByNoteID(noteID1)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("DeleteAllContentsByNoteID() error = %v", err)
+	}
+
+	contents1, _ := repo.GetAllByNoteID(noteID1)
+	if len(contents1) != 0 {
+		t.Errorf("Expected 0 contents for noteID1, got %d", len(contents1))
+	}
+
+	contents2, _ := repo.GetAllByNoteID(noteID2)
+	if len(contents2) != 1 {
+		t.Errorf("Expected 1 content for noteID2, got %d", len(contents2))
+	}
+}
