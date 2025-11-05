@@ -9,17 +9,42 @@ import (
 	"noteapp/internal/usecase/noteuc"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/websocket"
 )
 
 // NoteHandler handles HTTP requests for notes.
 type NoteHandler struct {
 	noteUsecase    *noteuc.NoteUsecase
 	contentUsecase *contentuc.ContentUsecase
+	connManager    *ConnectionManager
 }
 
 // NewNoteHandler creates a new NoteHandler.
 func NewNoteHandler(nuc *noteuc.NoteUsecase, cuc *contentuc.ContentUsecase) *NoteHandler {
-	return &NoteHandler{noteUsecase: nuc, contentUsecase: cuc}
+	return &NoteHandler{
+		noteUsecase:    nuc,
+		contentUsecase: cuc,
+		connManager:    NewConnectionManager(),
+	}
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		// Allow all connections by default.
+		// In a production environment, you should implement a proper origin check.
+		return true
+	},
+}
+
+// WebSocketEvent represents a real-time event sent over a WebSocket connection.
+type WebSocketEvent struct {
+	Type           string `json:"type"`
+	NoteID         string `json:"note_id"`
+	ContentID      string `json:"content_id,omitempty"`
+	Data           string `json:"data,omitempty"`
+	ContentType    string `json:"content_type,omitempty"`
+	NoteVersion    int    `json:"note_version"`
+	ContentVersion int    `json:"content_version,omitempty"`
 }
 
 // CreateNoteRequest represents the request body for creating a note.
@@ -79,6 +104,12 @@ type RevokeAccessRequest struct {
 	NoteVersion *int   `json:"note_version"`
 }
 
+// GetNoteByIDResponse represents the response body for retrieving a note by ID, including its contents.
+type GetNoteByIDResponse struct {
+	noteuc.NoteDTO
+	Contents []*contentuc.ContentDTO `json:"contents"`
+}
+
 var ErrUnsupportedContentType = errors.New("unsupported content type")
 
 // CreateNote is the handler for the POST /notes endpoint.
@@ -109,15 +140,33 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	note, err := h.noteUsecase.GetNoteByID(id)
+	noteDTO, err := h.noteUsecase.GetNoteByID(id)
 	if err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
+	var contents []*contentuc.ContentDTO
+	for _, contentID := range noteDTO.ContentIDs {
+		contentDTO, err := h.contentUsecase.GetContentByID(contentID)
+		if err != nil {
+			// Depending on requirements, you might want to return an error here
+			// or just skip the content if it's not found.
+			// For now, we'll skip and log the error.
+			fmt.Printf("Warning: Could not retrieve content %s for note %s: %v\n", contentID, id, err)
+			continue
+		}
+		contents = append(contents, contentDTO)
+	}
+
+	response := GetNoteByIDResponse{
+		NoteDTO:  *noteDTO,
+		Contents: contents,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(note)
+	json.NewEncoder(w).Encode(response)
 }
 
 // DeleteNote is the handler for the DELETE /notes/{id} endpoint.
@@ -144,6 +193,16 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "An internal error occurred while deleting content", http.StatusInternalServerError)
 		return
 	}
+
+	// Broadcast the delete event to all connected clients.
+	event := WebSocketEvent{
+		Type:        "delete_note",
+		NoteID:      id,
+		NoteVersion: *req.NoteVersion + 1,
+	}
+	message, _ := json.Marshal(event)
+	h.connManager.Broadcast(id, message)
+	h.connManager.CloseById(id)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -183,6 +242,19 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast the update to all connected clients.
+	event := WebSocketEvent{
+		Type:           "add_content",
+		NoteID:         noteID,
+		ContentID:      contentID,
+		Data:           req.Data,
+		ContentType:    req.Type,
+		NoteVersion:    *req.NoteVersion + 1,
+		ContentVersion: 0,
+	}
+	message, _ := json.Marshal(event)
+	h.connManager.Broadcast(noteID, message)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(struct {
@@ -192,6 +264,7 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 
 // UpdateContent is the handler for the PUT /notes/{id}/contents/{contentId} endpoint.
 func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
+	noteID := chi.URLParam(r, "id")
 	contentID := chi.URLParam(r, "contentId")
 
 	var req UpdateContentRequest
@@ -209,6 +282,18 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
+
+	// Broadcast the update to all connected clients.
+	event := WebSocketEvent{
+		Type:           "update_content",
+		NoteID:         noteID,
+		ContentID:      contentID,
+		Data:           req.Data,
+		ContentType:    "text", // Assuming text content for now
+		ContentVersion: *req.Version + 1,
+	}
+	message, _ := json.Marshal(event)
+	h.connManager.Broadcast(noteID, message)
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -240,6 +325,16 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
+
+	// Broadcast the delete event to all connected clients.
+	event := WebSocketEvent{
+		Type:        "delete_content",
+		NoteID:      noteID,
+		ContentID:   contentID,
+		NoteVersion: *req.NoteVersion + 1,
+	}
+	message, _ := json.Marshal(event)
+	h.connManager.Broadcast(noteID, message)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -370,6 +465,25 @@ func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// HandleWebSocket handles WebSocket connections for a given note.
+func (h *NoteHandler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	noteID := chi.URLParam(r, "noteID")
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "Failed to upgrade connection", http.StatusInternalServerError)
+		return
+	}
+
+	h.connManager.Add(noteID, conn)
+
+	// When the client closes the connection, remove it from the manager.
+	conn.SetCloseHandler(func(code int, text string) error {
+		h.connManager.Remove(noteID, conn)
+		return nil
+	})
 }
 
 func mapToContentUsecaseContentType(ct string) (contentuc.ContentType, error) {

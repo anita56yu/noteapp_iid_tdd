@@ -38,6 +38,7 @@ func setupTest() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase) {
 	router.Delete("/users/{ownerID}/notes/{noteID}/shares", handler.RevokeAccess)
 	router.Get("/users/{userID}/accessible-notes", handler.GetAccessibleNotesForUser)
 
+	router.Get("/ws/notes/{noteID}", handler.HandleWebSocket)
 	return router, nuc, cuc
 }
 
@@ -353,10 +354,29 @@ func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
 
 func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 	// Arrange
-	router, nc, _ := setupTest()
-	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	router, nuc, cuc := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	// Add content to the note
+	contentData1 := "First content"
+	contentID1, err := cuc.CreateContent(noteID, "", contentData1, contentuc.TextContentType)
+	if err != nil {
+		t.Fatalf("setup: failed to create content 1: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID1, 0); err != nil {
+		t.Fatalf("setup: failed to add content 1 to note: %v", err)
+	}
+
+	contentData2 := "Second content"
+	contentID2, err := cuc.CreateContent(noteID, "", contentData2, contentuc.TextContentType)
+	if err != nil {
+		t.Fatalf("setup: failed to create content 2: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID2, 1); err != nil {
+		t.Fatalf("setup: failed to add content 2 to note: %v", err)
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/notes/"+noteID, nil)
@@ -370,15 +390,36 @@ func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
 	}
 
-	var note noteuc.NoteDTO
-	if err := json.Unmarshal(rr.Body.Bytes(), &note); err != nil {
+	var response GetNoteByIDResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to unmarshal response body: %v", err)
 	}
-	if note.ID != noteID {
-		t.Errorf("expected note ID '%s'; got '%s'", noteID, note.ID)
+
+	if response.ID != noteID {
+		t.Errorf("expected note ID '%s'; got '%s'", noteID, response.ID)
 	}
-	if note.Title != "Test Title" {
-		t.Errorf("expected note title 'Test Title'; got '%s'", note.Title)
+	if response.Title != "Test Title" {
+		t.Errorf("expected note title 'Test Title'; got '%s'", response.Title)
+	}
+
+	if len(response.Contents) != 2 {
+		t.Fatalf("expected 2 contents, got %d", len(response.Contents))
+	}
+
+	// Verify content 1
+	if response.Contents[0].ID != contentID1 {
+		t.Errorf("expected first content ID '%s'; got '%s'", contentID1, response.Contents[0].ID)
+	}
+	if response.Contents[0].Data != contentData1 {
+		t.Errorf("expected first content data '%s'; got '%s'", contentData1, response.Contents[0].Data)
+	}
+
+	// Verify content 2
+	if response.Contents[1].ID != contentID2 {
+		t.Errorf("expected second content ID '%s'; got '%s'", contentID2, response.Contents[1].ID)
+	}
+	if response.Contents[1].Data != contentData2 {
+		t.Errorf("expected second content data '%s'; got '%s'", contentData2, response.Contents[1].Data)
 	}
 }
 

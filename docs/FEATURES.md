@@ -65,6 +65,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.10:** Create a `DeleteContent` method in `NoteUsecase`.
     - [x] **T2.11:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint.
     - [ ] **T2.12:** Implement logic to handle `ImageContentType`.
+    - [ ] **T2.13:** Revise `AddContent` to support adding content at a specific location in the content slice.
 - [x] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
     - [x] **T3.1:** Define `Keyword` as a value object in the `domain` layer.
     - [x] **T3.2:** Enhance the `Note` domain model to store user-specific keywords and add an `AddKeyword` method.
@@ -86,7 +87,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T4.7:** Add a `RemoveCollaborator` method to the `Note` entity in the domain layer.
     - [x] **T4.8:** Create a `RevokeAccess` method in the `NoteUsecase`.
     - [x] **T4.9:** Implement a `DELETE /users/{ownerID}/notes/{noteID}/shares` API endpoint.
-- [ ] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time. Use **Solution #2** in the Design Decisions section above.
+- [x] **F5:** Real-time Collaboration and Concurrent Editing. Users can see who is currently editing a content block and view changes made by others in real-time. The system will manage simultaneous edits to prevent conflicts while allowing users to work on different parts of a note at the same time. Use **Solution #2** in the Design Decisions section above.
     - [x] **T5.1:** In the `domain` layer, make the `Content` entity a standalone aggregate by adding `ID`, `NoteID`, and `Version` fields.
     - [x] **T5.2:** In the `domain` layer, update the `Note` entity to hold a slice of content IDs and a `Version` field.
     - [x] **T5.3:** In the `repository` layer, define a `ContentRepository` interface and create a `ContentPO`.
@@ -101,6 +102,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T5.12:** Expose the `version` number in the API for both `Note` and `Content` DTOs. The front end will send the version for both note and content back on any request excluding create note, and the use case layer will check it to prevent stale updates on note and content, returning a 409 Conflict error on version mismatch.
     - [x] **T5.13:** When a note is deleted, ensure all its associated contents are also deleted from the `ContentRepository`.
     - [x] **T5.14:** In the `api` layer, abstract the error-to-HTTP-status-code mapping into a dedicated function and include a mapping for `ErrConflict` to `409 Conflict`.
+    - [x] **T5.15:** Revise `GetNoteByID` request to also return the contents. Add a WebSocket connection to broadcast updates for users on the same note. This requires a map of slices of sockets keyed by `NoteID`.
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.
 - [ ] **F8:** Decouple Data Persistence with a Repository Layer.

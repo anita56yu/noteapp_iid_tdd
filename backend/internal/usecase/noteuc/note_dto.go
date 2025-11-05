@@ -10,20 +10,13 @@ const (
 	PermissionReadWrite Permission = "read-write"
 )
 
-// ContentDTO represents a content block in a note.
-type ContentDTO struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
-	Data string `json:"data"`
-}
-
 // NoteDTO represents a note.
 type NoteDTO struct {
-	ID            string              `json:"id"`
-	Title         string              `json:"title"`
-	OwnerID       string              `json:"owner_id"`
-	Version       int                 `json:"version"`
-	ContentIDs    []string            `json:"content_ids"`
-	Keywords      map[string][]string `json:"keywords"`
+	ID            string                `json:"id"`
+	Title         string                `json:"title"`
+	OwnerID       string                `json:"owner_id"`
+	Version       int                   `json:"version"`
+	ContentIDs    []string              `json:"content_ids"`
+	Keywords      map[string][]string   `json:"keywords"`
 	Collaborators map[string]Permission `json:"collaborators"`
 }
