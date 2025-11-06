@@ -1,0 +1,11 @@
+<h2>My Notes</h2>
+
+<div *ngIf="notes.length === 0">
+  <p>No notes found. Create a new one!</p>
+</div>
+
+<ul *ngIf="notes.length > 0">
+  <li *ngFor="let note of notes">
+    {{ note.title }}
+  </li>
+</ul>

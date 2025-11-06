@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -24,9 +25,30 @@ func main() {
 
 	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase)
 
+	// test data
+	_, err := noteUsecase.CreateNote("", "Test Note 1", "testUser1")
+	if err != nil {
+		log.Fatalf("Failed to create test note: %v", err)
+	}
+	_, err = noteUsecase.CreateNote("", "Test Note 2", "testUser1")
+	if err != nil {
+		log.Fatalf("Failed to create test note: %v", err)
+	}
+
 	// 2. Routing
 	router := chi.NewRouter()
 	router.Use(middleware.Logger) // Add a logger middleware
+
+	// Add CORS middleware
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:4200"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any major browsers
+	}))
+
 	router.Post("/notes", noteHandler.CreateNote)
 	router.Get("/notes/{id}", noteHandler.GetNoteByID)
 	router.Delete("/notes/{id}", noteHandler.DeleteNote)

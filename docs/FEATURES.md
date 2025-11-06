@@ -117,3 +117,14 @@ User facing APIs should guard against illegal parameters
 - [x] **F10:** Decouple Domain and Persistence Layers.
     - [x] **T10.1:** Create `NotePO` and `ContentPO` in the `repository` layer, and implement a `NoteMapper` in the `usecase` layer to map between `domain.Note` and `repository.NotePO`.
     - [x] **T10.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.
+- [ ] **F11 (Frontend):** User Authentication. Users can log in to access their notes.
+- [ ] **F12 (Frontend):** Note Dashboard. Display all notes accessible to the logged-in user.
+    - [x] **T12.1:** Create the `NoteDashboard` component.
+    - [x] **T12.2:** Create a `NoteService` and implement a method to fetch all accessible notes for a user.
+    - [x] **T12.3:** In the `NoteDashboard` component, call the service to fetch and display the notes.
+    - [ ] **T12.4:** Add basic styling to the note list.
+    - [ ] **T12.5:** Handle and display loading and error states.
+    - [ ] **T12.6:** Implement navigation to a specific note when a note is clicked on the dashboard.
+- [ ] **F13 (Frontend):** Note View. A dedicated view to display the full content of a selected note.
+- [ ] **F14 (Frontend):** Note Editor and Real-time Collaboration. Allow users to create, edit, and delete notes and their content, with real-time updates from other collaborators.
+- [ ] **F15 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
