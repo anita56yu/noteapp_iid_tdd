@@ -140,6 +140,7 @@ func TestNoteHandler_AddContent_Success(t *testing.T) {
 		Type:        "text",
 		Data:        "Test content",
 		NoteVersion: intPtr(0),
+		Index:       intPtr(-1),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
@@ -198,6 +199,7 @@ func TestNoteHandler_AddContent_NotFound(t *testing.T) {
 		Type:        "text",
 		Data:        "Test content",
 		NoteVersion: intPtr(0),
+		Index:       intPtr(-1),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes/non-existent-id/contents", bytes.NewBuffer(body))
@@ -237,8 +239,36 @@ func TestNoteHandler_AddContent_UnsupportedContentType(t *testing.T) {
 	}
 
 	requestBody := AddContentRequest{
-		Type: "unsupported",
-		Data: "Test content",
+		Type:        "unsupported",
+		Data:        "Test content",
+		Index:       intPtr(-1),
+		NoteVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
+}
+
+func TestNoteHandler_AddContent_OutOfBoundsIndex(t *testing.T) {
+	// Arrange
+	router, nc, _ := setupTest()
+	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	requestBody := AddContentRequest{
+		Type:        "text",
+		Data:        "Test content",
+		Index:       intPtr(5), // Out of bounds
+		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
@@ -366,7 +396,7 @@ func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create content 1: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID1, 0); err != nil {
+	if err := nuc.AddContent(noteID, contentID1, -1, 0); err != nil {
 		t.Fatalf("setup: failed to add content 1 to note: %v", err)
 	}
 
@@ -375,7 +405,7 @@ func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create content 2: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID2, 1); err != nil {
+	if err := nuc.AddContent(noteID, contentID2, -1, 1); err != nil {
 		t.Fatalf("setup: failed to add content 2 to note: %v", err)
 	}
 
@@ -511,7 +541,7 @@ func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create content: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID, 0); err != nil {
+	if err := nuc.AddContent(noteID, contentID, -1, 0); err != nil {
 		t.Fatalf("setup: failed to add content to note: %v", err)
 	}
 
@@ -610,7 +640,7 @@ func TestNoteHandler_UpdateContent_MissingVersion(t *testing.T) {
 	router, nuc, cuc := setupTest()
 	noteID, _ := nuc.CreateNote("", "Test Title", "owner-1")
 	contentID, _ := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
-	nuc.AddContent(noteID, contentID, 0)
+	nuc.AddContent(noteID, contentID, -1, 0)
 
 	// Request body without version
 	requestBody := map[string]string{
@@ -640,7 +670,7 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create content: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID, 0); err != nil {
+	if err := nuc.AddContent(noteID, contentID, -1, 0); err != nil {
 		t.Fatalf("setup: failed to add content to note: %v", err)
 	}
 
@@ -726,7 +756,7 @@ func TestNoteHandler_DeleteContent_MissingVersion(t *testing.T) {
 	router, nuc, cuc := setupTest()
 	noteID, _ := nuc.CreateNote("", "Test Title", "owner-1")
 	contentID, _ := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
-	nuc.AddContent(noteID, contentID, 0)
+	nuc.AddContent(noteID, contentID, -1, 0)
 
 	// Empty body
 	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, nil)
@@ -1240,10 +1270,10 @@ func TestNoteHandler_DeleteNote_DeletesAssociatedContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create content 2: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID1, 0); err != nil {
+	if err := nuc.AddContent(noteID, contentID1, -1, 0); err != nil {
 		t.Fatalf("setup: failed to add content 1 to note: %v", err)
 	}
-	if err := nuc.AddContent(noteID, contentID2, 1); err != nil {
+	if err := nuc.AddContent(noteID, contentID2, -1, 1); err != nil {
 		t.Fatalf("setup: failed to add content 2 to note: %v", err)
 	}
 

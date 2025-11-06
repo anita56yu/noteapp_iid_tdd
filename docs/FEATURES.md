@@ -65,7 +65,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T2.10:** Create a `DeleteContent` method in `NoteUsecase`.
     - [x] **T2.11:** Implement the `DELETE /notes/{id}/contents/{contentId}` API endpoint.
     - [ ] **T2.12:** Implement logic to handle `ImageContentType`.
-    - [ ] **T2.13:** Revise `AddContent` to support adding content at a specific location in the content slice.
+    - [x] **T2.13:** Revise `AddContent` to support adding content at a specific location in the content slice.
 - [x] **F3:** Note Tagging and Searching. Users can tag notes with keywords and search for notes using these keywords.
     - [x] **T3.1:** Define `Keyword` as a value object in the `domain` layer.
     - [x] **T3.2:** Enhance the `Note` domain model to store user-specific keywords and add an `AddKeyword` method.

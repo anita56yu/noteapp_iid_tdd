@@ -53,7 +53,7 @@ func setUpNoteWithContents(nuc *noteuc.NoteUsecase, cuc *contentuc.ContentUsecas
 	if err != nil {
 		fmt.Printf("setup: failed to create content: %v", err)
 	}
-	err = nuc.AddContent(noteID, contentID, 0)
+	err = nuc.AddContent(noteID, contentID, -1, 0)
 	if err != nil {
 		fmt.Printf("setup: failed to add content to note: %v", err)
 	}
@@ -62,7 +62,7 @@ func setUpNoteWithContents(nuc *noteuc.NoteUsecase, cuc *contentuc.ContentUsecas
 	if err != nil {
 		fmt.Printf("setup: failed to create content: %v", err)
 	}
-	err = nuc.AddContent(noteID, contentID1, 1)
+	err = nuc.AddContent(noteID, contentID1, -1, 1)
 	if err != nil {
 		fmt.Printf("setup: failed to add content to note: %v", err)
 	}
@@ -113,6 +113,7 @@ func TestNoteHandler_WebSocket_BroadcastOnUpdate(t *testing.T) {
 		Type:        "text",
 		Data:        "Test content",
 		NoteVersion: intPtr(2),
+		Index:       intPtr(2),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
@@ -159,6 +160,9 @@ func TestNoteHandler_WebSocket_BroadcastOnUpdate(t *testing.T) {
 		}
 		if event.ContentVersion != 0 {
 			t.Errorf("expected content version 0, got %d", event.ContentVersion)
+		}
+		if event.Index != 2 {
+			t.Errorf("expected index 2, got %d", event.Index)
 		}
 	case <-time.After(1 * time.Second):
 		t.Fatal("timed out waiting for websocket message")
@@ -209,7 +213,7 @@ func TestNoteHandler_WebSocket_BroadcastOnDelete(t *testing.T) {
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("failed to delete note: status %d", rr.Code)
 	}
-	if errChan != nil {
+	if len(errChan) != 0 {
 		select {
 		case err := <-errChan:
 			t.Fatalf("error in websocket goroutine: %v", err)

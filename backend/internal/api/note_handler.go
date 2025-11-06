@@ -45,6 +45,7 @@ type WebSocketEvent struct {
 	ContentType    string `json:"content_type,omitempty"`
 	NoteVersion    int    `json:"note_version"`
 	ContentVersion int    `json:"content_version,omitempty"`
+	Index          int    `json:"index,omitempty"`
 }
 
 // CreateNoteRequest represents the request body for creating a note.
@@ -61,6 +62,7 @@ type CreateNoteResponse struct {
 type AddContentRequest struct {
 	Type        string `json:"type"`
 	Data        string `json:"data"`
+	Index       *int   `json:"index,omitempty"`
 	NoteVersion *int   `json:"note_version"`
 }
 
@@ -228,6 +230,11 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Index == nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// Create the content first.
 	contentID, err := h.contentUsecase.CreateContent(noteID, "", req.Data, contentType)
 	if err != nil {
@@ -237,7 +244,7 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Then, add the content ID to the note.
-	if err := h.noteUsecase.AddContent(noteID, contentID, *req.NoteVersion); err != nil {
+	if err := h.noteUsecase.AddContent(noteID, contentID, *req.Index, *req.NoteVersion); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
@@ -251,6 +258,7 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 		ContentType:    req.Type,
 		NoteVersion:    *req.NoteVersion + 1,
 		ContentVersion: 0,
+		Index:          *req.Index,
 	}
 	message, _ := json.Marshal(event)
 	h.connManager.Broadcast(noteID, message)
@@ -508,7 +516,8 @@ func mapErrorToHTTPStatus(w http.ResponseWriter, err error) {
 	case errors.Is(err, noteuc.ErrInvalidID),
 		errors.Is(err, noteuc.ErrEmptyTitle),
 		errors.Is(err, noteuc.ErrEmptyKeyword),
-		errors.Is(err, noteuc.ErrUnsupportedPermissionType):
+		errors.Is(err, noteuc.ErrUnsupportedPermissionType),
+		errors.Is(err, noteuc.ErrIndexOutOfBounds):
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	case errors.Is(err, noteuc.ErrPermissionDenied):
 		http.Error(w, err.Error(), http.StatusForbidden)

@@ -21,6 +21,9 @@ var ErrKeywordNotFound = errors.New("keyword not found")
 // ErrPermissionDenied is returned when a user is not authorized to perform an action.
 var ErrPermissionDenied = errors.New("permission denied")
 
+// ErrIndexOutOfBounds is returned when an index is out of bounds.
+var ErrIndexOutOfBounds = errors.New("index out of bounds")
+
 // Permission defines the access level for a collaborator.
 type Permission string
 
@@ -111,9 +114,20 @@ func (n *Note) UserKeywords(userID string) []Keyword {
 	return keywordsCopy
 }
 
-// AddContentID adds a new content ID to the note.
-func (n *Note) AddContentID(id string) {
-	n.ContentIDs = append(n.ContentIDs, id)
+// AddContentID adds a new content ID to the note at a specific index.
+// If index is -1, the content ID is appended to the end.
+func (n *Note) AddContentID(id string, index int) error {
+	if index < -1 || index > len(n.ContentIDs) {
+		return ErrIndexOutOfBounds
+	}
+
+	if index == -1 || index == len(n.ContentIDs) {
+		n.ContentIDs = append(n.ContentIDs, id)
+		return nil
+	}
+
+	n.ContentIDs = append(n.ContentIDs[:index], append([]string{id}, n.ContentIDs[index:]...)...)
+	return nil
 }
 
 // AddKeyword adds a new keyword to the note for a specific user.

@@ -74,7 +74,10 @@ func TestNote_AddContentID(t *testing.T) {
 	contentID := "content-1"
 
 	// Act
-	note.AddContentID(contentID)
+	err := note.AddContentID(contentID, -1)
+	if err != nil {
+		t.Fatalf("AddContentID returned an unexpected error: %v", err)
+	}
 
 	// Assert
 	if len(note.ContentIDs) != 1 {
@@ -89,8 +92,8 @@ func TestNote_RemoveContentID(t *testing.T) {
 	t.Run("should remove content ID successfully", func(t *testing.T) {
 		// Arrange
 		note, _ := NewNote("note-1", "Test Note", "owner-1")
-		note.AddContentID("content-1")
-		note.AddContentID("content-2")
+		note.AddContentID("content-1", -1)
+		note.AddContentID("content-2", -1)
 
 		// Act
 		err := note.RemoveContentID("content-1")
@@ -110,7 +113,7 @@ func TestNote_RemoveContentID(t *testing.T) {
 	t.Run("should return error when content ID not found", func(t *testing.T) {
 		// Arrange
 		note, _ := NewNote("note-1", "Test Note", "owner-1")
-		note.AddContentID("content-1")
+		note.AddContentID("content-1", -1)
 
 		// Act
 		err := note.RemoveContentID("non-existent-id")
@@ -118,6 +121,63 @@ func TestNote_RemoveContentID(t *testing.T) {
 		// Assert
 		if err != ErrContentNotFound {
 			t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+		}
+	})
+}
+
+func TestNote_AddContentID_WithIndex(t *testing.T) {
+	t.Run("should insert content ID at a specific index", func(t *testing.T) {
+		// Arrange
+		note, _ := NewNote("note-1", "Test Note", "owner-1")
+		note.AddContentID("content-1", -1)
+		note.AddContentID("content-3", -1)
+
+		// Act
+		err := note.AddContentID("content-2", 1)
+
+		// Assert
+		if err != nil {
+			t.Fatalf("AddContentID returned an unexpected error: %v", err)
+		}
+		if len(note.ContentIDs) != 3 {
+			t.Fatalf("Expected 3 content IDs, but got %d", len(note.ContentIDs))
+		}
+		if note.ContentIDs[1] != "content-2" {
+			t.Errorf("Expected content ID at index 1 to be 'content-2', but got '%s'", note.ContentIDs[1])
+		}
+	})
+
+	t.Run("should return error for out-of-bounds index", func(t *testing.T) {
+		// Arrange
+		note, _ := NewNote("note-1", "Test Note", "owner-1")
+		note.AddContentID("content-1", -1)
+
+		// Act
+		err := note.AddContentID("content-2", 5)
+
+		// Assert
+		if err != ErrIndexOutOfBounds {
+			t.Errorf("Expected error to be '%v', but got '%v'", ErrIndexOutOfBounds, err)
+		}
+	})
+
+	t.Run("should append content ID when index is -1", func(t *testing.T) {
+		// Arrange
+		note, _ := NewNote("note-1", "Test Note", "owner-1")
+		note.AddContentID("content-1", -1)
+
+		// Act
+		err := note.AddContentID("content-2", -1)
+
+		// Assert
+		if err != nil {
+			t.Fatalf("AddContentID returned an unexpected error: %v", err)
+		}
+		if len(note.ContentIDs) != 2 {
+			t.Fatalf("Expected 2 content IDs, but got %d", len(note.ContentIDs))
+		}
+		if note.ContentIDs[1] != "content-2" {
+			t.Errorf("Expected last content ID to be 'content-2', but got '%s'", note.ContentIDs[1])
 		}
 	})
 }

@@ -12,8 +12,8 @@ func TestToNoteDTO(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create note: %v", err)
 	}
-	n.AddContentID("content-1")
-	n.AddContentID("content-2")
+	n.AddContentID("content-1", -1)
+	n.AddContentID("content-2", -1)
 	keyword1, _ := note.NewKeyword("keyword1")
 	keyword2, _ := note.NewKeyword("keyword2")
 	n.AddKeyword("user-1", keyword1)
@@ -58,7 +58,7 @@ func TestToNoteDTO(t *testing.T) {
 func TestNoteMapper_ToPO(t *testing.T) {
 	// Arrange
 	n, _ := note.NewNote("note-1", "Test Note", "owner-1")
-	n.AddContentID("content-1")
+	n.AddContentID("content-1", -1)
 	keyword, _ := note.NewKeyword("test-keyword")
 	n.AddKeyword("user-1", keyword)
 
@@ -101,7 +101,7 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 	}
 
 	expectedNote, _ := note.NewNote("note-1", "Test Note", "owner-1")
-	expectedNote.AddContentID("content-1")
+	expectedNote.AddContentID("content-1", -1)
 	keyword, _ := note.NewKeyword("test-keyword")
 	expectedNote.AddKeyword("user-1", keyword)
 

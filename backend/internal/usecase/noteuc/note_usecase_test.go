@@ -63,8 +63,8 @@ func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepos
 	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	contentID := "content-1"
 	contentID1 := "content-2"
-	noteUsecase.AddContent(noteID, contentID, 0)
-	noteUsecase.AddContent(noteID, contentID1, 1)
+	noteUsecase.AddContent(noteID, contentID, -1, 0)
+	noteUsecase.AddContent(noteID, contentID1, -1, 1)
 	return repo, noteUsecase, noteID, contentID, contentID1
 }
 
@@ -790,7 +790,7 @@ func TestNoteUsecase_AddContent_Success(t *testing.T) {
 	contentID := "new-content-id"
 
 	// Act
-	err := noteUsecase.AddContent(noteID, contentID, 0)
+	err := noteUsecase.AddContent(noteID, contentID, -1, 0)
 
 	// Assert
 	if err != nil {
@@ -814,7 +814,7 @@ func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 	contentID := "new-content-id"
 
 	// Act
-	err := noteUsecase.AddContent("non-existent-id", contentID, 0)
+	err := noteUsecase.AddContent("non-existent-id", contentID, -1, 0)
 
 	// Assert
 	if err == nil {
@@ -831,7 +831,7 @@ func TestNoteUsecase_AddContent_Conflict(t *testing.T) {
 	contentID := "new-content-id"
 
 	// Act
-	err := noteUsecase.AddContent(noteID, contentID, 99) // Incorrect version
+	err := noteUsecase.AddContent(noteID, contentID, -1, 99) // Incorrect version
 
 	// Assert
 	if err == nil {
@@ -839,5 +839,22 @@ func TestNoteUsecase_AddContent_Conflict(t *testing.T) {
 	}
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	}
+}
+
+func TestNoteUsecase_AddContent_IndexOutOfBounds(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+	contentID := "new-content-id"
+
+	// Act
+	err := noteUsecase.AddContent(noteID, contentID, 99, 0) // Out of bounds index
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for out of bounds index, but got nil")
+	}
+	if !errors.Is(err, ErrIndexOutOfBounds) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrIndexOutOfBounds, err)
 	}
 }

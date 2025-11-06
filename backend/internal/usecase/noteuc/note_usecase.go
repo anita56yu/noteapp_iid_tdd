@@ -37,6 +37,9 @@ var ErrPermissionDenied = errors.New("permission denied")
 // ErrUnsupportedPermissionType is returned when an unsupported permission type is provided.
 var ErrUnsupportedPermissionType = errors.New("unsupported permission type")
 
+// ErrIndexOutOfBounds is returned when an index is out of bounds in content insertion.
+var ErrIndexOutOfBounds = errors.New("index out of bounds")
+
 // ErrConflict is returned when a version conflict occurs.
 var ErrConflict = errors.New("conflict")
 
@@ -103,7 +106,7 @@ func (uc *NoteUsecase) DeleteNote(id string, version int) error {
 	return nil
 }
 
-func (uc *NoteUsecase) AddContent(noteID, contentID string, version int) error {
+func (uc *NoteUsecase) AddContent(noteID, contentID string, index, version int) error {
 	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {
 		return err
@@ -111,7 +114,9 @@ func (uc *NoteUsecase) AddContent(noteID, contentID string, version int) error {
 
 	n := uc.mapper.ToDomain(notePO)
 
-	n.AddContentID(contentID)
+	if err := n.AddContentID(contentID, index); err != nil {
+		return uc.mapDomainError(err)
+	}
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
@@ -298,6 +303,8 @@ func (uc *NoteUsecase) mapDomainError(err error) error {
 		return ErrKeywordNotFound
 	case errors.Is(err, note.ErrPermissionDenied):
 		return ErrPermissionDenied
+	case errors.Is(err, note.ErrIndexOutOfBounds):
+		return ErrIndexOutOfBounds
 	default:
 		return fmt.Errorf("an unexpected domain error occurred: %w", err)
 	}
