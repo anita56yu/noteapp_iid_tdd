@@ -5,7 +5,6 @@ import { CommonModule } from '@angular/common'; // Import CommonModule
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
-import { NoteDashboard } from './components/note-dashboard/note-dashboard';
 
 @NgModule({
   declarations: [
@@ -15,8 +14,7 @@ import { NoteDashboard } from './components/note-dashboard/note-dashboard';
     BrowserModule,
     AppRoutingModule,
     HttpClientModule, // Add HttpClientModule here
-    CommonModule, // Add CommonModule here
-    NoteDashboard
+    CommonModule // Add CommonModule here
   ],
   providers: [
     provideBrowserGlobalErrorListeners()

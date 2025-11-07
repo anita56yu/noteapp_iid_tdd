@@ -5,7 +5,7 @@
 </div>
 
 <ul class="note-list" *ngIf="notes.length > 0">
-  <li class="note-list-item" *ngFor="let note of notes">
+  <li class="note-list-item" *ngFor="let note of notes" (click)="viewNote(note.id)">
     <div class="note-title">{{ note.title }}</div>
     <div class="note-contents">
       <p *ngIf="!note.contents || note.contents.length === 0"> </p>

@@ -52,6 +52,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T1.9:** Add a `DeleteNote` method to the `NoteUsecase`.
     - [x] **T1.10:** Implement the `DELETE /notes/{id}` API endpoint.
     - [x] **T1.11:** Refactor `NoteUsecase` to translate repository-specific errors into use case-level errors.
+    - [ ] **T1.12:** Add a 'LastModifiedTime' field to the Note model and update relevant use cases and repository methods.
 - [ ] **F2:** Note Content Management. A note is composed of text and pictures. Users can add, edit, and delete note contents.
     - [x] **T2.1:** Redefine the `Note` and `Content` models in the `domain` layer.
     - [x] **T2.2:** Implement `AddContent` and `Contents` methods on the `Note` entity in the domain layer.
@@ -124,7 +125,8 @@ User facing APIs should guard against illegal parameters
     - [x] **T12.3:** In the `NoteDashboard` component, call the service to fetch and display the notes.
     - [x] **T12.4:** Add basic styling to the note list.
     - [ ] **T12.5:** Handle and display loading and error states.
-    - [ ] **T12.6:** Implement navigation to a specific note when a note is clicked on the dashboard.
+    - [x] **T12.6:** Implement navigation to a specific note when a note is clicked on the dashboard.
+    - [ ] **T12.7:** Sort notes on the dashboard by last modified time (latest first).
 - [ ] **F13 (Frontend):** Note View. A dedicated view to display the full content of a selected note.
 - [ ] **F14 (Frontend):** Note Editor and Real-time Collaboration. Allow users to create, edit, and delete notes and their content, with real-time updates from other collaborators.
 - [ ] **F15 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
