@@ -440,15 +440,37 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetAccessibleNotesForUser(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 
-	notes, err := h.noteUsecase.GetAccessibleNotesForUser(userID)
+	notesDTO, err := h.noteUsecase.GetAccessibleNotesForUser(userID)
 	if err != nil {
-		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
+		mapErrorToHTTPStatus(w, err)
 		return
+	}
+
+	var responseNotes []GetNoteByIDResponse
+	for _, noteDTO := range notesDTO {
+		var contents []*contentuc.ContentDTO
+		limit := len(noteDTO.ContentIDs)
+		if limit > 2 {
+			limit = 2
+		}
+		for i := 0; i < limit; i++ {
+			contentID := noteDTO.ContentIDs[i]
+			contentDTO, err := h.contentUsecase.GetContentByID(contentID)
+			if err != nil {
+				fmt.Printf("Warning: Could not retrieve content %s for note %s: %v\n", contentID, noteDTO.ID, err)
+				continue
+			}
+			contents = append(contents, contentDTO)
+		}
+		responseNotes = append(responseNotes, GetNoteByIDResponse{
+			NoteDTO:  *noteDTO,
+			Contents: contents,
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(notes)
+	json.NewEncoder(w).Encode(responseNotes)
 }
 
 // RevokeAccess is the handler for the DELETE /users/{ownerID}/notes/{noteID}/shares endpoint.

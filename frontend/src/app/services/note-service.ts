@@ -2,10 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export interface Content {
+  id: string;
+  noteID: string;
+  data: string;
+  type: string;
+  version: number;
+}
+
 export interface Note {
   id: string;
   title: string;
-  contentIDs: string[];
+  contents: Content[];
   version: number;
   collaborators: { [key: string]: string }; // userId: permission
   keywords: string[];

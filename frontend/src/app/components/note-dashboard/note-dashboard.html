@@ -4,8 +4,12 @@
   <p>No notes found. Create a new one!</p>
 </div>
 
-<ul *ngIf="notes.length > 0">
-  <li *ngFor="let note of notes">
-    {{ note.title }}
+<ul class="note-list" *ngIf="notes.length > 0">
+  <li class="note-list-item" *ngFor="let note of notes">
+    <div class="note-title">{{ note.title }}</div>
+    <div class="note-contents">
+      <p *ngIf="!note.contents || note.contents.length === 0"> </p>
+      <p *ngFor="let content of note.contents?.slice(0, 2)">{{ content.data }}</p>
+    </div>
   </li>
 </ul>

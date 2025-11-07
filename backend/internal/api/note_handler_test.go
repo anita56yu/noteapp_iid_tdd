@@ -1161,7 +1161,7 @@ func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
 	}
 
-	var notes []noteuc.NoteDTO
+	var notes []GetNoteByIDResponse
 	if err := json.NewDecoder(rr.Body).Decode(&notes); err != nil {
 		t.Fatalf("failed to decode response body: %v", err)
 	}

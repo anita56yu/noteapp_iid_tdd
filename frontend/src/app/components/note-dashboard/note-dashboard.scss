@@ -1,0 +1,29 @@
+.note-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.note-list-item {
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+}
+
+.note-title {
+  font-weight: bold;
+  color: #333;
+}
+
+.note-contents {
+  font-size: 0.9em;
+  color: #555;
+  margin-top: 5px;
+}

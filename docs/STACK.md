@@ -33,7 +33,8 @@ This file describes the language and tools for the project.
 ├── frontend/                      # Angular source code
 │   ├── src/
 │   ├── angular.json
-│   └── package.json
+│   ├── package.json
+│   └── GEMINI.md 
 │
 ├── GEMINI.md                     # Master context for LLM
 ├── .gitignore

@@ -26,7 +26,7 @@ func main() {
 	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase)
 
 	// test data
-	_, err := noteUsecase.CreateNote("", "Test Note 1", "testUser1")
+	n1, err := noteUsecase.CreateNote("", "Test Note 1", "testUser1")
 	if err != nil {
 		log.Fatalf("Failed to create test note: %v", err)
 	}
@@ -34,6 +34,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create test note: %v", err)
 	}
+	c1, err := contentUsecase.CreateContent(n1, "", "Content for Note 1", "text")
+	if err != nil {
+		log.Fatalf("Failed to create test content: %v", err)
+	}
+	noteUsecase.AddContent(n1, c1, -1, 0)
 
 	// 2. Routing
 	router := chi.NewRouter()
