@@ -25,3 +25,9 @@
     </ul>
   </div>
 </div>
+
+<app-note-editor-side-panel
+  *ngIf="showSidePanel"
+  [noteId]="selectedNoteId"
+  (closePanel)="closeSidePanel()"
+></app-note-editor-side-panel>

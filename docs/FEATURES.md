@@ -125,7 +125,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T12.3:** In the `NoteDashboard` component, call the service to fetch and display the notes.
     - [x] **T12.4:** Add basic styling to the note list.
     - [x] **T12.5:** Handle and display loading and error states.
-    - [x] **T12.6:** Implement navigation to a specific note when a note is clicked on the dashboard.
+    - [x] **T12.8:** When a note is clicked, show a side panel with the note editor instead of navigating to a new page.
     - [ ] **T12.7:** Sort notes on the dashboard by last modified time (latest first).
 - [ ] **F13 (Frontend):** Note View. A dedicated view to display the full content of a selected note.
 - [ ] **F14 (Frontend):** Note Editor and Real-time Collaboration. Allow users to create, edit, and delete notes and their content, with real-time updates from other collaborators.
