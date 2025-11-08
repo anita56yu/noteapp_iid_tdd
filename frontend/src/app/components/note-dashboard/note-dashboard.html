@@ -1,15 +1,27 @@
-<h2>My Notes</h2>
+<div class="note-dashboard-container">
+  <h2>My Notes</h2>
 
-<div *ngIf="notes.length === 0">
-  <p>No notes found. Create a new one!</p>
-</div>
+  <div *ngIf="isLoading">
+    <p>Loading notes...</p>
+  </div>
 
-<ul class="note-list" *ngIf="notes.length > 0">
-  <li class="note-list-item" *ngFor="let note of notes" (click)="viewNote(note.id)">
-    <div class="note-title">{{ note.title }}</div>
-    <div class="note-contents">
-      <p *ngIf="!note.contents || note.contents.length === 0"> </p>
-      <p *ngFor="let content of note.contents?.slice(0, 2)">{{ content.data }}</p>
+  <div *ngIf="hasError">
+    <p>Error loading notes. Please try again later.</p>
+  </div>
+
+  <div *ngIf="!isLoading && !hasError">
+    <div *ngIf="notes.length === 0">
+      <p>No notes found. Create a new one!</p>
     </div>
-  </li>
-</ul>
+
+    <ul class="note-list" *ngIf="notes.length > 0">
+      <li class="note-list-item" *ngFor="let note of notes" (click)="viewNote(note.id)">
+        <div class="note-title">{{ note.title }}</div>
+        <div class="note-contents">
+          <p *ngIf="!note.contents || note.contents.length === 0"> </p>
+          <p *ngFor="let content of note.contents?.slice(0, 2)">{{ content.data }}</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>

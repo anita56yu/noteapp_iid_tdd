@@ -124,7 +124,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T12.2:** Create a `NoteService` and implement a method to fetch all accessible notes for a user.
     - [x] **T12.3:** In the `NoteDashboard` component, call the service to fetch and display the notes.
     - [x] **T12.4:** Add basic styling to the note list.
-    - [ ] **T12.5:** Handle and display loading and error states.
+    - [x] **T12.5:** Handle and display loading and error states.
     - [x] **T12.6:** Implement navigation to a specific note when a note is clicked on the dashboard.
     - [ ] **T12.7:** Sort notes on the dashboard by last modified time (latest first).
 - [ ] **F13 (Frontend):** Note View. A dedicated view to display the full content of a selected note.

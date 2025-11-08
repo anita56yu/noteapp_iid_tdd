@@ -12,18 +12,25 @@ import { NoteService, Note } from '../../services/note-service';
 })
 export class NoteDashboard implements OnInit {
   notes: Note[] = [];
+  isLoading: boolean = true;
+  hasError: boolean = false;
   // TODO: Replace with actual user ID from authentication
   userId: string = 'testUser1'; 
 
   constructor(private noteService: NoteService, private router: Router) {}
 
   ngOnInit(): void {
+    this.isLoading = true;
+    this.hasError = false;
     this.noteService.getAccessibleNotes(this.userId).subscribe({
       next: (notes) => {
         this.notes = notes;
+        this.isLoading = false;
       },
       error: (err) => {
         console.error('Error fetching notes', err);
+        this.hasError = true;
+        this.isLoading = false;
       },
     });
   }
