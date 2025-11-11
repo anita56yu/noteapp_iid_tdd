@@ -1,10 +1,16 @@
 <div class="side-panel">
   <div class="side-panel-header">
-    <h3>Edit Note: {{ noteId }}</h3>
+    <h3>{{ note?.title }}</h3>
     <button (click)="onClose()">X</button>
   </div>
   <div class="side-panel-content">
-    <!-- Note editor content will go here -->
-    <p>Editor for note ID: {{ noteId }}</p>
+    <div *ngIf="note">
+      <div *ngFor="let content of note.contents">
+        <p>{{ content.data }}</p>
+      </div>
+    </div>
+    <div *ngIf="!note">
+      <p>Loading note...</p>
+    </div>
   </div>
 </div>

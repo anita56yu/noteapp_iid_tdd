@@ -127,6 +127,16 @@ User facing APIs should guard against illegal parameters
     - [x] **T12.5:** Handle and display loading and error states.
     - [x] **T12.8:** When a note is clicked, show a side panel with the note editor instead of navigating to a new page.
     - [ ] **T12.7:** Sort notes on the dashboard by last modified time (latest first).
-- [ ] **F13 (Frontend):** Note View. A dedicated view to display the full content of a selected note.
-- [ ] **F14 (Frontend):** Note Editor and Real-time Collaboration. Allow users to create, edit, and delete notes and their content, with real-time updates from other collaborators.
-- [ ] **F15 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
+- [ ] **F13 (Frontend):** Note Editor and Real-time Collaboration. A dedicated view to display, create, edit, and delete notes and their content, with real-time updates from other collaborators.
+    - [x] **T13.1:** In `NoteService`, create a `getNoteById` method to fetch the full details of a single note.
+    - [x] **T13.2:** In `NoteEditorSidePanelComponent`, call `getNoteById` when a `noteId` is provided and display the note's title and content.
+    - [ ] **T13.3:** Add loading and error handling states to the `NoteEditorSidePanelComponent` while fetching the note.
+    - [ ] **T13.4:** In `NoteService`, create `updateNote` and `updateContent` methods to save changes.
+    - [ ] **T13.5:** In `NoteEditorSidePanelComponent`, make the note title and content blocks editable.
+    - [ ] **T13.6:** Implement auto-saving in `NoteEditorSidePanelComponent` that calls the update methods after a short delay following user input.
+    - [ ] **T13.7:** In `NoteService`, create `addContent` and `deleteContent` methods.
+    - [ ] **T13.8:** In `NoteEditorSidePanelComponent`, add UI controls to allow users to add and delete content blocks.
+    - [ ] **T13.9:** Create a `WebSocketService` to handle real-time communication with the backend.
+    - [ ] **T13.10:** In `NoteEditorSidePanelComponent`, use the `WebSocketService` to listen for and apply real-time updates to the note and its content.
+    - [ ] **T13.11:** Add basic styling to the note editor for a clean and user-friendly interface.
+- [ ] **F14 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.

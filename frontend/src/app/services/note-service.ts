@@ -23,11 +23,16 @@ export interface Note {
   providedIn: 'root',
 })
 export class NoteService {
-  private apiUrl = 'http://localhost:8080/users'; // Assuming backend runs on 8080
+  private usersApiUrl = 'http://localhost:8080/users'; // Assuming backend runs on 8080
+  private notesApiUrl = 'http://localhost:8080/notes'; // Assuming backend runs on 8080
 
   constructor(private http: HttpClient) {}
 
   getAccessibleNotes(userId: string): Observable<Note[]> {
-    return this.http.get<Note[]>(`${this.apiUrl}/${userId}/accessible-notes`);
+    return this.http.get<Note[]>(`${this.usersApiUrl}/${userId}/accessible-notes`);
+  }
+
+  getNoteById(noteId: string): Observable<Note> {
+    return this.http.get<Note>(`${this.notesApiUrl}/${noteId}`);
   }
 }
