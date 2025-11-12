@@ -271,8 +271,8 @@ func TestNoteHandler_WebSocket_BroadcastOnUpdateContent(t *testing.T) {
 	// Act
 	// Update the content.
 	requestBody := UpdateContentRequest{
-		Data:    "Updated content",
-		Version: intPtr(0),
+		Data:           "Updated content",
+		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))

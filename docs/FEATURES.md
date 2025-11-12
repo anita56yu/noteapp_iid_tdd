@@ -134,11 +134,13 @@ User facing APIs should guard against illegal parameters
     - [ ] **T13.4:** In `NoteService`, create an `updateNote` method to save changes to a note's title.
     - [x] **T13.5:** In `NoteService`, create an `updateContent` method to save changes to a content block.
     - [ ] **T13.6:** In `NoteEditorSidePanelComponent`, make the note title editable.
-    - [x] **T13.7:** In `NoteEditorSidePanelComponent`, make content blocks editable and trigger an update only if the content has changed when the user finishes editing (on blur).
+    - [ ] **T13.7:** In `NoteEditorSidePanelComponent`, make content blocks editable and trigger an update only if the content has changed when the user finishes editing (on blur).
     - [ ] **T13.8:** Implement auto-saving in `NoteEditorSidePanelComponent` that calls the update methods after a short delay following user input.
-    - [ ] **T13.9:** In `NoteService`, create `addContent` and `deleteContent` methods.
-    - [ ] **T13.10:** In `NoteEditorSidePanelComponent`, add UI controls to allow users to add and delete content blocks.
-    - [ ] **T13.11:** Create a `WebSocketService` to handle real-time communication with the backend.
-    - [ ] **T13.12:** In `NoteEditorSidePanelComponent`, use the `WebSocketService` to listen for and apply real-time updates to the note and its content.
-    - [ ] **T13.13:** Add basic styling to the note editor for a clean and user-friendly interface.
+    - [x] **T13.9:** In `NoteService`, create an `addContent` method.
+    - [ ] **T13.10:** In `NoteEditorSidePanelComponent`, add a UI control to allow users to add content blocks when the Enter key is pressed.
+    - [ ] **T13.11:** In `NoteService`, create a `deleteContent` method.
+    - [ ] **T13.12:** In `NoteEditorSidePanelComponent`, add a UI control to allow users to delete content blocks.
+    - [ ] **T13.13:** Create a `WebSocketService` to handle real-time communication with the backend.
+    - [ ] **T13.14:** In `NoteEditorSidePanelComponent`, use the `WebSocketService` to listen for and apply real-time updates to the note and its content.
+    - [ ] **T13.15:** Add basic styling to the note editor for a clean and user-friendly interface.
 - [ ] **F14 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.

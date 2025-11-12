@@ -5,13 +5,14 @@
   </div>
   <div class="side-panel-content">
     <div *ngIf="note">
-      <div *ngFor="let content of note.contents">
-        <textarea
-          [(ngModel)]="content.data"
-          (blur)="onContentBlur(content)"
-          (keyup)="onContentKeyup($event, content)"
-          [attr.data-content-id]="content.id"
-        ></textarea>
+      <div
+        class="content-editable-container"
+        contenteditable="true"
+        (input)="onContentInput($event)"
+        (blur)="onContentBlur()"
+        (keydown)="onContentKeydown($event)"
+      >
+        <p *ngFor="let content of note.contents" [attr.data-content-id]="content.id">{{ content.data }}</p>
       </div>
     </div>
     <div *ngIf="!note">

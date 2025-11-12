@@ -8,6 +8,7 @@ export interface Content {
   data: string;
   type: string;
   version: number;
+  position: number;
 }
 
 export interface Note {
@@ -36,8 +37,13 @@ export class NoteService {
     return this.http.get<Note>(`${this.notesApiUrl}/${noteId}`);
   }
 
+  addContent(noteId: string, content: Content, noteVersion: number): Observable<{ id: string }> {
+    const { data, type, position } = content;
+    return this.http.post<{ id: string }>(`${this.notesApiUrl}/${noteId}/contents`, { data, type, index: position, note_version: noteVersion });
+  }
+
   updateContent(content: Content): Observable<void> {
     const { data, version } = content;
-    return this.http.put<void>(`${this.notesApiUrl}/${content.noteID}/contents/${content.id}`, { data, version });
+    return this.http.put<void>(`${this.notesApiUrl}/${content.noteID}/contents/${content.id}`, { data, content_version: version });
   }
 }

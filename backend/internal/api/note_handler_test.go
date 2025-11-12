@@ -546,8 +546,8 @@ func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	}
 
 	requestBody := UpdateContentRequest{
-		Data:    "Updated Content",
-		Version: intPtr(0),
+		Data:           "Updated Content",
+		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
@@ -578,8 +578,8 @@ func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
 	requestBody := UpdateContentRequest{
-		Data:    "Updated Content",
-		Version: intPtr(0),
+		Data:           "Updated Content",
+		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPut, "/notes/non-existent-id/contents/some-content-id", bytes.NewBuffer(body))
@@ -603,8 +603,8 @@ func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
 	}
 
 	requestBody := UpdateContentRequest{
-		Data:    "Updated Content",
-		Version: intPtr(0),
+		Data:           "Updated Content",
+		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/non-existent-content-id", bytes.NewBuffer(body))

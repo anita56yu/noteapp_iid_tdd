@@ -68,8 +68,8 @@ type AddContentRequest struct {
 
 // UpdateContentRequest represents the request body for updating content in a note.
 type UpdateContentRequest struct {
-	Data    string `json:"data"`
-	Version *int   `json:"version"`
+	Data           string `json:"data"`
+	ContentVersion *int   `json:"content_version"`
 }
 
 // DeleteContentRequest represents the request body for deleting content in a note.
@@ -281,12 +281,12 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Version == nil {
+	if req.ContentVersion == nil {
 		http.Error(w, "version is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.contentUsecase.UpdateContent(contentID, req.Data, *req.Version); err != nil {
+	if err := h.contentUsecase.UpdateContent(contentID, req.Data, *req.ContentVersion); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
@@ -298,7 +298,7 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 		ContentID:      contentID,
 		Data:           req.Data,
 		ContentType:    "text", // Assuming text content for now
-		ContentVersion: *req.Version + 1,
+		ContentVersion: *req.ContentVersion + 1,
 	}
 	message, _ := json.Marshal(event)
 	h.connManager.Broadcast(noteID, message)
