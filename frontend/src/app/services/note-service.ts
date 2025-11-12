@@ -35,4 +35,9 @@ export class NoteService {
   getNoteById(noteId: string): Observable<Note> {
     return this.http.get<Note>(`${this.notesApiUrl}/${noteId}`);
   }
+
+  updateContent(content: Content): Observable<void> {
+    const { data, version } = content;
+    return this.http.put<void>(`${this.notesApiUrl}/${content.noteID}/contents/${content.id}`, { data, version });
+  }
 }

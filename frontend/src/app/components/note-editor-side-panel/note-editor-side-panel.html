@@ -6,7 +6,12 @@
   <div class="side-panel-content">
     <div *ngIf="note">
       <div *ngFor="let content of note.contents">
-        <p>{{ content.data }}</p>
+        <textarea
+          [(ngModel)]="content.data"
+          (blur)="onContentBlur(content)"
+          (keyup)="onContentKeyup($event, content)"
+          [attr.data-content-id]="content.id"
+        ></textarea>
       </div>
     </div>
     <div *ngIf="!note">
