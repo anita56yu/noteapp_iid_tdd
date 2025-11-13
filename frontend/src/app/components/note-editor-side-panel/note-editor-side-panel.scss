@@ -24,3 +24,11 @@
   padding: 10px;
   overflow-y: auto;
 }
+
+.content-editable-container {
+  padding: 5px;
+}
+
+.content-editable-container p:empty::after {
+  content: '\00a0'; /* Non-breaking space */
+}

@@ -23,6 +23,7 @@ export class NoteEditorSidePanelComponent implements OnChanges {
       this.noteService.getNoteById(this.noteId).subscribe({
         next: (note) => {
           this.note = note;
+          console.log('Loaded note', note);
         },
         error: (err) => {
           console.error('Error fetching note', err);
@@ -54,71 +55,110 @@ export class NoteEditorSidePanelComponent implements OnChanges {
 
   onContentKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
-      // Do NOT prevent default behavior, let the browser create a new paragraph.
+      event.preventDefault();
 
       const selection = window.getSelection();
-      const currentParagraph = selection?.anchorNode?.parentElement;
+      if (!selection || !selection.rangeCount) return;
 
-      if (currentParagraph && currentParagraph.tagName === 'P' && this.note) {
-        const contentId = currentParagraph.getAttribute('data-content-id');
-        
-        // Use setTimeout to allow the browser to update the DOM first
-        setTimeout(() => {
-          if (contentId) {
-            this.updateContent(contentId, currentParagraph.innerText);
-          }
+      const range = selection.getRangeAt(0);
+      const { startContainer, startOffset } = range;
 
-          const newParagraph = currentParagraph.nextElementSibling as HTMLElement;
-          if (newParagraph && this.note) {
-            const currentIndex = this.note.contents.findIndex(c => c.id === contentId);
-            const newContent: Content = {
-              id: '', // Will be set by the backend
-              noteID: this.note.id,
-              data: newParagraph.innerText,
-              type: 'text',
-              version: 0,
-              position: currentIndex + 1,
-            };
-
-            this.noteService.addContent(this.note.id, newContent, this.note.version).subscribe({
-              next: (addedContent) => {
-                newContent.id = addedContent.id;
-                this.note?.contents.splice(currentIndex + 1, 0, newContent);
-                newParagraph.setAttribute('data-content-id', addedContent.id);
-                console.log('Content added successfully', addedContent.id);
-              },
-              error: (err) => {
-                console.error('Error adding content', err);
-                // Optionally remove the new paragraph from UI on error
-                newParagraph.remove();
-              },
-            });
-          }
-        }, 0);
+      let currentParagraph: Node | null = startContainer;
+      if (currentParagraph.nodeType === Node.TEXT_NODE) {
+        currentParagraph = currentParagraph.parentElement;
       }
+
+      if (!currentParagraph || (currentParagraph as HTMLElement).tagName !== 'P' || !this.note) return;
+      
+      const contentId = (currentParagraph as HTMLElement).getAttribute('data-content-id');
+      if (!contentId) return;
+
+      const currentIndex = this.note.contents.findIndex(c => c.id === contentId);
+      if (currentIndex === -1) return;
+
+      const originalText = (currentParagraph as HTMLElement).textContent || '';
+      const textBeforeCursor = originalText.substring(0, startOffset);
+      const textAfterCursor = originalText.substring(startOffset);
+
+      // Update current content
+      console.log('Updating content ID:', contentId, 'with text:', textBeforeCursor);
+      this.updateContent(contentId, textBeforeCursor);
+
+      // Create new content
+      const newContent: Content = {
+        id: '', // Will be set by the backend
+        noteID: this.note.id,
+        data: textAfterCursor,
+        type: 'text',
+        version: 0,
+        position: currentIndex + 1,
+      };
+
+      this.noteService.addContent(this.note.id, newContent, this.note.version).subscribe({
+        next: (addedContent) => {
+          newContent.id = addedContent.id;
+          this.note?.contents.splice(currentIndex + 1, 0, newContent);
+          if (this.note) {
+            this.note.version++;
+          }
+          
+          // Set focus on the new element after Angular renders it
+          setTimeout(() => {
+            const newParagraph = document.querySelector(`[data-content-id="${addedContent.id}"]`) as HTMLElement;
+            if (newParagraph) {
+              newParagraph.focus();
+              const newRange = document.createRange();
+              const newSelection = window.getSelection();
+              newRange.setStart(newParagraph.childNodes[0] || newParagraph, 0);
+              newRange.collapse(true);
+              newSelection?.removeAllRanges();
+              newSelection?.addRange(newRange);
+            }
+          }, 0);
+        },
+        error: (err) => {
+          console.error('Error adding content', err);
+          // Revert the change on error
+          if (this.note) {
+            this.note.contents[currentIndex].data = originalText;
+          }
+        },
+      });
     }
   }
 
   private updateContent(contentId: string, newText: string): void {
-    if (!this.note) return;
+    console.log('updateContent called for contentId:', contentId, 'newText:', newText);
+    if (!this.note) {
+      console.log('updateContent: Note is null, returning.');
+      return;
+    }
 
     const contentIndex = this.note.contents.findIndex(c => c.id === contentId);
-    if (contentIndex === -1) return;
+    if (contentIndex === -1) {
+      console.log('updateContent: Content not found, returning.');
+      return;
+    }
 
     const originalContent = this.note.contents[contentIndex];
-    if (originalContent.data === newText) return;
+    if (originalContent.data === newText) {
+      console.log('updateContent: Content data is the same, returning.');
+      return;
+    }
 
     const updatedContent: Content = { ...originalContent, data: newText };
+    console.log('Calling noteService.updateContent with:', updatedContent);
 
     this.noteService.updateContent(updatedContent).subscribe({
       next: () => {
+        console.log('noteService.updateContent: next callback triggered.');
         if (this.note) {
           this.note.contents[contentIndex] = { ...updatedContent, version: originalContent.version + 1 };
           console.log(`Content ${contentId} updated successfully`);
         }
       },
       error: (err) => {
-        console.error(`Error updating content ${contentId}`, err);
+        console.error(`noteService.updateContent: Error updating content ${contentId}`, err);
         // Revert the UI change on error
         const paragraph = document.querySelector(`[data-content-id="${contentId}"]`);
         if (paragraph) {

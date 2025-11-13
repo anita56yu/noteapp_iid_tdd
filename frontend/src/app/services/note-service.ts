@@ -44,6 +44,7 @@ export class NoteService {
 
   updateContent(content: Content): Observable<void> {
     const { data, version } = content;
+    console.log('Updating content ID:', content.id, 'with new text:', data);
     return this.http.put<void>(`${this.notesApiUrl}/${content.noteID}/contents/${content.id}`, { data, content_version: version });
   }
 }
