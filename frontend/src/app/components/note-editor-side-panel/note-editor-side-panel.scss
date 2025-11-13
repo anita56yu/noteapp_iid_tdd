@@ -2,7 +2,7 @@
   position: fixed;
   top: 0;
   right: 0;
-  width: 1200px; /* Adjust as needed */
+  width: 75vw; /* Use viewport width for responsiveness */
   height: 100%;
   background-color: #fff;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
@@ -10,6 +10,36 @@
   display: flex;
   flex-direction: column;
 }
+
+/* On smaller screens, make the side panel take up the full width */
+@media (max-width: 768px) {
+  .side-panel {
+    width: 100vw;
+  }
+}
+
+.side-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.side-panel-content {
+  flex-grow: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.content-editable-container {
+  padding: 5px;
+}
+
+.content-editable-container p:empty::after {
+  content: '\00a0'; /* Non-breaking space */
+}
+
 
 .side-panel-header {
   display: flex;

@@ -1,6 +1,23 @@
+.dashboard-layout {
+  display: flex;
+}
+
 .note-dashboard-container {
-  margin-left: 20px;
-  margin-right: 20px;
+  flex-grow: 1; /* Allow the dashboard to take up the remaining space */
+  margin-left: 0.5vw;
+  margin-right: 0.5vw;
+  transition: margin-right 0.3s ease-in-out; /* Smooth transition for margin change */
+}
+
+.note-dashboard-container.side-panel-open {
+  margin-right: 75vw; /* Adjust margin when side panel is open */
+}
+
+/* On smaller screens, adjust margin when side panel is open */
+@media (max-width: 768px) {
+  .note-dashboard-container.side-panel-open {
+    margin-right: 100vw;
+  }
 }
 
 .note-list {
@@ -32,3 +49,5 @@
   color: #555;
   margin-top: 5px;
 }
+
+
