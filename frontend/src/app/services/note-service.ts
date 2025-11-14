@@ -47,4 +47,8 @@ export class NoteService {
     console.log('Updating content ID:', content.id, 'with new text:', data);
     return this.http.put<void>(`${this.notesApiUrl}/${content.noteID}/contents/${content.id}`, { data, content_version: version });
   }
+
+  deleteContent(noteId: string, contentId: string, noteVersion: number, contentVersion: number): Observable<void> {
+    return this.http.request<void>('DELETE', `${this.notesApiUrl}/${noteId}/contents/${contentId}`, { body: { note_version: noteVersion, content_version: contentVersion } });
+  }
 }

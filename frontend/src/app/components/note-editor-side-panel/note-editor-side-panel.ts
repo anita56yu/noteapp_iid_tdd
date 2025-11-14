@@ -124,6 +124,58 @@ export class NoteEditorSidePanelComponent implements OnChanges {
           }
         },
       });
+    } else if (event.key === 'Backspace') {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+
+      const range = selection.getRangeAt(0);
+      const { startContainer, startOffset } = range;
+
+      if (startOffset === 0) {
+        let currentParagraph: Node | null = startContainer;
+        if (currentParagraph.nodeType === Node.TEXT_NODE) {
+          currentParagraph = currentParagraph.parentElement;
+        }
+
+        if (!currentParagraph || (currentParagraph as HTMLElement).tagName !== 'P' || !this.note) return;
+
+        const contentId = (currentParagraph as HTMLElement).getAttribute('data-content-id');
+        if (!contentId) return;
+
+        const currentIndex = this.note.contents.findIndex(c => c.id === contentId);
+        if (currentIndex > 0) {
+          event.preventDefault();
+          const previousContent = this.note.contents[currentIndex - 1];
+          const currentContent = this.note.contents[currentIndex];
+          const mergedData = previousContent.data + currentContent.data;
+
+          this.updateContent(previousContent.id, mergedData);
+          this.noteService.deleteContent(this.note.id, currentContent.id, this.note.version, currentContent.version).subscribe({
+            next: () => {
+              if (this.note) {
+                this.note.version++;
+                this.note.contents.splice(currentIndex, 1);
+                setTimeout(() => {
+                  const prevParagraph = document.querySelector(`[data-content-id="${previousContent.id}"]`) as HTMLElement;
+                  if (prevParagraph) {
+                    prevParagraph.focus();
+                    const newRange = document.createRange();
+                    const newSelection = window.getSelection();
+                    const textNode = prevParagraph.childNodes[0] || prevParagraph;
+                    newRange.setStart(textNode, previousContent.data.length);
+                    newRange.collapse(true);
+                    newSelection?.removeAllRanges();
+                    newSelection?.addRange(newRange);
+                  }
+                }, 0);
+              }
+            },
+            error: (err) => {
+              console.error('Error deleting content', err);
+            }
+          });
+        }
+      }
     }
   }
 

@@ -138,9 +138,10 @@ User facing APIs should guard against illegal parameters
     - [ ] **T13.8:** Implement auto-saving in `NoteEditorSidePanelComponent` that calls the update methods after a short delay following user input.
     - [x] **T13.9:** In `NoteService`, create an `addContent` method.
     - [x] **T13.10:** In `NoteEditorSidePanelComponent`, add a UI control to allow users to add content blocks when the Enter key is pressed.
-    - [ ] **T13.11:** In `NoteService`, create a `deleteContent` method.
-    - [ ] **T13.12:** In `NoteEditorSidePanelComponent`, add a UI control to allow users to delete content blocks.
+    - [x] **T13.11:** In `NoteService`, create a `deleteContent` method.
+    - [x] **T13.12:** In `NoteEditorSidePanelComponent`, modify the `onContentKeydown` method to handle a backspace press at the beginning of a content block. If the block is not the first one, it should be deleted by calling `NoteService.deleteContent`, its text content appended to the previous block, the local state updated accordingly (content removed from array, note version incremented), and the cursor moved to the end of the previous block.
     - [ ] **T13.13:** Create a `WebSocketService` to handle real-time communication with the backend.
     - [ ] **T13.14:** In `NoteEditorSidePanelComponent`, use the `WebSocketService` to listen for and apply real-time updates to the note and its content.
     - [ ] **T13.15:** Add basic styling to the note editor for a clean and user-friendly interface.
+    - [ ] **T13.16:** In `NoteEditorSidePanelComponent`, implement handling for selected text deletion (e.g., when the 'Delete' or 'Backspace' key is pressed with a text selection). This should update the content block via `NoteService.updateContent` and reflect the change in the local state.
 - [ ] **F14 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
