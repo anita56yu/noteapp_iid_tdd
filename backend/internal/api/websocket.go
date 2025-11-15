@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -52,7 +53,7 @@ func (cm *ConnectionManager) Broadcast(noteID string, message []byte) {
 
 	for _, conn := range cm.connections[noteID] {
 		if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
-			// Handle error, e.g., remove the connection if it's closed.
+			fmt.Printf("Error broadcasting to note %s: %v\n", noteID, err)
 		}
 	}
 }

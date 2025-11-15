@@ -1,7 +1,9 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NoteService, Note, Content } from '../../services/note-service';
+import { WebSocketService } from '../../services/websocket-service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-note-editor-side-panel',
@@ -10,13 +12,14 @@ import { NoteService, Note, Content } from '../../services/note-service';
   templateUrl: './note-editor-side-panel.html',
   styleUrl: './note-editor-side-panel.scss',
 })
-export class NoteEditorSidePanelComponent implements OnChanges {
+export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
   @Input() noteId: string | null = null;
   @Output() closePanel = new EventEmitter<void>();
 
   note: Note | null = null;
+  private wsSubscription: Subscription | null = null;
 
-  constructor(private noteService: NoteService) {}
+  constructor(private noteService: NoteService, private webSocketService: WebSocketService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['noteId'] && this.noteId) {
@@ -24,12 +27,72 @@ export class NoteEditorSidePanelComponent implements OnChanges {
         next: (note) => {
           this.note = note;
           console.log('Loaded note', note);
+          this.webSocketService.disconnect();
+          this.wsSubscription = this.webSocketService.connect(note.id).subscribe({
+            next: (message) => this.handleWebSocketMessage(message),
+            error: (err) => console.error('WebSocket error:', err),
+            complete: () => console.log('WebSocket connection closed'),
+          });
         },
         error: (err) => {
           console.error('Error fetching note', err);
           this.note = null;
         },
       });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.webSocketService.disconnect();
+    if (this.wsSubscription) {
+      this.wsSubscription.unsubscribe();
+    }
+  }
+
+  private handleWebSocketMessage(message: any): void {
+    console.log('Received WebSocket message:', message);
+    if (!this.note || message.note_id !== this.note.id) {
+      return; // Ignore messages for other notes or if note is not loaded
+    }
+
+    // Update note version if the incoming message has a newer version
+    if (message.type !== 'update_content' && message.note_version <= this.note.version) {
+      return;
+    }
+
+    switch (message.type) {
+      case 'add_content':
+        const newContent: Content = {
+          id: message.content_id,
+          noteId: message.note_id,
+          data: message.data,
+          type: message.content_type,
+          version: message.content_version,
+          position: message.index,
+        };
+        this.note.contents.splice(message.index, 0, newContent);
+        this.note.version = message.note_version;
+        break;
+      case 'update_content':
+        const contentToUpdate = this.note.contents.find(c => c.id === message.content_id);
+        console.log(contentToUpdate);
+        if (contentToUpdate && message.content_version > contentToUpdate.version) {
+          contentToUpdate.data = message.data;
+          contentToUpdate.version = message.content_version;
+        }
+        break;
+      case 'delete_content':
+        const contentIndexToDelete = this.note.contents.findIndex(c => c.id === message.content_id);
+        if (contentIndexToDelete !== -1) {
+          this.note.contents.splice(contentIndexToDelete, 1);
+        }
+        this.note.version = message.note_version;
+        break;
+      // case 'delete_note':
+      //   this.onClose();
+      //   break;
+      default:
+        console.warn('Unknown WebSocket message type:', message.type);
     }
   }
 
@@ -41,6 +104,7 @@ export class NoteEditorSidePanelComponent implements OnChanges {
     // No debouncing needed, updates are triggered by blur or enter key
   }
 
+  //BUG: When clicking outside and inside again it adds text automatically to the end.
   onContentBlur(): void {
     const paragraph = window.getSelection()?.anchorNode?.parentElement;
     if (paragraph && paragraph.tagName === 'P') {
@@ -87,7 +151,7 @@ export class NoteEditorSidePanelComponent implements OnChanges {
       // Create new content
       const newContent: Content = {
         id: '', // Will be set by the backend
-        noteID: this.note.id,
+        noteId: this.note.id,
         data: textAfterCursor,
         type: 'text',
         version: 0,
@@ -96,11 +160,11 @@ export class NoteEditorSidePanelComponent implements OnChanges {
 
       this.noteService.addContent(this.note.id, newContent, this.note.version).subscribe({
         next: (addedContent) => {
-          newContent.id = addedContent.id;
-          this.note?.contents.splice(currentIndex + 1, 0, newContent);
-          if (this.note) {
-            this.note.version++;
-          }
+          // newContent.id = addedContent.id;
+          // this.note?.contents.splice(currentIndex + 1, 0, newContent);
+          // if (this.note) {
+          //   this.note.version++;
+          // }
           
           // Set focus on the new element after Angular renders it
           setTimeout(() => {
@@ -148,13 +212,12 @@ export class NoteEditorSidePanelComponent implements OnChanges {
           const previousContent = this.note.contents[currentIndex - 1];
           const currentContent = this.note.contents[currentIndex];
           const mergedData = previousContent.data + currentContent.data;
+          var cursorOffset = previousContent.data.length;
 
           this.updateContent(previousContent.id, mergedData);
           this.noteService.deleteContent(this.note.id, currentContent.id, this.note.version, currentContent.version).subscribe({
             next: () => {
               if (this.note) {
-                this.note.version++;
-                this.note.contents.splice(currentIndex, 1);
                 setTimeout(() => {
                   const prevParagraph = document.querySelector(`[data-content-id="${previousContent.id}"]`) as HTMLElement;
                   if (prevParagraph) {
@@ -162,7 +225,7 @@ export class NoteEditorSidePanelComponent implements OnChanges {
                     const newRange = document.createRange();
                     const newSelection = window.getSelection();
                     const textNode = prevParagraph.childNodes[0] || prevParagraph;
-                    newRange.setStart(textNode, previousContent.data.length);
+                    newRange.setStart(textNode, cursorOffset);
                     newRange.collapse(true);
                     newSelection?.removeAllRanges();
                     newSelection?.addRange(newRange);
@@ -197,15 +260,15 @@ export class NoteEditorSidePanelComponent implements OnChanges {
       console.log('updateContent: Content data is the same, returning.');
       return;
     }
-
+    console.log('Original content:', originalContent);
     const updatedContent: Content = { ...originalContent, data: newText };
-    console.log('Calling noteService.updateContent with:', updatedContent);
+    console.log('Calling noteService.updateContent with:', updatedContent, 'note id:', updatedContent.noteId);
 
     this.noteService.updateContent(updatedContent).subscribe({
       next: () => {
         console.log('noteService.updateContent: next callback triggered.');
         if (this.note) {
-          this.note.contents[contentIndex] = { ...updatedContent, version: originalContent.version + 1 };
+          // this.note.contents[contentIndex] = { ...updatedContent, version: originalContent.version + 1 };
           console.log(`Content ${contentId} updated successfully`);
         }
       },

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface Content {
   id: string;
-  noteID: string;
+  noteId: string;
   data: string;
   type: string;
   version: number;
@@ -44,8 +44,8 @@ export class NoteService {
 
   updateContent(content: Content): Observable<void> {
     const { data, version } = content;
-    console.log('Updating content ID:', content.id, 'with new text:', data);
-    return this.http.put<void>(`${this.notesApiUrl}/${content.noteID}/contents/${content.id}`, { data, content_version: version });
+    console.log('Updating content ID:', content.id, 'note ID:', content.noteId, 'with new text:', data);
+    return this.http.put<void>(`${this.notesApiUrl}/${content.noteId}/contents/${content.id}`, { data, content_version: version });
   }
 
   deleteContent(noteId: string, contentId: string, noteVersion: number, contentVersion: number): Observable<void> {

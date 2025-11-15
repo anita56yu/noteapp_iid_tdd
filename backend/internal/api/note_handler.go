@@ -40,12 +40,12 @@ var upgrader = websocket.Upgrader{
 type WebSocketEvent struct {
 	Type           string `json:"type"`
 	NoteID         string `json:"note_id"`
-	ContentID      string `json:"content_id,omitempty"`
-	Data           string `json:"data,omitempty"`
-	ContentType    string `json:"content_type,omitempty"`
+	ContentID      string `json:"content_id"`
+	Data           string `json:"data"`
+	ContentType    string `json:"content_type"`
 	NoteVersion    int    `json:"note_version"`
-	ContentVersion int    `json:"content_version,omitempty"`
-	Index          int    `json:"index,omitempty"`
+	ContentVersion int    `json:"content_version"`
+	Index          int    `json:"index"`
 }
 
 // CreateNoteRequest represents the request body for creating a note.

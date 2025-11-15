@@ -62,6 +62,7 @@ func main() {
 	router.Delete("/notes/{id}/contents/{contentId}", noteHandler.DeleteContent)
 	router.Get("/users/{userID}/accessible-notes", noteHandler.GetAccessibleNotesForUser)
 	router.Delete("/users/{ownerID}/notes/{noteID}/shares", noteHandler.RevokeAccess)
+	router.Get("/notes/{noteID}/ws", noteHandler.HandleWebSocket)
 
 	// 3. Server Startup
 	port := ":8080"
