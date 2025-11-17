@@ -143,6 +143,6 @@ User facing APIs should guard against illegal parameters
     - [x] **T13.13:** Create a `WebSocketService` to handle real-time communication with the backend.
     - [x] **T13.14:** In `NoteEditorSidePanelComponent`, use the `WebSocketService` to listen for and apply real-time updates to the note and its content.
     - [ ] **T13.15:** Add basic styling to the note editor for a clean and user-friendly interface.
-    - [ ] **T13.16:** When moving curor from one content to another content, update the origianl content if it has been changed (lost focus). 
+    - [x] **T13.16:** When moving curor from one content to another content, update the origianl content if it has been changed (lost focus). 
     - [ ] **T13.17:** In `NoteEditorSidePanelComponent`, implement handling for selected text deletion (e.g., when the 'Delete' or 'Backspace' key is pressed with a text selection). This should update the content block via `NoteService.updateContent` and reflect the change in the local state.
 - [ ] **F14 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.

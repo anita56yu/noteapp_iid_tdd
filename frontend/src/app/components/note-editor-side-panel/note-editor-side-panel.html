@@ -5,14 +5,14 @@
   </div>
   <div class="side-panel-content">
     <div *ngIf="note">
-      <div
-        class="content-editable-container"
-        contenteditable="true"
-        (input)="onContentInput($event)"
-        (blur)="onContentBlur()"
-        (keydown)="onContentKeydown($event)"
-      >
-        <p *ngFor="let content of note.contents" [attr.data-content-id]="content.id">{{ content.data }}</p>
+      <div class="content-editable-container">
+        <p
+          *ngFor="let content of note.contents"
+          [attr.data-content-id]="content.id"
+          contenteditable="true"
+          (blur)="onContentBlur($event)"
+          (keydown)="onContentKeydown($event)"
+        >{{ content.data }}</p>
       </div>
     </div>
     <div *ngIf="!note">

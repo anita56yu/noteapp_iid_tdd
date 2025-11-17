@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NoteService, Note, Content } from '../../services/note-service';
 import { WebSocketService } from '../../services/websocket-service';
-import { Subscription } from 'rxjs';
+import { merge, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-note-editor-side-panel',
@@ -75,9 +75,13 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
         break;
       case 'update_content':
         const contentToUpdate = this.note.contents.find(c => c.id === message.content_id);
+        var paragraph = document.querySelector(`[data-content-id="${message.content_id}"]`) as HTMLElement;
         console.log(contentToUpdate);
-        if (contentToUpdate && message.content_version > contentToUpdate.version) {
+        if (contentToUpdate && message.content_version > contentToUpdate.version && message.data !== contentToUpdate.data) {
+          console.log('original Content:', contentToUpdate);
           contentToUpdate.data = message.data;
+          paragraph.textContent = message.data;
+          console.log('updated Content:', contentToUpdate);
           contentToUpdate.version = message.content_version;
         }
         break;
@@ -100,52 +104,40 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
     this.closePanel.emit();
   }
 
-  onContentInput(event: Event): void {
-    // No debouncing needed, updates are triggered by blur or enter key
-  }
-
-  //BUG: When clicking outside and inside again it adds text automatically to the end.
-  onContentBlur(): void {
-    const paragraph = window.getSelection()?.anchorNode?.parentElement;
-    if (paragraph && paragraph.tagName === 'P') {
+  onContentBlur(event: FocusEvent): void {
+    console.log('onContentBlur called');
+    setTimeout(() => {
+      const paragraph = event.target as HTMLElement;
       const contentId = paragraph.getAttribute('data-content-id');
-      setTimeout(() => {
-        if (contentId) {
-          this.updateContent(contentId, paragraph.innerText);
-        }
-      }, 0);
-    }
+      if (contentId) {
+        this.updateContent(contentId, paragraph.textContent);
+      }
+    }, 0);
   }
 
   onContentKeydown(event: KeyboardEvent): void {
+    const paragraph = event.target as HTMLElement;
+    const contentId = paragraph.getAttribute('data-content-id');
+
     if (event.key === 'Enter') {
       event.preventDefault();
+      if (!contentId || !this.note) return;
 
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount) return;
 
       const range = selection.getRangeAt(0);
-      const { startContainer, startOffset } = range;
-
-      let currentParagraph: Node | null = startContainer;
-      if (currentParagraph.nodeType === Node.TEXT_NODE) {
-        currentParagraph = currentParagraph.parentElement;
-      }
-
-      if (!currentParagraph || (currentParagraph as HTMLElement).tagName !== 'P' || !this.note) return;
-      
-      const contentId = (currentParagraph as HTMLElement).getAttribute('data-content-id');
-      if (!contentId) return;
+      const { startOffset } = range;
 
       const currentIndex = this.note.contents.findIndex(c => c.id === contentId);
       if (currentIndex === -1) return;
 
-      const originalText = (currentParagraph as HTMLElement).textContent || '';
+      const originalText = paragraph.textContent || '';
       const textBeforeCursor = originalText.substring(0, startOffset);
       const textAfterCursor = originalText.substring(startOffset);
 
-      // Update current content
-      console.log('Updating content ID:', contentId, 'with text:', textBeforeCursor);
+      // Update current content in the DOM immediately for responsiveness
+      paragraph.textContent = textBeforeCursor;
       this.updateContent(contentId, textBeforeCursor);
 
       // Create new content
@@ -160,13 +152,7 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
 
       this.noteService.addContent(this.note.id, newContent, this.note.version).subscribe({
         next: (addedContent) => {
-          // newContent.id = addedContent.id;
-          // this.note?.contents.splice(currentIndex + 1, 0, newContent);
-          // if (this.note) {
-          //   this.note.version++;
-          // }
-          
-          // Set focus on the new element after Angular renders it
+          // Focus on the new element after Angular renders it
           setTimeout(() => {
             const newParagraph = document.querySelector(`[data-content-id="${addedContent.id}"]`) as HTMLElement;
             if (newParagraph) {
@@ -183,36 +169,26 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
         error: (err) => {
           console.error('Error adding content', err);
           // Revert the change on error
-          if (this.note) {
-            this.note.contents[currentIndex].data = originalText;
-          }
+          paragraph.textContent = originalText;
         },
       });
     } else if (event.key === 'Backspace') {
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount) return;
 
-      const range = selection.getRangeAt(0);
-      const { startContainer, startOffset } = range;
+      const { startOffset } = selection.getRangeAt(0);
 
       if (startOffset === 0) {
-        let currentParagraph: Node | null = startContainer;
-        if (currentParagraph.nodeType === Node.TEXT_NODE) {
-          currentParagraph = currentParagraph.parentElement;
-        }
-
-        if (!currentParagraph || (currentParagraph as HTMLElement).tagName !== 'P' || !this.note) return;
-
-        const contentId = (currentParagraph as HTMLElement).getAttribute('data-content-id');
-        if (!contentId) return;
+        if (!contentId || !this.note) return;
 
         const currentIndex = this.note.contents.findIndex(c => c.id === contentId);
         if (currentIndex > 0) {
           event.preventDefault();
           const previousContent = this.note.contents[currentIndex - 1];
           const currentContent = this.note.contents[currentIndex];
-          const mergedData = previousContent.data + currentContent.data;
-          var cursorOffset = previousContent.data.length;
+          const mergedData = previousContent.data + (paragraph.textContent || '');
+          const cursorOffset = previousContent.data.length;
+          console.log('Merged content:', mergedData);
 
           this.updateContent(previousContent.id, mergedData);
           this.noteService.deleteContent(this.note.id, currentContent.id, this.note.version, currentContent.version).subscribe({
@@ -225,7 +201,9 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
                     const newRange = document.createRange();
                     const newSelection = window.getSelection();
                     const textNode = prevParagraph.childNodes[0] || prevParagraph;
-                    newRange.setStart(textNode, cursorOffset);
+                    // Ensure cursor position is not out of bounds
+                    const newOffset = Math.min(cursorOffset, (textNode.textContent || '').length);
+                    newRange.setStart(textNode, newOffset);
                     newRange.collapse(true);
                     newSelection?.removeAllRanges();
                     newSelection?.addRange(newRange);
