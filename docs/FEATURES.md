@@ -132,7 +132,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T13.1:** In `NoteService`, create a `getNoteById` method to fetch the full details of a single note.
     - [x] **T13.2:** In `NoteEditorSidePanelComponent`, call `getNoteById` when a `noteId` is provided and display the note's title and content.
     - [ ] **T13.3:** Add loading and error handling states to the `NoteEditorSidePanelComponent` while fetching the note.
-    - [ ] **T13.4:** In `NoteService`, create an `updateNote` method to save changes to a note's title.
+    - [x] **T13.4:** In `NoteService`, create an `updateNote` method to save changes to a note's title.
     - [x] **T13.5:** In `NoteService`, create an `updateContent` method to save changes to a content block.
     - [ ] **T13.6:** In `NoteEditorSidePanelComponent`, make the note title editable.
     - [x] **T13.7:** In `NoteEditorSidePanelComponent`, make content blocks editable and trigger an update only if the content has changed when the user finishes editing (on blur).

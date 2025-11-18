@@ -56,4 +56,8 @@ export class NoteService {
     const defaultTitle = 'New Note';
     return this.http.post<{ id: string }>(this.notesApiUrl, { title: defaultTitle, owner_id: userId });
   }
+
+  updateNote(noteId: string, title: string, noteVersion: number): Observable<void> {
+    return this.http.put<void>(`${this.notesApiUrl}/${noteId}`, { title, note_version: noteVersion });
+  }
 }
