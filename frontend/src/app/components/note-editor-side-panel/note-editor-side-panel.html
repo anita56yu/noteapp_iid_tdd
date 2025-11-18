@@ -1,6 +1,11 @@
 <div class="side-panel">
   <div class="side-panel-header">
-    <h3>{{ note?.title }}</h3>
+    <div
+      class="note-title"
+      contenteditable="true"
+      (blur)="onTitleBlur($event)"
+      (keydown.enter)="onTitleKeydownEnter($event)"
+    >{{ note?.title }}</div>
     <button (click)="onClose()">X</button>
   </div>
   <div class="side-panel-content">

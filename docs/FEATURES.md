@@ -134,7 +134,7 @@ User facing APIs should guard against illegal parameters
     - [ ] **T13.3:** Add loading and error handling states to the `NoteEditorSidePanelComponent` while fetching the note.
     - [x] **T13.4:** In `NoteService`, create an `updateNote` method to save changes to a note's title.
     - [x] **T13.5:** In `NoteService`, create an `updateContent` method to save changes to a content block.
-    - [ ] **T13.6:** In `NoteEditorSidePanelComponent`, make the note title editable.
+    - [x] **T13.6:** In `NoteEditorSidePanelComponent`, make the note title editable, when the user click awat or enter, the edit should be made.
     - [x] **T13.7:** In `NoteEditorSidePanelComponent`, make content blocks editable and trigger an update only if the content has changed when the user finishes editing (on blur).
     - [ ] **T13.8:** Implement auto-saving in `NoteEditorSidePanelComponent` that calls the update methods after a short delay following user input.
     - [x] **T13.9:** In `NoteService`, create an `addContent` method.

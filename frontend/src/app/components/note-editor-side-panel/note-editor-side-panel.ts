@@ -40,9 +40,9 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
             this.noteService.addContent(note.id, newContent, note.version).subscribe({
               next: (addedContent) => {
                 if (this.note) {
-                  // const createdContent: Content = { ...newContent, id: addedContent.id, version: 1 };
-                  // this.note.contents = [createdContent];
-                  // this.note.version++; // Increment note version as content was added
+                  const createdContent: Content = { ...newContent, id: addedContent.id, version: 0 };
+                  this.note.contents = [createdContent];
+                  this.note.version++; // Increment note version as content was added
                 }
               },
               error: (err) => {
@@ -116,6 +116,14 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
         }
         this.note.version = message.note_version;
         break;
+      case 'update_note':
+        console.log('Note title updating via WebSocket:', this.note.title, '->', message.data);
+
+        if (message.data && message.data !== this.note.title) {
+          this.note.title = message.data;
+        }
+        this.note.version = message.note_version;
+        break;
       // case 'delete_note':
       //   this.onClose();
       //   break;
@@ -126,6 +134,30 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
 
   onClose(): void {
     this.closePanel.emit();
+  }
+
+  onTitleBlur(event: FocusEvent): void {
+    const newTitle = (event.target as HTMLElement).textContent?.trim() || '';
+    if (this.note && newTitle !== this.note.title) {
+      this.noteService.updateNote(this.note.id, newTitle, this.note.version).subscribe({
+        next: () => {
+          console.log('Note title updated successfully');
+        },
+        error: (err) => {
+          console.error('Error updating note title', err);
+          // Revert the UI change on error
+          if (event.target) {
+            (event.target as HTMLElement).textContent = this.note?.title ? this.note.title : '';
+          }
+        },
+      });
+    }
+  }
+
+  onTitleKeydownEnter(event: Event): void {
+    const keyboardEvent = event as KeyboardEvent;
+    keyboardEvent.preventDefault(); // Prevent new line
+    (keyboardEvent.target as HTMLElement).blur(); // Trigger blur to save changes
   }
 
   onContentBlur(event: FocusEvent): void {
