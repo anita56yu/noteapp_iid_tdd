@@ -126,6 +126,29 @@ func (uc *NoteUsecase) AddContent(noteID, contentID string, index, version int) 
 	return nil
 }
 
+// ChangeTitle updates the title of a note.
+func (uc *NoteUsecase) ChangeTitle(noteID, newTitle string, version int) error {
+	if noteID == "" {
+		return ErrInvalidID
+	}
+	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
+	if err != nil {
+		return err
+	}
+
+	n := uc.mapper.ToDomain(notePO)
+	if err := n.ChangeTitle(newTitle); err != nil {
+		return uc.mapDomainError(err)
+	}
+
+	updatedNotePO := uc.mapper.ToPO(n)
+	if err := uc.repo.Save(updatedNotePO); err != nil {
+		return uc.mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 func (uc *NoteUsecase) RemoveContent(noteID, contentID string, version int) error {
 	notePO, err := uc.getNotePOAndCheckVersion(noteID, version)
 	if err != nil {

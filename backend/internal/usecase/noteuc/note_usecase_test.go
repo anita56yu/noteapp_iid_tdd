@@ -858,3 +858,91 @@ func TestNoteUsecase_AddContent_IndexOutOfBounds(t *testing.T) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrIndexOutOfBounds, err)
 	}
 }
+
+func TestNoteUsecase_ChangeTitle_Success(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+	newTitle := "Updated Title"
+
+	// Act
+	err := noteUsecase.ChangeTitle(noteID, newTitle, 0)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("ChangeTitle() returned an unexpected error: %v", err)
+	}
+	updatedNote, err := noteUsecase.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("GetNoteByID() failed: %v", err)
+	}
+	if updatedNote.Title != newTitle {
+		t.Errorf("Expected title to be '%s', got '%s'", newTitle, updatedNote.Title)
+	}
+	if updatedNote.Version != 1 {
+		t.Errorf("Expected version to be 1, got %d", updatedNote.Version)
+	}
+}
+
+func TestNoteUsecase_ChangeTitle_NotFound(t *testing.T) {
+	// Arrange
+	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
+
+	// Act
+	err := noteUsecase.ChangeTitle("non-existent-id", "New Title", 0)
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for a non-existent note, but got nil")
+	}
+	if !errors.Is(err, ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	}
+}
+
+func TestNoteUsecase_ChangeTitle_InvalidID(t *testing.T) {
+	// Arrange
+	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
+
+	// Act
+	err := noteUsecase.ChangeTitle("", "New Title", 0) // Empty ID
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for an invalid ID, but got nil")
+	}
+	if !errors.Is(err, ErrInvalidID) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
+	}
+}
+
+func TestNoteUsecase_ChangeTitle_EmptyTitle(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+
+	// Act
+	err := noteUsecase.ChangeTitle(noteID, "", 0) // Empty title
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for empty title, but got nil")
+	}
+	if !errors.Is(err, ErrEmptyTitle) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyTitle, err)
+	}
+}
+
+func TestNoteUsecase_ChangeTitle_Conflict(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+
+	// Act
+	err := noteUsecase.ChangeTitle(noteID, "New Title", 99) // Incorrect version
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected a conflict error, but got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	}
+}

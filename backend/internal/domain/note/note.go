@@ -73,6 +73,15 @@ func NewNote(id, title, ownerID string) (*Note, error) {
 	return NewNoteWithVersion(id, title, ownerID, 0)
 }
 
+// ChangeTitle updates the title of the note.
+func (n *Note) ChangeTitle(newTitle string) error {
+	if newTitle == "" {
+		return ErrEmptyTitle
+	}
+	n.Title = newTitle
+	return nil
+}
+
 // AddCollaborator adds a user to the note's collaborators with a specific permission.
 func (n *Note) AddCollaborator(callerID, collaboratorID string, permission Permission) error {
 	if n.OwnerID != callerID {

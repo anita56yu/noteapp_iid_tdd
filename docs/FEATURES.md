@@ -47,7 +47,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T1.4:** Update `main.go` to initialize all dependencies and start the HTTP server.
     - [x] **T1.5:** Add a `GetNoteByID` method to the `NoteUsecase` that returns a `NoteDTO`, and define the `NoteDTO` in the `usecase` package.
     - [x] **T1.6:** Implement the `GET /notes/{id}` API endpoint, which will receive the `NoteDTO`.
-    - [ ] **T1.7:** Add an `UpdateNote` method to the `NoteUsecase`.
+    - [x] **T1.7:** Add a `ChangeTitle` method to the `NoteUsecase`.
     - [ ] **T1.8:** Implement the `PUT /notes/{id}` API endpoint.
     - [x] **T1.9:** Add a `DeleteNote` method to the `NoteUsecase`.
     - [x] **T1.10:** Implement the `DELETE /notes/{id}` API endpoint.
