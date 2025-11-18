@@ -50,7 +50,8 @@ type WebSocketEvent struct {
 
 // CreateNoteRequest represents the request body for creating a note.
 type CreateNoteRequest struct {
-	Title string `json:"title"`
+	Title   string `json:"title"`
+	OwnerID string `json:"owner_id"`
 }
 
 // CreateNoteResponse represents the response body for creating a note.
@@ -122,11 +123,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For now, we'll use a placeholder ownerID.
-	// This will be replaced with actual user authentication later.
-	ownerID := "placeholder-owner-id"
-
-	noteID, err := h.noteUsecase.CreateNote("", req.Title, ownerID)
+	noteID, err := h.noteUsecase.CreateNote("", req.Title, req.OwnerID)
 	if err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return

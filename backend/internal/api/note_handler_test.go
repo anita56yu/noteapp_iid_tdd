@@ -457,7 +457,8 @@ func TestNoteHandler_CreateNote_Success(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
 	requestBody := CreateNoteRequest{
-		Title: "Test Title",
+		OwnerID: "owner-1",
+		Title:   "Test Title",
 	}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
@@ -508,7 +509,7 @@ func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 	// Arrange
 	router, _, _ := setupTest()
-	requestBody := CreateNoteRequest{Title: ""}
+	requestBody := CreateNoteRequest{Title: "", OwnerID: "owner-1"}
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()

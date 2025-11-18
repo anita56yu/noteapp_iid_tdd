@@ -145,4 +145,5 @@ User facing APIs should guard against illegal parameters
     - [ ] **T13.15:** Add basic styling to the note editor for a clean and user-friendly interface.
     - [x] **T13.16:** When moving curor from one content to another content, update the origianl content if it has been changed (lost focus). 
     - [ ] **T13.17:** In `NoteEditorSidePanelComponent`, implement handling for selected text deletion (e.g., when the 'Delete' or 'Backspace' key is pressed with a text selection). This should update the content block via `NoteService.updateContent` and reflect the change in the local state.
+    - [x] **T13.18:** In `NoteDashboardComponent`, add a "New Note" button that, when clicked, creates a new note by calling a `createNote` method in `NoteService`, adds the new note to the top of the local `notes` array, and opens it in the side panel for immediate editing.
 - [ ] **F14 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.

@@ -1,6 +1,9 @@
 <div class="dashboard-layout">
   <div class="note-dashboard-container" [class.side-panel-open]="showSidePanel">
-    <h2>My Notes</h2>
+    <div class="dashboard-header">
+      <h2>My Notes</h2>
+      <button class="new-note-button" (click)="createNewNote()">New Note</button>
+    </div>
 
     <div *ngIf="isLoading">
       <p>Loading notes...</p>

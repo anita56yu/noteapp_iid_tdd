@@ -22,6 +22,10 @@ export class NoteDashboard implements OnInit {
   constructor(private noteService: NoteService) {}
 
   ngOnInit(): void {
+    this.fetchNotes();
+  }
+
+  private fetchNotes(): void {
     this.isLoading = true;
     this.hasError = false;
     this.noteService.getAccessibleNotes(this.userId).subscribe({
@@ -45,5 +49,26 @@ export class NoteDashboard implements OnInit {
   closeSidePanel(): void {
     this.showSidePanel = false;
     this.selectedNoteId = null;
+  }
+
+  createNewNote(): void {
+    this.noteService.createNote(this.userId).subscribe({
+      next: (newNote) => {
+        this.noteService.getAccessibleNotes(this.userId).subscribe({
+          next: (notes) => {
+            this.notes = notes;
+            this.viewNote(newNote.id);
+          },
+          error: (err) => {
+            console.error('Error fetching notes after creating a new one', err);
+            this.hasError = true;
+          },
+        });
+      },
+      error: (err) => {
+        console.error('Error creating new note', err);
+        this.hasError = true;
+      },
+    });
   }
 }

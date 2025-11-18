@@ -27,6 +27,30 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
         next: (note) => {
           this.note = note;
           console.log('Loaded note', note);
+
+          if (!note.contents || note.contents.length === 0) {
+            const newContent: Content = {
+              id: '', // ID will be set by the backend
+              noteId: note.id,
+              data: '',
+              type: 'text',
+              version: 0,
+              position: 0,
+            };
+            this.noteService.addContent(note.id, newContent, note.version).subscribe({
+              next: (addedContent) => {
+                if (this.note) {
+                  // const createdContent: Content = { ...newContent, id: addedContent.id, version: 1 };
+                  // this.note.contents = [createdContent];
+                  // this.note.version++; // Increment note version as content was added
+                }
+              },
+              error: (err) => {
+                console.error('Error adding initial content to new note', err);
+              },
+            });
+          }
+
           this.webSocketService.disconnect();
           this.wsSubscription = this.webSocketService.connect(note.id).subscribe({
             next: (message) => this.handleWebSocketMessage(message),
