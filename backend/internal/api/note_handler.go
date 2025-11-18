@@ -30,8 +30,8 @@ func NewNoteHandler(nuc *noteuc.NoteUsecase, cuc *contentuc.ContentUsecase) *Not
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// Allow all connections by default.
-		// In a production environment, you should implement a proper origin check.
+		// origin := r.Header.Get("Origin")
+
 		return true
 	},
 }
@@ -113,6 +113,12 @@ type GetNoteByIDResponse struct {
 	Contents []*contentuc.ContentDTO `json:"contents"`
 }
 
+// UpdateNoteRequest represents the request body for updating a note's title.
+type UpdateNoteRequest struct {
+	Title       string `json:"title"`
+	NoteVersion *int   `json:"note_version"`
+}
+
 var ErrUnsupportedContentType = errors.New("unsupported content type")
 
 // CreateNote is the handler for the POST /notes endpoint.
@@ -166,6 +172,39 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+// UpdateNote is the handler for the PUT /notes/{id} endpoint.
+func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
+	noteID := chi.URLParam(r, "id")
+
+	var req UpdateNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.NoteVersion == nil {
+		http.Error(w, "note_version is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.noteUsecase.ChangeTitle(noteID, req.Title, *req.NoteVersion); err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
+
+	// Broadcast the update to all connected clients.
+	event := WebSocketEvent{
+		Type:        "update_note",
+		NoteID:      noteID,
+		Data:        req.Title,
+		NoteVersion: *req.NoteVersion + 1,
+	}
+	message, _ := json.Marshal(event)
+	h.connManager.Broadcast(noteID, message)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // DeleteNote is the handler for the DELETE /notes/{id} endpoint.

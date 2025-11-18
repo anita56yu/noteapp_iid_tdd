@@ -57,6 +57,7 @@ func main() {
 	router.Post("/notes", noteHandler.CreateNote)
 	router.Get("/notes/{id}", noteHandler.GetNoteByID)
 	router.Delete("/notes/{id}", noteHandler.DeleteNote)
+	router.Put("/notes/{id}", noteHandler.UpdateNote)
 	router.Post("/notes/{id}/contents", noteHandler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", noteHandler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", noteHandler.DeleteContent)

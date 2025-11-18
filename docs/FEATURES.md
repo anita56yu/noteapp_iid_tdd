@@ -48,7 +48,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T1.5:** Add a `GetNoteByID` method to the `NoteUsecase` that returns a `NoteDTO`, and define the `NoteDTO` in the `usecase` package.
     - [x] **T1.6:** Implement the `GET /notes/{id}` API endpoint, which will receive the `NoteDTO`.
     - [x] **T1.7:** Add a `ChangeTitle` method to the `NoteUsecase`.
-    - [ ] **T1.8:** Implement the `PUT /notes/{id}` API endpoint.
+    - [x] **T1.8:** Implement the `PUT /notes/{id}` API endpoint.
     - [x] **T1.9:** Add a `DeleteNote` method to the `NoteUsecase`.
     - [x] **T1.10:** Implement the `DELETE /notes/{id}` API endpoint.
     - [x] **T1.11:** Refactor `NoteUsecase` to translate repository-specific errors into use case-level errors.
@@ -106,6 +106,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T5.15:** Revise `GetNoteByID` request to also return the contents. Add a WebSocket connection to broadcast updates for users on the same note. This requires a map of slices of sockets keyed by `NoteID`.
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.
+    - [ ] **T7.1:** Implement a production-safe `CheckOrigin` function for WebSockets, using an environment variable to manage a whitelist of allowed origins.
 - [ ] **F8:** Decouple Data Persistence with a Repository Layer.
     - [x] **T8.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
     - [x] **T8.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.

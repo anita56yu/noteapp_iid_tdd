@@ -29,6 +29,7 @@ func setupTestForBroadcast() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentU
 	router.Post("/notes", handler.CreateNote)
 	router.Get("/notes/{id}", handler.GetNoteByID)
 	router.Delete("/notes/{id}", handler.DeleteNote)
+	router.Put("/notes/{id}", handler.UpdateNote)
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
@@ -369,6 +370,74 @@ func TestNoteHandler_WebSocket_BroadcastOnDeleteContent(t *testing.T) {
 		}
 		if event.NoteVersion != 3 {
 			t.Errorf("expected version 3, got %d", event.NoteVersion)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timed out waiting for websocket message")
+	}
+}
+
+func TestNoteHandler_UpdateNote_Broadcast(t *testing.T) {
+	// Arrange
+	router, nuc, _, _ := setupTestForBroadcast()
+	noteID, err := nuc.CreateNote("", "Original Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws/notes/" + noteID
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("Failed to dial websocket: %v", err)
+	}
+	defer conn.Close()
+
+	msgChan := make(chan []byte)
+	go func() {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			t.Logf("Failed to read message: %v", err)
+			close(msgChan)
+			return
+		}
+		msgChan <- msg
+	}()
+
+	// Act
+	newTitle := "Updated Title for Broadcast"
+	requestBody := UpdateNoteRequest{
+		Title:       newTitle,
+		NoteVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID, bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Fatalf("failed to update note: status %d", rr.Code)
+	}
+
+	select {
+	case msg := <-msgChan:
+		var event WebSocketEvent
+		if err := json.Unmarshal(msg, &event); err != nil {
+			t.Fatalf("failed to unmarshal websocket message: %v", err)
+		}
+		if event.Type != "update_note" {
+			t.Errorf("expected event type 'update_note', got '%s'", event.Type)
+		}
+		if event.NoteID != noteID {
+			t.Errorf("expected note ID '%s', got '%s'", noteID, event.NoteID)
+		}
+		if event.Data != newTitle {
+			t.Errorf("expected title '%s', got '%s'", newTitle, event.Data)
+		}
+		if event.NoteVersion != 1 {
+			t.Errorf("expected version 1, got %d", event.NoteVersion)
 		}
 	case <-time.After(1 * time.Second):
 		t.Fatal("timed out waiting for websocket message")

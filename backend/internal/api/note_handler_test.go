@@ -27,6 +27,7 @@ func setupTest() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase) {
 	router := chi.NewRouter()
 	router.Post("/notes", handler.CreateNote)
 	router.Get("/notes/{id}", handler.GetNoteByID)
+	router.Put("/notes/{id}", handler.UpdateNote)
 	router.Delete("/notes/{id}", handler.DeleteNote)
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
@@ -1308,5 +1309,44 @@ func TestNoteHandler_DeleteNote_DeletesAssociatedContent(t *testing.T) {
 	_, err = cuc.GetContentByID(contentID2)
 	if !errors.Is(err, contentuc.ErrContentNotFound) {
 		t.Errorf("expected content 2 to be deleted, but got error %v", err)
+	}
+}
+
+func TestNoteHandler_ChangeTitle_Success(t *testing.T) {
+	// Arrange
+	router, nuc, _ := setupTest()
+	ownerID := "owner-1"
+	noteID, err := nuc.CreateNote("", "Original Title", ownerID)
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	newTitle := "New and Improved Title"
+	requestBody := UpdateNoteRequest{
+		Title:       newTitle,
+		NoteVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID, bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
+	}
+
+	// Verify the note's title was updated
+	updatedNote, err := nuc.GetNoteByID(noteID)
+	if err != nil {
+		t.Fatalf("failed to get updated note: %v", err)
+	}
+	if updatedNote.Title != newTitle {
+		t.Errorf("expected note title '%s'; got '%s'", newTitle, updatedNote.Title)
+	}
+	if updatedNote.Version != 1 {
+		t.Errorf("expected note version 1; got %d", updatedNote.Version)
 	}
 }
