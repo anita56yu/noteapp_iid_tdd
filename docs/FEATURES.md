@@ -148,3 +148,8 @@ User facing APIs should guard against illegal parameters
     - [ ] **T13.17:** In `NoteEditorSidePanelComponent`, implement handling for selected text deletion (e.g., when the 'Delete' or 'Backspace' key is pressed with a text selection). This should update the content block via `NoteService.updateContent` and reflect the change in the local state.
     - [x] **T13.18:** In `NoteDashboardComponent`, add a "New Note" button that, when clicked, creates a new note by calling a `createNote` method in `NoteService`, adds the new note to the top of the local `notes` array, and opens it in the side panel for immediate editing.
 - [ ] **F14 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
+- [ ] **F15 (Backend):** User Management. Users can register and log in to the system.
+    - [x] **T15.1:** Define a `User` model in the `domain` layer with attributes like ID, username, and password hash.
+    - [ ] **T15.2:** Create a `UserRepository` interface and an in-memory implementation for user data persistence.
+    - [ ] **T15.3:** Implement a `UserUsecase` with `Register` and `Login` methods.
+    - [ ] **T15.4:** Implement `POST /register` and `POST /login` API endpoints.
