@@ -175,6 +175,30 @@ export class NoteEditorSidePanelComponent implements OnChanges, OnDestroy {
     const paragraph = event.target as HTMLElement;
     const contentId = paragraph.getAttribute('data-content-id');
 
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (!contentId || !this.note) return;
+
+      const currentIndex = this.note.contents.findIndex(c => c.id === contentId);
+      if (currentIndex === -1) return;
+
+      let targetIndex = -1;
+      if (event.key === 'ArrowUp' && currentIndex > 0) {
+        targetIndex = currentIndex - 1;
+      } else if (event.key === 'ArrowDown' && currentIndex < this.note.contents.length - 1) {
+        targetIndex = currentIndex + 1;
+      }
+
+      if (targetIndex !== -1) {
+        const targetContentId = this.note.contents[targetIndex].id;
+        const targetElement = document.querySelector(`[data-content-id="${targetContentId}"]`) as HTMLElement;
+        if (targetElement) {
+          targetElement.focus();
+        }
+      }
+      return;
+    }
+
     if (event.key === 'Enter') {
       event.preventDefault();
       if (!contentId || !this.note) return;

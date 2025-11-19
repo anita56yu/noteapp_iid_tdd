@@ -25,6 +25,11 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px; // Add some space below the header
+
+  .dashboard-title {
+    font-size: 1.2em; // Smaller font size
+    margin: 0; // Remove default margin from h2
+  }
 }
 
 .new-note-button {

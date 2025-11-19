@@ -143,7 +143,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T13.12:** In `NoteEditorSidePanelComponent`, modify the `onContentKeydown` method to handle a backspace press at the beginning of a content block. If the block is not the first one, it should be deleted by calling `NoteService.deleteContent`, its text content appended to the previous block, the local state updated accordingly (content removed from array, note version incremented), and the cursor moved to the end of the previous block.
     - [x] **T13.13:** Create a `WebSocketService` to handle real-time communication with the backend.
     - [x] **T13.14:** In `NoteEditorSidePanelComponent`, use the `WebSocketService` to listen for and apply real-time updates to the note and its content.
-    - [ ] **T13.15:** Add basic styling to the note editor for a clean and user-friendly interface.
+    - [x] **T13.15:** Add basic styling to the note editor for a clean and user-friendly interface.
     - [x] **T13.16:** When moving curor from one content to another content, update the origianl content if it has been changed (lost focus). 
     - [ ] **T13.17:** In `NoteEditorSidePanelComponent`, implement handling for selected text deletion (e.g., when the 'Delete' or 'Backspace' key is pressed with a text selection). This should update the content block via `NoteService.updateContent` and reflect the change in the local state.
     - [x] **T13.18:** In `NoteDashboardComponent`, add a "New Note" button that, when clicked, creates a new note by calling a `createNote` method in `NoteService`, adds the new note to the top of the local `notes` array, and opens it in the side panel for immediate editing.
