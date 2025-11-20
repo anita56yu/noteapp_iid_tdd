@@ -17,7 +17,24 @@
         "command": "note-app-vs-code.helloWorld",
         "title": "Hello World"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "noteapp-explorer",
+          "title": "Note App",
+          "icon": "resources/note.svg"
+        }
+      ]
+    },
+    "views": {
+      "noteapp-explorer": [
+        {
+          "id": "noteapp.notes",
+          "name": "My Notes"
+        }
+      ]
+    }
   },
   "scripts": {
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",

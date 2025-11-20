@@ -153,5 +153,18 @@ User facing APIs should guard against illegal parameters
     - [ ] **T15.2:** Create a `UserRepository` interface and an in-memory implementation for user data persistence.
     - [ ] **T15.3:** Implement a `UserUsecase` with `Register` and `Login` methods.
     - [ ] **T15.4:** Implement `POST /register` and `POST /login` API endpoints.
-- [ ] **F16 (VS Code Extension Frontend):** Integrate the VS Code extension as a frontend for the note app.
+- [x] **F16 (VS Code Extension Frontend):** Integrate the VS Code extension as a frontend for the note app.
     - [x] **T16.1:** Initialize the VS Code extension frontend.
+- [ ] **F17 (VS Code Extension):** User Authentication. Users can log in to access their notes.
+- [ ] **F18 (VS Code Extension):** Note Dashboard. Display all notes accessible to the logged-in user in a tree view.
+    - [x] **T18.1:** In `package.json`, declare a custom view container and a tree view to be displayed in the VS Code activity bar.
+    - [ ] **T18.2:** Create a `NoteTreeDataProvider` class that implements VS Code's `TreeDataProvider` interface.
+    - [ ] **T18.3:** Implement a `NoteTreeItem` class to represent a single note in the tree view. It should display the note's title.
+    - [ ] **T18.4:** Create a service to communicate with the backend API and fetch the notes for the logged-in user. For now, we can use mock data.
+    - [ ] **T18.5:** In the `NoteTreeDataProvider`, use the service to fetch the notes and return them as `NoteTreeItem` objects.
+    - [ ] **T18.6:** In the extension's main activation function, register and create the tree view.
+    - [ ] **T18.7:** Add a refresh button to the tree view that allows the user to manually reload the notes.
+    - [ ] **T18.8:** Define a command that is triggered when a note in the tree view is clicked. This command will eventually open the note editor.
+- [ ] **F19 (VS Code Extension):** Note Editor. Open a note in a custom editor to view and edit its content.
+- [ ] **F20 (VS Code Extension):** Real-time Collaboration. View real-time updates from other collaborators.
+- [ ] **F21 (VS Code Extension):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
