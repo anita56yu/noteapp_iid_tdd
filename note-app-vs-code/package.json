@@ -17,6 +17,10 @@
       {
         "command": "note-app-vs-code.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "note-app-vs-code.openNote",
+        "title": "Open Note"
       }
     ],
     "viewsContainers": {

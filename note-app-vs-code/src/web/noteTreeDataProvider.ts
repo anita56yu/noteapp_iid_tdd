@@ -41,5 +41,10 @@ export class NoteTreeItem extends vscode.TreeItem {
     super(noteTitle, collapsibleState);
     this.tooltip = this.noteTitle;
     this.description = this.noteTitle;
+    this.command = {
+      command: 'note-app-vs-code.openNote',
+      title: 'Open Note',
+      arguments: [this.noteId],
+    };
   }
 }

@@ -31,7 +31,11 @@ export function activate(context: vscode.ExtensionContext) {
 		// vscode.window.showInformationMessage(`Fetched Notes: ${noteTitles}`);
 	});
 
-	context.subscriptions.push(disposable);
+	const openNoteCommand = vscode.commands.registerCommand('note-app-vs-code.openNote', (noteId: string) => {
+		vscode.window.showInformationMessage(`You clicked on note with ID: ${noteId}`);
+	});
+
+	context.subscriptions.push(disposable, openNoteCommand);
 }
 
 // This method is called when your extension is deactivated

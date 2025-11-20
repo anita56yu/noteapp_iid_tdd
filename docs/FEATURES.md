@@ -164,7 +164,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T18.5:** In the `NoteTreeDataProvider`, use the service to fetch the notes and return them as `NoteTreeItem` objects.
     - [x] **T18.6:** In the extension's main activation function, register and create the tree view.
     - [ ] **T18.7:** Add a refresh button to the tree view that allows the user to manually reload the notes.
-    - [ ] **T18.8:** Define a command that is triggered when a note in the tree view is clicked. This command will eventually open the note editor.
+    - [x] **T18.8:** Define a command that is triggered when a note in the tree view is clicked. This command will eventually open the note editor.
 - [ ] **F19 (VS Code Extension):** Note Editor. Open a note in a custom editor to view and edit its content.
 - [ ] **F20 (VS Code Extension):** Real-time Collaboration. View real-time updates from other collaborators.
 - [ ] **F21 (VS Code Extension):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
