@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Note, NoteService } from './noteService';
-var userId = 'dummyUserId';
+var userId = 'testUser1';
 
 export class NoteTreeDataProvider implements vscode.TreeDataProvider<NoteTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<NoteTreeItem | undefined | void> = new vscode.EventEmitter<NoteTreeItem | undefined | void>();

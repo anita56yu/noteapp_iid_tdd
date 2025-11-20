@@ -43,7 +43,7 @@ suite('NoteTreeDataProvider Test Suite', () => {
     assert.strictEqual(children[0].label, 'Note 1');
     assert.strictEqual(children[1].noteId, '2');
     assert.strictEqual(children[1].label, 'Note 2');
-    assert.ok(getNotesForUserStub.calledOnceWith('dummyUserId'), 'getNotesForUser should be called once with the correct user ID');
+    assert.ok(getNotesForUserStub.calledOnceWith("testUser1"), 'getNotesForUser should be called once with the correct user ID');
   });
 
   test('getChildren should return an empty array when an element is provided', async () => {
