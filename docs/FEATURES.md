@@ -153,3 +153,4 @@ User facing APIs should guard against illegal parameters
     - [ ] **T15.2:** Create a `UserRepository` interface and an in-memory implementation for user data persistence.
     - [ ] **T15.3:** Implement a `UserUsecase` with `Register` and `Login` methods.
     - [ ] **T15.4:** Implement `POST /register` and `POST /login` API endpoints.
+- [ ] **F16 (VS Code Extension Frontend):** Integrate the VS Code extension as a frontend for the note app.

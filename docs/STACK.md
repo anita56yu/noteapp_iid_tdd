@@ -4,9 +4,9 @@ This file describes the language and tools for the project.
 ## Language and Coding Conventions
 - GO 1.25.0 for back end
 - Use `snake_case` for file names.
-- Angular CLI 20.2.0 for front end
-    - Node 22.18.0
-    - Package Manager npm 10.9.3
+- Front ends:
+    - Angular CLI 20.2.0 (Node 22.18.0, npm 10.9.3)
+    - VS-Code Extension in Typescript
 
 ## Directory structure
 ./
@@ -38,7 +38,8 @@ This file describes the language and tools for the project.
 │
 ├── GEMINI.md                     # Master context for LLM
 ├── .gitignore
-└── README.md
+├── README.md
+└── note-vs/                       # VS-Code Extension source code
 
 ## Tooling:
 - git for version control 
