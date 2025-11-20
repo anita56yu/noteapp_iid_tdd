@@ -158,7 +158,7 @@ User facing APIs should guard against illegal parameters
 - [ ] **F17 (VS Code Extension):** User Authentication. Users can log in to access their notes.
 - [ ] **F18 (VS Code Extension):** Note Dashboard. Display all notes accessible to the logged-in user in a tree view.
     - [x] **T18.1:** In `package.json`, declare a custom view container and a tree view to be displayed in the VS Code activity bar.
-    - [ ] **T18.2:** Create a `NoteTreeDataProvider` class that implements VS Code's `TreeDataProvider` interface.
+    - [x] **T18.2:** Create a `NoteTreeDataProvider` class that implements VS Code's `TreeDataProvider` interface.
     - [ ] **T18.3:** Implement a `NoteTreeItem` class to represent a single note in the tree view. It should display the note's title.
     - [ ] **T18.4:** Create a service to communicate with the backend API and fetch the notes for the logged-in user. For now, we can use mock data.
     - [ ] **T18.5:** In the `NoteTreeDataProvider`, use the service to fetch the notes and return them as `NoteTreeItem` objects.

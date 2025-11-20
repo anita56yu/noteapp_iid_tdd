@@ -39,14 +39,18 @@ This file describes the language and tools for the project.
 ├── GEMINI.md                     # Master context for LLM
 ├── .gitignore
 ├── README.md
-└── note-vs/                       # VS-Code Extension source code
+└── note-app-vs-code/             # VS-Code Extension source code
 
 ## Tooling:
 - git for version control 
 - unit testing with Go standard library "testing"
 
 ## Commends:
-- Testing
+- Go backend testing:
 ```bash
 cd ./backend && go test ./...
+```
+- VS-Code frontend testing:
+```bash
+cd ./note-app-vs-code && npm test
 ```
