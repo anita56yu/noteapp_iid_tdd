@@ -4,7 +4,20 @@ This is a note-taking application developed using Go for the backend and Angular
 
 ## Problem Statement
 
-The project aims to develop a comprehensive note-taking application enabling users to create, organize, and share notes. Key features include managing note titles and diverse content types (text, pictures), tagging notes with user-specific keywords for efficient searching, and robust real-time collaboration with concurrent editing capabilities. The application will support note sharing with granular permissions, multi-device synchronization for all user data, and secure API interactions to ensure data integrity and user access control.
+### From Static Notes to a Dynamic Knowledge Base
+
+**The Problem:** Traditional note-taking apps often force us into rigid, hierarchical folder structures. Imagine you've taken detailed notes on concurrency in your Operating Systems class, neatly filed away under `University/CS/OS/`. Months later, at your new job, you're tasked with a concurrency-heavy project. How do you find those valuable notes? Even if you do, you'll likely add new insights related to your project. But where does the updated note live? Does it stay in the old `OS` folder, disconnected from its new real-world application? This is the core problem: our knowledge evolves, but our notes remain trapped in static, outdated structures, making them difficult to find and reuse. Our hard-earned knowledge becomes fragmented and loses its value over time.
+
+**Our Solution:** We're building a note-taking app that breaks free from this rigid hierarchy. Instead of relying on folders, we use a flexible keyword-based system. You can attach multiple keywords to any note, and then easily find notes by searching for corresponding keywords. In our scenario, your original OS note could be tagged with `OS`, `concurrency`, and `computer science`. After applying it to your work project and updating it, you can simply add new keywords like `ProjectX` and `work`.
+
+Now, finding your note is effortless. You can search for `concurrency` and `ProjectX` to instantly retrieve it. This system allows your notes to grow and interconnect just like your knowledge does. It transforms your collection of static notes into a dynamic, reusable personal knowledge base. Every note becomes a living document, easily discoverable and endlessly adaptable to new contexts. This isn't just about taking notes; it's about building and rediscovering your experience.
+
+To deliver on this promise of a dynamic knowledge base, the application will be built with a focus on several key areas:
+
+*   **Flexible Note Management:** Create and manage notes with titles and diverse content types, including text and pictures.
+*   **Powerful Search:** Tag notes with multiple keywords to enable flexible and powerful searching capabilities, allowing you to find information across different contexts.
+*   **Real-Time Collaboration:** Work with others on the same note simultaneously with robust concurrent editing features.
+*   **Secure Sharing & Sync:** Share your notes with others using granular permissions and keep everything synchronized across all your devices.
 
 ## How to Run the Project
 
@@ -24,9 +37,9 @@ Currently, the backend uses an in-memory repository for data persistence, meanin
     ```
     The backend server will start, typically listening on `http://localhost:8080`.
 
-### Frontend
+### Angluar Frontend
 
-1.  **Navigate to the frontend directory:**
+1.  **Navigate to the Angular frontend directory:**
     ```bash
     cd frontend
     ```
@@ -39,6 +52,23 @@ Currently, the backend uses an in-memory repository for data persistence, meanin
     npm start
     ```
     The frontend application will compile and open in your browser, usually at `http://localhost:4200`.
+
+### VS-Code Frontend
+
+1.  **Navigate to the VS-Code extension directory:**
+    ```bash
+    cd note-app-vs-code
+    ```
+
+2.  **Install dependencies (if you haven't already):**
+    ```bash
+    npm install
+    ```
+
+3.  **Run in debug in VS-Code**
+    cmd + shf + d or ctrl + shf + d
+    
+    A new VS-Code window will show up with the extension.
 
 ## Backend Architecture
 
