@@ -154,3 +154,4 @@ User facing APIs should guard against illegal parameters
     - [ ] **T15.3:** Implement a `UserUsecase` with `Register` and `Login` methods.
     - [ ] **T15.4:** Implement `POST /register` and `POST /login` API endpoints.
 - [ ] **F16 (VS Code Extension Frontend):** Integrate the VS Code extension as a frontend for the note app.
+    - [x] **T16.1:** Initialize the VS Code extension frontend.
