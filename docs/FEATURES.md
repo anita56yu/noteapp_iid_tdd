@@ -160,8 +160,8 @@ User facing APIs should guard against illegal parameters
     - [x] **T18.1:** In `package.json`, declare a custom view container and a tree view to be displayed in the VS Code activity bar.
     - [x] **T18.2:** Create a `NoteTreeDataProvider` class that implements VS Code's `TreeDataProvider` interface.
     - [x] **T18.3:** Implement a `NoteTreeItem` class to represent a single note in the tree view. It should display the note's title.
-    - [ ] **T18.4:** Create a service to communicate with the backend API and fetch the notes for the logged-in user.
-    - [ ] **T18.5:** In the `NoteTreeDataProvider`, use the service to fetch the notes and return them as `NoteTreeItem` objects.
+    - [x] **T18.4:** Create a service to communicate with the backend API and fetch the notes for the logged-in user.
+    - [x] **T18.5:** In the `NoteTreeDataProvider`, use the service to fetch the notes and return them as `NoteTreeItem` objects.
     - [x] **T18.6:** In the extension's main activation function, register and create the tree view.
     - [ ] **T18.7:** Add a refresh button to the tree view that allows the user to manually reload the notes.
     - [ ] **T18.8:** Define a command that is triggered when a note in the tree view is clicked. This command will eventually open the note editor.

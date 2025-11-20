@@ -44,9 +44,20 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger) // Add a logger middleware
 
+	// Custom middleware to log the Origin header
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			if origin != "" {
+				log.Printf("Request Origin: %s", origin)
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	// Add CORS middleware
 	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:4200"},
+		AllowedOrigins:   []string{"http://localhost:4200", "vscode-file://vscode-app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},

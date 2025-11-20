@@ -9,3 +9,8 @@ node_modules/
 dist/
 *.log
 .angular/
+
+# VS Code Extension
+note-app-vs-code/dist/
+note-app-vs-code/.vscode-test-web/
+note-app-vs-code/package-lock.json
