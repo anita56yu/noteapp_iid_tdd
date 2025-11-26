@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"noteapp/internal/usecase/contentuc"
 	"noteapp/internal/usecase/noteuc"
+	"noteapp/internal/usecase/useruc"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -16,14 +17,16 @@ import (
 type NoteHandler struct {
 	noteUsecase    *noteuc.NoteUsecase
 	contentUsecase *contentuc.ContentUsecase
+	userUsecase    *useruc.UserUsecase
 	connManager    *ConnectionManager
 }
 
 // NewNoteHandler creates a new NoteHandler.
-func NewNoteHandler(nuc *noteuc.NoteUsecase, cuc *contentuc.ContentUsecase) *NoteHandler {
+func NewNoteHandler(nuc *noteuc.NoteUsecase, cuc *contentuc.ContentUsecase, uuc *useruc.UserUsecase) *NoteHandler {
 	return &NoteHandler{
 		noteUsecase:    nuc,
 		contentUsecase: cuc,
+		userUsecase:    uuc,
 		connManager:    NewConnectionManager(),
 	}
 }
@@ -97,7 +100,7 @@ type UntagNoteRequest struct {
 
 // ShareNoteRequest represents the request body for sharing a note.
 type ShareNoteRequest struct {
-	UserID      string `json:"user_id"`
+	Username    string `json:"username"`
 	Permission  string `json:"permission"`
 	NoteVersion *int   `json:"note_version"`
 }
@@ -128,9 +131,20 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	//make sure owner exists
+	if _, err := h.userUsecase.CheckUser(req.OwnerID); err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
 
 	noteID, err := h.noteUsecase.CreateNote("", req.Title, req.OwnerID)
 	if err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
+
+	// Add the note to the owner's accessible notes
+	if err := h.userUsecase.AddAccessibleNote(req.OwnerID, noteID); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
@@ -464,7 +478,19 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.noteUsecase.ShareNote(noteID, ownerID, req.UserID, req.Permission, *req.NoteVersion); err != nil {
+	userID, err := h.userUsecase.FindUserIDByUsername(req.Username)
+	if err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
+
+	if err := h.noteUsecase.ShareNote(noteID, ownerID, userID, req.Permission, *req.NoteVersion); err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
+
+	// Add the note to the shared user's accessible notes
+	if err := h.userUsecase.AddAccessibleNote(userID, noteID); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
@@ -587,6 +613,10 @@ func mapErrorToHTTPStatus(w http.ResponseWriter, err error) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	case errors.Is(err, contentuc.ErrConflict):
 		http.Error(w, err.Error(), http.StatusConflict)
+
+	// UserUsecase errors
+	case errors.Is(err, useruc.ErrInvalidCredentials):
+		http.Error(w, err.Error(), http.StatusBadRequest)
 
 	default:
 		http.Error(w, "An internal error occurred", http.StatusInternalServerError)

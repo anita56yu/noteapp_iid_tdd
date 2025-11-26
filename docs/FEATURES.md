@@ -154,7 +154,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T15.3:** In the `usecase` layer, create a `UserMapper` to map between `domain.User` and `repository.userrepo.UserPO`.
     - [x] **T15.4:** Implement a `UserUsecase` with `Register` and `Login` methods.
     - [x] **T15.5:** Implement `POST /register` and `POST /login` API endpoints.
-    - [ ] **T15.6:** Implement `AddAccessibleNote` in `UserUsecase` and the `POST /users/{userID}/accessible-notes` API endpoint.
+    - [x] **T15.6:** Implement `AddAccessibleNote` in `UserUsecase` and update the `POST /users/{ownerID}/notes/{noteID}/shares` API endpoint to call `AddAccessibleNote` when a note is shared with a user and `POST /notes` API endpoint to call `AddAccessibleNote` for the owner.
 - [x] **F16 (VS Code Extension Frontend):** Integrate the VS Code extension as a frontend for the note app.
     - [x] **T16.1:** Initialize the VS Code extension frontend.
 - [ ] **F17 (VS Code Extension):** User Authentication. Users can log in to access their notes.

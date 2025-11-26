@@ -28,7 +28,7 @@ func main() {
 	userMapper := &useruc.UserMapper{}
 	userUsecase := useruc.NewUserUsecase(userRepo, userMapper)
 
-	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase)
+	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase, userUsecase)
 	userHandler := api.NewUserHandler(userUsecase)
 
 	// test data

@@ -22,7 +22,7 @@ func NewUserUsecase(repo userrepo.UserRepository, mapper *UserMapper) *UserUseca
 }
 
 // Register registers a new user.
-func (uc *UserUsecase) Register(username, password string) (*UserDTO, error) {
+func (uc *UserUsecase) Register(id, username, password string) (*UserDTO, error) {
 	_, err := uc.repo.FindByUsername(username)
 	if err == nil {
 		return nil, ErrUsernameExists
@@ -36,7 +36,7 @@ func (uc *UserUsecase) Register(username, password string) (*UserDTO, error) {
 		return nil, err // Internal error during password hashing
 	}
 
-	domainUser, err := user.NewUser("", username, string(hashedPassword))
+	domainUser, err := user.NewUser(id, username, string(hashedPassword))
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
@@ -47,10 +47,7 @@ func (uc *UserUsecase) Register(username, password string) (*UserDTO, error) {
 		return nil, mapRepositoryError(err)
 	}
 
-	return &UserDTO{
-		ID:       domainUser.ID(),
-		Username: domainUser.Username(),
-	}, nil
+	return uc.mapper.ToDTO(domainUser), nil
 }
 
 // Login authenticates a user.
@@ -60,17 +57,54 @@ func (uc *UserUsecase) Login(username, password string) (*UserDTO, error) {
 		return nil, mapRepositoryError(err)
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(userPO.PasswordHash), []byte(password)) != nil {
-		return nil, ErrInvalidCredentials // Password mismatch
-	}
-
 	domainUser, err := uc.mapper.ToDomain(userPO)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UserDTO{
-		ID:       domainUser.ID(),
-		Username: domainUser.Username(),
-	}, nil
+	if bcrypt.CompareHashAndPassword([]byte(domainUser.PasswordHash()), []byte(password)) != nil {
+		return nil, ErrInvalidCredentials // Password mismatch
+	}
+
+	return uc.mapper.ToDTO(domainUser), nil
+}
+
+// AddAccessibleNote adds a note ID to the user's accessible notes.
+func (uc *UserUsecase) AddAccessibleNote(userID, noteID string) error {
+	userPO, err := uc.repo.FindByID(userID)
+	if err != nil {
+		return mapRepositoryError(err)
+	}
+
+	domainUser, err := uc.mapper.ToDomain(userPO)
+	if err != nil {
+		return err
+	}
+
+	domainUser.AddAccessibleNoteID(noteID)
+
+	updatedUserPO := uc.mapper.FromDomain(domainUser)
+	err = uc.repo.Save(updatedUserPO)
+	if err != nil {
+		return mapRepositoryError(err)
+	}
+
+	return nil
+}
+
+// CheckUser checks if a user exists by their ID.
+func (uc *UserUsecase) CheckUser(userID string) (bool, error) {
+	_, err := uc.repo.FindByID(userID)
+	if err != nil {
+		return false, mapRepositoryError(err)
+	}
+	return true, nil
+}
+
+func (uc *UserUsecase) FindUserIDByUsername(username string) (string, error) {
+	userPO, err := uc.repo.FindByUsername(username)
+	if err != nil {
+		return "", mapRepositoryError(err)
+	}
+	return userPO.ID, nil
 }
