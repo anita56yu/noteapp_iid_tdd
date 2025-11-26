@@ -44,7 +44,7 @@ export class NoteTreeItem extends vscode.TreeItem {
     this.command = {
       command: 'note-app-vs-code.openNote',
       title: 'Open Note',
-      arguments: [this.noteId],
+      arguments: [this.noteId, this.noteTitle],
     };
   }
 }

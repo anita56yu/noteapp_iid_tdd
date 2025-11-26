@@ -1,8 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { NoteTreeDataProvider, NoteTreeItem } from './noteTreeDataProvider';
+import { NoteTreeDataProvider } from './noteTreeDataProvider';
 import { NoteService } from './noteService';
+import { openNoteEditor } from './noteEditor';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -17,8 +18,6 @@ export function activate(context: vscode.ExtensionContext) {
 	const noteTreeDataProvider = new NoteTreeDataProvider(noteService);
 	vscode.window.createTreeView('noteapp.notes', { treeDataProvider: noteTreeDataProvider });
 
-	// vscode.window.showInformationMessage(noteTreeDataProvider.getChildren());
-
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
@@ -31,8 +30,8 @@ export function activate(context: vscode.ExtensionContext) {
 		// vscode.window.showInformationMessage(`Fetched Notes: ${noteTitles}`);
 	});
 
-	const openNoteCommand = vscode.commands.registerCommand('note-app-vs-code.openNote', (noteId: string) => {
-		vscode.window.showInformationMessage(`You clicked on note with ID: ${noteId}`);
+	const openNoteCommand = vscode.commands.registerCommand('note-app-vs-code.openNote', (noteId: string, noteTitle: string) => {
+		openNoteEditor(noteId, noteTitle);
 	});
 
 	context.subscriptions.push(disposable, openNoteCommand);

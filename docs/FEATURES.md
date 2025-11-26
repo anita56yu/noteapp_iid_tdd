@@ -166,5 +166,11 @@ User facing APIs should guard against illegal parameters
     - [ ] **T18.7:** Add a refresh button to the tree view that allows the user to manually reload the notes.
     - [x] **T18.8:** Define a command that is triggered when a note in the tree view is clicked. This command will eventually open the note editor.
 - [ ] **F19 (VS Code Extension):** Note Editor. Open a note in a custom editor to view and edit its content.
+    - [x] **T19.1:** Create a `noteEditor.ts` file to manage the webview panel.
+    - [ ] **T19.2:** Design the basic HTML structure for the note editor's webview, including elements for the note title and content.
+    - [x] **T19.3:** Update the `note-app-vs-code.openNote` command to open the note in our new custom editor.
+    - [ ] **T19.4:** Implement the logic to load the note's data. When a note is opened, the extension will use the `NoteService` to fetch its content and send it to the webview for display.
+    - [ ] **T19.5:** Establish a two-way communication channel between the webview and the extension. The webview will send messages back to the extension when the user edits the content.
+    - [ ] **T19.6:** Add a unit test for the `openNoteEditor` function to verify that it correctly creates and configures a `WebviewPanel`.
 - [ ] **F20 (VS Code Extension):** Real-time Collaboration. View real-time updates from other collaborators.
 - [ ] **F21 (VS Code Extension):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
