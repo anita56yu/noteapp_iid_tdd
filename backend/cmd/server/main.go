@@ -7,8 +7,10 @@ import (
 	"noteapp/internal/api"
 	"noteapp/internal/repository/contentrepo"
 	"noteapp/internal/repository/noterepo"
+	"noteapp/internal/repository/userrepo"
 	"noteapp/internal/usecase/contentuc"
 	"noteapp/internal/usecase/noteuc"
+	"noteapp/internal/usecase/useruc"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,11 +21,15 @@ func main() {
 	// 1. Dependency Injection
 	noteRepo := noterepo.NewInMemoryNoteRepository()
 	contentRepo := contentrepo.NewInMemoryContentRepository()
+	userRepo := userrepo.NewInMemoryUserRepository()
 
 	noteUsecase := noteuc.NewNoteUsecase(noteRepo)
 	contentUsecase := contentuc.NewContentUsecase(contentRepo)
+	userMapper := &useruc.UserMapper{}
+	userUsecase := useruc.NewUserUsecase(userRepo, userMapper)
 
 	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase)
+	userHandler := api.NewUserHandler(userUsecase)
 
 	// test data
 	n1, err := noteUsecase.CreateNote("", "Test Note 1", "testUser1")
@@ -64,6 +70,9 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any major browsers
 	}))
+
+	router.Post("/register", userHandler.Register)
+	router.Post("/login", userHandler.Login)
 
 	router.Post("/notes", noteHandler.CreateNote)
 	router.Get("/notes/{id}", noteHandler.GetNoteByID)
