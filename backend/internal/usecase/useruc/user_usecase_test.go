@@ -252,6 +252,62 @@ func TestUserUsecase_AddAccessibleNote_UserNotFound(t *testing.T) {
 	}
 }
 
+func TestUserUsecase_RemoveAccessibleNote_Success(t *testing.T) {
+	// Arrange
+	repo := userrepo.NewInMemoryUserRepository()
+	mapper := &useruc.UserMapper{}
+	usecase := useruc.NewUserUsecase(repo, mapper)
+
+	username := "testuser"
+	password := "password123"
+	userDTO, err := usecase.Register("", username, password)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+
+	noteID := "note-123"
+	if err := usecase.AddAccessibleNote(userDTO.ID, noteID); err != nil {
+		t.Fatalf("Failed to add accessible note: %v", err)
+	}
+
+	// Act
+	err = usecase.RemoveAccessibleNote(userDTO.ID, noteID)
+
+	// Assert
+	if err != nil {
+		t.Errorf("RemoveAccessibleNote() returned an unexpected error: %v", err)
+	}
+
+	userPO, err := repo.FindByID(userDTO.ID)
+	if err != nil {
+		t.Fatalf("FindByID() returned an error: %v", err)
+	}
+
+	for _, id := range userPO.AccessibleNoteIDs {
+		if id == noteID {
+			t.Errorf("Expected note ID %s to be removed from user's accessible notes", noteID)
+		}
+	}
+}
+
+func TestUserUsecase_RemoveAccessibleNote_UserNotFound(t *testing.T) {
+	// Arrange
+	repo := userrepo.NewInMemoryUserRepository()
+	mapper := &useruc.UserMapper{}
+	usecase := useruc.NewUserUsecase(repo, mapper)
+
+	userID := "nonexistent-user"
+	noteID := "note-123"
+
+	// Act
+	err := usecase.RemoveAccessibleNote(userID, noteID)
+
+	// Assert
+	if !errors.Is(err, useruc.ErrInvalidCredentials) {
+		t.Errorf("Expected error %v, got %v", useruc.ErrInvalidCredentials, err)
+	}
+}
+
 func TestUserUsecase_CheckUser(t *testing.T) {
 	// Arrange
 	repo := userrepo.NewInMemoryUserRepository()

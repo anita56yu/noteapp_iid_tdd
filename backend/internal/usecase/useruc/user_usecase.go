@@ -92,6 +92,29 @@ func (uc *UserUsecase) AddAccessibleNote(userID, noteID string) error {
 	return nil
 }
 
+// RemoveAccessibleNote removes a note ID from the user's accessible notes.
+func (uc *UserUsecase) RemoveAccessibleNote(userID, noteID string) error {
+	userPO, err := uc.repo.FindByID(userID)
+	if err != nil {
+		return mapRepositoryError(err)
+	}
+
+	domainUser, err := uc.mapper.ToDomain(userPO)
+	if err != nil {
+		return err
+	}
+
+	domainUser.RemoveAccessibleNoteID(noteID)
+
+	updatedUserPO := uc.mapper.FromDomain(domainUser)
+	err = uc.repo.Save(updatedUserPO)
+	if err != nil {
+		return mapRepositoryError(err)
+	}
+
+	return nil
+}
+
 // CheckUser checks if a user exists by their ID.
 func (uc *UserUsecase) CheckUser(userID string) (bool, error) {
 	_, err := uc.repo.FindByID(userID)

@@ -32,7 +32,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userUC.Register(req.Username, req.Password)
+	user, err := h.userUC.Register("", req.Username, req.Password)
 	if err != nil {
 		if errors.Is(err, useruc.ErrUsernameExists) {
 			http.Error(w, err.Error(), http.StatusConflict)

@@ -29,3 +29,11 @@ func (m *UserMapper) FromDomain(u *user.User) *userrepo.UserPO {
 		AccessibleNoteIDs: u.AccessibleNoteIDs(),
 	}
 }
+
+func (m *UserMapper) ToDTO(u *user.User) *UserDTO {
+	return &UserDTO{
+		ID:                u.ID(),
+		Username:          u.Username(),
+		AccessibleNoteIDs: u.AccessibleNoteIDs(),
+	}
+}

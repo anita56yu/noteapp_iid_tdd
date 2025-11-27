@@ -106,7 +106,7 @@ type ShareNoteRequest struct {
 }
 
 type RevokeAccessRequest struct {
-	UserID      string `json:"user_id"`
+	Username    string `json:"username"`
 	NoteVersion *int   `json:"note_version"`
 }
 
@@ -235,6 +235,13 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "note_version is required", http.StatusBadRequest)
 		return
 	}
+
+	noteDTO, err := h.noteUsecase.GetNoteByID(id)
+	if err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
+
 	// Now, delete the note itself.
 	if err := h.noteUsecase.DeleteNote(id, *req.NoteVersion); err != nil {
 		mapErrorToHTTPStatus(w, err)
@@ -244,6 +251,19 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	if err := h.contentUsecase.DeleteAllContentsByNoteID(id); err != nil {
 		http.Error(w, "An internal error occurred while deleting content", http.StatusInternalServerError)
 		return
+	}
+
+	// Remove from owner's accessible notes
+	if err := h.userUsecase.RemoveAccessibleNote(noteDTO.OwnerID, id); err != nil {
+		// Log error but continue? Or fail? Let's just log for now as note is already deleted
+		fmt.Printf("Failed to remove note %s from owner %s: %v\n", id, noteDTO.OwnerID, err)
+	}
+
+	// Remove from collaborators' accessible notes
+	for collaboratorID := range noteDTO.Collaborators {
+		if err := h.userUsecase.RemoveAccessibleNote(collaboratorID, id); err != nil {
+			fmt.Printf("Failed to remove note %s from collaborator %s: %v\n", id, collaboratorID, err)
+		}
 	}
 
 	// Broadcast the delete event to all connected clients.
@@ -550,8 +570,19 @@ func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "note_version is required", http.StatusBadRequest)
 		return
 	}
+	userID, err := h.userUsecase.FindUserIDByUsername(req.Username)
+	if err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
 
-	if err := h.noteUsecase.RevokeAccess(noteID, ownerID, req.UserID, *req.NoteVersion); err != nil {
+	if err := h.noteUsecase.RevokeAccess(noteID, ownerID, userID, *req.NoteVersion); err != nil {
+		mapErrorToHTTPStatus(w, err)
+		return
+	}
+
+	err = h.userUsecase.RemoveAccessibleNote(userID, noteID)
+	if err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}

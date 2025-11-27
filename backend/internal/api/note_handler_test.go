@@ -28,6 +28,7 @@ func setupTest() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase, *use
 	uuc := useruc.NewUserUsecase(userRepo, &useruc.UserMapper{})
 	uuc.Register("owner-1", "owner-1", "password")
 	uuc.Register("user2id", "user-2", "password")
+	uuc.Register("user1id", "user-1", "password")
 	handler := NewNoteHandler(nuc, cuc, uuc)
 	router := chi.NewRouter()
 	router.Post("/notes", handler.CreateNote)
@@ -329,11 +330,12 @@ func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
 
 func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 	// Arrange
-	router, nc, _, _ := setupTest()
+	router, nc, _, uuc := setupTest()
 	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
+	uuc.AddAccessibleNote("owner-1", noteID)
 
 	requestBody := DeleteNoteRequest{
 		NoteVersion: intPtr(0),
@@ -355,6 +357,55 @@ func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 	_, err = nc.GetNoteByID(noteID)
 	if err != noteuc.ErrNoteNotFound {
 		t.Errorf("expected ErrNoteNotFound after deletion, but got %v", err)
+	}
+	ownerDTO, _ := uuc.Login("owner-1", "password")
+	if len(ownerDTO.AccessibleNoteIDs) != 0 {
+		t.Errorf("expected owner to have 0 accessible notes after deletion, but got %d", len(ownerDTO.AccessibleNoteIDs))
+	}
+}
+
+func TestNoteHandler_DeleteNoteWithCollaborator_Success(t *testing.T) {
+	// Arrange
+	router, nc, _, uuc := setupTest()
+	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	uuc.AddAccessibleNote("owner-1", noteID)
+	uuc.AddAccessibleNote("user2id", noteID)
+	err = nc.ShareNote(noteID, "owner-1", "user2id", "read", 0)
+	if err != nil {
+		t.Fatalf("setup: failed to share note: %v", err)
+	}
+
+	requestBody1 := DeleteNoteRequest{
+		NoteVersion: intPtr(1),
+	}
+	body1, _ := json.Marshal(requestBody1)
+
+	req1 := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, bytes.NewBuffer(body1))
+	rr1 := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr1, req1)
+
+	// Assert
+	if rr1.Code != http.StatusNoContent {
+		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr1.Code)
+	}
+
+	// Verify the note is actually deleted
+	_, err = nc.GetNoteByID(noteID)
+	if err != noteuc.ErrNoteNotFound {
+		t.Errorf("expected ErrNoteNotFound after deletion, but got %v", err)
+	}
+	ownerDTO, _ := uuc.Login("owner-1", "password")
+	if len(ownerDTO.AccessibleNoteIDs) != 0 {
+		t.Errorf("expected owner to have 0 accessible notes after deletion, but got %d", len(ownerDTO.AccessibleNoteIDs))
+	}
+	collabDTO, _ := uuc.Login("user-2", "password")
+	if len(collabDTO.AccessibleNoteIDs) != 0 {
+		t.Errorf("expected collaborator to have 0 accessible notes after deletion, but got %d", len(collabDTO.AccessibleNoteIDs))
 	}
 }
 
@@ -1275,18 +1326,22 @@ func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
 
 func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
 	// Arrange
-	router, nc, _, _ := setupTest()
+	router, nc, _, uuc := setupTest()
 	ownerID := "owner-1"
-	collaboratorID1 := "user-1"
-	collaboratorID2 := "user-2"
+	collaboratorUsername1 := "user-1"
+	collaboratorID1 := "user1id"
+	collaboratorID2 := "user2id"
 	noteID, _ := nc.CreateNote("", "Test Note", ownerID)
 	nc.ShareNote(noteID, ownerID, collaboratorID1, "read", 0)
 	nc.ShareNote(noteID, ownerID, collaboratorID2, "read", 1)
+	uuc.AddAccessibleNote(ownerID, noteID)
+	uuc.AddAccessibleNote(collaboratorID1, noteID)
+	uuc.AddAccessibleNote(collaboratorID2, noteID)
 	nc.TagNote(noteID, collaboratorID1, "test-keyword-1", 2)
 	nc.TagNote(noteID, collaboratorID2, "test-keyword-2", 3)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"user_id":      collaboratorID1,
+		"username":     collaboratorUsername1,
 		"note_version": intPtr(4),
 	})
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
@@ -1312,18 +1367,49 @@ func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
 	if _, ok := note.Keywords[collaboratorID2]; !ok {
 		t.Errorf("Expected collaborator 2's keywords to remain, but they were removed")
 	}
+	user1DTO, _ := uuc.Login(collaboratorUsername1, "password")
+	for _, accessibleNoteID := range user1DTO.AccessibleNoteIDs {
+		if accessibleNoteID == noteID {
+			t.Errorf("Expected collaborator 1 to no longer have access to the note, but they do")
+		}
+	}
+	user2DTO, _ := uuc.Login("user-2", "password")
+	found := false
+	for _, accessibleNoteID := range user2DTO.AccessibleNoteIDs {
+		if accessibleNoteID == noteID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Expected collaborator 2 to still have access to the note, but they do not")
+	}
+	ownerDTO, _ := uuc.Login(ownerID, "password")
+	found = false
+	for _, accessibleNoteID := range ownerDTO.AccessibleNoteIDs {
+		if accessibleNoteID == noteID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Expected owner to still have access to the note, but they do not")
+	}
 }
 
 func TestNoteHandler_RevokeAccess_NotOwner(t *testing.T) {
 	// Arrange
-	router, nc, _, _ := setupTest()
+	router, nc, _, uuc := setupTest()
 	ownerID := "owner-1"
-	collaboratorID := "user-1"
+	collaboratorUsername := "user-1"
+	collaboratorID := "user1id"
 	nonOwnerID := "user-2"
 	noteID, _ := nc.CreateNote("", "Test Note", ownerID)
 	nc.ShareNote(noteID, ownerID, collaboratorID, "read", 0)
+	uuc.AddAccessibleNote(ownerID, noteID)
+	uuc.AddAccessibleNote(collaboratorID, noteID)
 
-	body, _ := json.Marshal(map[string]interface{}{"user_id": collaboratorID, "note_version": intPtr(1)})
+	body, _ := json.Marshal(map[string]interface{}{"username": collaboratorUsername, "note_version": intPtr(1)})
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+nonOwnerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
@@ -1334,17 +1420,65 @@ func TestNoteHandler_RevokeAccess_NotOwner(t *testing.T) {
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
 	}
+	ownerDTO, _ := uuc.Login(ownerID, "password")
+	found := false
+	for _, accessibleNoteID := range ownerDTO.AccessibleNoteIDs {
+		if accessibleNoteID == noteID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Expected owner to still have access to the note, but they do not")
+	}
+	collaboratorDTO, _ := uuc.Login(collaboratorUsername, "password")
+	found = false
+	for _, accessibleNoteID := range collaboratorDTO.AccessibleNoteIDs {
+		if accessibleNoteID == noteID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Expected collaborator to still have access to the note, but they do not")
+	}
+}
+
+func TestNoteHandler_RevokeAccess_UserNotFound(t *testing.T) {
+	// Arrange
+	router, nc, _, uuc := setupTest()
+	ownerID := "owner-1"
+	collaboratorID := "user1id"
+	noteID, _ := nc.CreateNote("", "Test Note", ownerID)
+	nc.ShareNote(noteID, ownerID, collaboratorID, "read", 0)
+	uuc.AddAccessibleNote(ownerID, noteID)
+	uuc.AddAccessibleNote(collaboratorID, noteID)
+
+	body, _ := json.Marshal(map[string]interface{}{"username": "non-existent-user", "note_version": intPtr(1)})
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
+	}
 }
 
 func TestNoteHandler_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	// Arrange
-	router, nc, _, _ := setupTest()
+	router, nc, _, uuc := setupTest()
 	ownerID := "owner-1"
-	collaboratorID := "user-1"
+	collaboratorID := "user1id"
+	noncollaboratorUsername := "user-2"
 	noteID, _ := nc.CreateNote("", "Test Note", ownerID)
 	nc.ShareNote(noteID, ownerID, collaboratorID, "read", 0)
+	uuc.AddAccessibleNote(ownerID, noteID)
+	uuc.AddAccessibleNote(collaboratorID, noteID)
 
-	body, _ := json.Marshal(map[string]interface{}{"user_id": "non-existent-user", "note_version": intPtr(1)})
+	body, _ := json.Marshal(map[string]interface{}{"username": noncollaboratorUsername, "note_version": intPtr(1)})
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 

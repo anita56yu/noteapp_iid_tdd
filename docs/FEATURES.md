@@ -148,16 +148,22 @@ User facing APIs should guard against illegal parameters
     - [ ] **T13.17:** In `NoteEditorSidePanelComponent`, implement handling for selected text deletion (e.g., when the 'Delete' or 'Backspace' key is pressed with a text selection). This should update the content block via `NoteService.updateContent` and reflect the change in the local state.
     - [x] **T13.18:** In `NoteDashboardComponent`, add a "New Note" button that, when clicked, creates a new note by calling a `createNote` method in `NoteService`, adds the new note to the top of the local `notes` array, and opens it in the side panel for immediate editing.
 - [ ] **F14 (Frontend):** Keyword Management. Allow users to add, remove, and search for notes by keywords.
-- [ ] **F15 (Backend):** User Management. Users can register and log in to the system.
+- [x] **F15 (Backend):** User Management. Users can register and log in to the system.
     - [x] **T15.1:** Define a `User` model in the `domain` layer with attributes like ID, username, password hash, and a list of ID of accessible notes.
     - [x] **T15.2:** Create a `UserRepository` interface and an in-memory implementation for user data persistence.
     - [x] **T15.3:** In the `usecase` layer, create a `UserMapper` to map between `domain.User` and `repository.userrepo.UserPO`.
     - [x] **T15.4:** Implement a `UserUsecase` with `Register` and `Login` methods.
     - [x] **T15.5:** Implement `POST /register` and `POST /login` API endpoints.
     - [x] **T15.6:** Implement `AddAccessibleNote` in `UserUsecase` and update the `POST /users/{ownerID}/notes/{noteID}/shares` API endpoint to call `AddAccessibleNote` when a note is shared with a user and `POST /notes` API endpoint to call `AddAccessibleNote` for the owner.
+    - [x] **T15.7:** Implement `RemoveAccessibleNote` in `UserUsecase`. Update the `RevokeAccess` handler to remove the note ID from the target user's accessible notes, and update `RevokeAccess` handler to recieve username instead of user id. Update the `DeleteNote` handler to remove the note ID from the owner's and all collaborators' accessible notes.
 - [x] **F16 (VS Code Extension Frontend):** Integrate the VS Code extension as a frontend for the note app.
     - [x] **T16.1:** Initialize the VS Code extension frontend.
 - [ ] **F17 (VS Code Extension):** User Authentication. Users can log in to access their notes.
+    - [ ] **T17.1:** Create an `AuthService` in the VS Code extension to handle registration and login API calls.
+    - [ ] **T17.2:** Implement commands `note-app.register` and `note-app.login` in `extension.ts` that use `AuthService` and prompt the user for credentials.
+    - [ ] **T17.3:** Store the logged-in `UserDTO` (specifically `id`) in the extension's global state to persist the session.
+    - [ ] **T17.4:** Update `NoteTreeDataProvider` to use the stored user ID from `AuthService` (or global state) instead of a hardcoded value.
+    - [ ] **T17.5:** Add a status bar item to display the currently logged-in user and a command to log out.
 - [ ] **F18 (VS Code Extension):** Note Dashboard. Display all notes accessible to the logged-in user in a tree view.
     - [x] **T18.1:** In `package.json`, declare a custom view container and a tree view to be displayed in the VS Code activity bar.
     - [x] **T18.2:** Create a `NoteTreeDataProvider` class that implements VS Code's `TreeDataProvider` interface.

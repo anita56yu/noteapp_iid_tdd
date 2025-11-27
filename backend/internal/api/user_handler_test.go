@@ -65,7 +65,7 @@ func TestUserHandler_Register_Success(t *testing.T) {
 
 func TestUserHandler_Register_UsernameExists(t *testing.T) {
 	router, uc, _ := setupUserTest()
-	uc.Register("existinguser", "password123")
+	uc.Register("", "existinguser", "password123")
 
 	reqBody := RegisterRequest{
 		Username: "existinguser",
@@ -103,7 +103,7 @@ func TestUserHandler_Register_InvalidInput(t *testing.T) {
 
 func TestUserHandler_Login_Success(t *testing.T) {
 	router, uc, _ := setupUserTest()
-	uc.Register("testuser", "password123")
+	uc.Register("", "testuser", "password123")
 
 	reqBody := LoginRequest{
 		Username: "testuser",
@@ -133,7 +133,7 @@ func TestUserHandler_Login_Success(t *testing.T) {
 
 func TestUserHandler_Login_InvalidCredentials(t *testing.T) {
 	router, uc, _ := setupUserTest()
-	uc.Register("testuser", "password123")
+	uc.Register("", "testuser", "password123")
 
 	reqBody := LoginRequest{
 		Username: "testuser",

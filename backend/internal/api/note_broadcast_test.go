@@ -8,8 +8,10 @@ import (
 	"net/http/httptest"
 	"noteapp/internal/repository/contentrepo"
 	"noteapp/internal/repository/noterepo"
+	"noteapp/internal/repository/userrepo"
 	"noteapp/internal/usecase/contentuc"
 	"noteapp/internal/usecase/noteuc"
+	"noteapp/internal/usecase/useruc"
 	"strings"
 	"testing"
 	"time"
@@ -21,9 +23,12 @@ import (
 func setupTestForBroadcast() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase, *ConnectionManager) {
 	noteRepo := noterepo.NewInMemoryNoteRepository()
 	contentRepo := contentrepo.NewInMemoryContentRepository()
+	userRepo := userrepo.NewInMemoryUserRepository()
 	nuc := noteuc.NewNoteUsecase(noteRepo)
 	cuc := contentuc.NewContentUsecase(contentRepo)
-	handler := NewNoteHandler(nuc, cuc)
+	uuc := useruc.NewUserUsecase(userRepo, &useruc.UserMapper{})
+	handler := NewNoteHandler(nuc, cuc, uuc)
+	uuc.Register("owner-1", "owneruser", "password")
 
 	router := chi.NewRouter()
 	router.Post("/notes", handler.CreateNote)
