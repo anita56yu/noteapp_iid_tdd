@@ -2,10 +2,10 @@
 This instruction describes the TDD loop you and I will follow to complete a task.
 
 1. Write a failing test, one test at a time:
-    - Read the existing tests, and write in similar style.
     - You will help me create the boilerplate test, including a good test name in a suitable test suite.
     - We will then write the **Arrange-Act-Assert (AAA)** test code.
     - You will run the build to confirm it fails.
+    - Whenever you try to modify an existing testcase due to a new feature, disscuss with me before modifying.
 2. Write code to pass the test:
     - You will ask me before generating any function prototype without implementation
     - You or me will write the minimal implementation code to make the test pass.
@@ -18,6 +18,8 @@ This instruction describes the TDD loop you and I will follow to complete a task
 5. Commit:
     - You will mark the task as complete in ./FEATURES.md.
     - You will propose a **short commit message including the task ID** and, after my approval, commit the code.
+6. Back to Implementation:
+    - You will revisit ./IMPLEMENTATION.md to complete the step.
 
 ## Test Case Coding style
 **write tests like this:**

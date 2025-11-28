@@ -107,6 +107,10 @@ User facing APIs should guard against illegal parameters
 - [ ] **F6:** Multi-Device Synchronization. User's notes and keywords are synchronized across all their devices.
 - [ ] **F7:** API Security. APIs validate input to prevent errors and misuse.
     - [ ] **T7.1:** Implement a production-safe `CheckOrigin` function for WebSockets, using an environment variable to manage a whitelist of allowed origins.
+    - [x] **T7.2:** Implement a JWT-based authentication middleware as a standalone component, used by the API handlers to protect endpoints. This includes integrating a Go JWT library.
+    - [ ] **T7.3:** Update the `Login` use case and handler to generate and return a JWT upon successful internal authentication.
+    - [ ] **T7.4:** Apply the authentication middleware to all relevant API endpoints that require a logged-in user.
+    - [ ] **T7.5:** Enhance the middleware to extract the user's identity (e.g., user ID) from the validated JWT and pass it to the downstream handlers via the request context.
 - [ ] **F8:** Decouple Data Persistence with a Repository Layer.
     - [x] **T8.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
     - [x] **T8.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
