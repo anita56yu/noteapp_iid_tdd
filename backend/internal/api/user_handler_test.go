@@ -10,13 +10,16 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 )
+
+var testJwtSecret = []byte("supersecretkey")
 
 func setupUserTest() (*chi.Mux, *useruc.UserUsecase, userrepo.UserRepository) {
 	repo := userrepo.NewInMemoryUserRepository()
 	mapper := &useruc.UserMapper{}
 	uc := useruc.NewUserUsecase(repo, mapper)
-	handler := NewUserHandler(uc)
+	handler := NewUserHandler(uc, testJwtSecret)
 
 	router := chi.NewRouter()
 	router.Post("/register", handler.Register)
@@ -101,9 +104,9 @@ func TestUserHandler_Register_InvalidInput(t *testing.T) {
 	}
 }
 
-func TestUserHandler_Login_Success(t *testing.T) {
+func TestUserHandler_Login_ReturnsJWT_Success(t *testing.T) {
 	router, uc, _ := setupUserTest()
-	uc.Register("", "testuser", "password123")
+	registeredUser, _ := uc.Register("", "testuser", "password123") // Register user first
 
 	reqBody := LoginRequest{
 		Username: "testuser",
@@ -119,15 +122,45 @@ func TestUserHandler_Login_Success(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
 	}
 
-	var user useruc.UserDTO
-	if err := json.NewDecoder(rr.Body).Decode(&user); err != nil {
+	var res LoginResponse
+	if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if user.Username != reqBody.Username {
-		t.Errorf("expected username %s; got %s", reqBody.Username, user.Username)
+
+	if res.Token == "" {
+		t.Error("expected a non-empty token in response")
 	}
-	if user.ID == "" {
-		t.Error("expected non-empty user ID")
+
+	// Validate the JWT token
+	token, err := jwt.Parse(res.Token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return testJwtSecret, nil
+	})
+
+	if err != nil {
+		t.Fatalf("failed to parse JWT token: %v", err)
+	}
+
+	if !token.Valid {
+		t.Error("generated token is not valid")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		t.Fatalf("failed to get claims from token")
+	}
+
+	if claims["user_id"] != registeredUser.ID {
+		t.Errorf("expected user_id %s in token claims, got %s", registeredUser.ID, claims["user_id"])
+	}
+
+	if res.UserID != registeredUser.ID {
+		t.Errorf("expected UserID %s in response, got %s", registeredUser.ID, res.UserID)
+	}
+	if res.Username != registeredUser.Username {
+		t.Errorf("expected Username %s in response, got %s", registeredUser.Username, res.Username)
 	}
 }
 

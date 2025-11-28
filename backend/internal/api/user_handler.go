@@ -4,15 +4,20 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"noteapp/internal/auth"
 	"noteapp/internal/usecase/useruc"
 )
 
 type UserHandler struct {
-	userUC *useruc.UserUsecase
+	userUC    *useruc.UserUsecase
+	jwtSecret []byte
 }
 
-func NewUserHandler(userUC *useruc.UserUsecase) *UserHandler {
-	return &UserHandler{userUC: userUC}
+func NewUserHandler(userUC *useruc.UserUsecase, jwtSecret []byte) *UserHandler {
+	return &UserHandler{
+		userUC:    userUC,
+		jwtSecret: jwtSecret,
+	}
 }
 
 type RegisterRequest struct {
@@ -23,6 +28,12 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Token    string `json:"token"`
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +79,19 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenString, err := auth.GenerateJWT(user.ID, h.jwtSecret)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	res := LoginResponse{
+		Token:    tokenString,
+		UserID:   user.ID,
+		Username: user.Username,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(res)
 }

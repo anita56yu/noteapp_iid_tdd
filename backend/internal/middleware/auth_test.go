@@ -9,12 +9,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func generateTestToken(userID string) (string, error) {
+var testJwtSecret = []byte("testsecret")
+
+func generateTestToken(userID string, secret []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
 	})
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(secret)
 	if err != nil {
 		return "", err
 	}
@@ -23,7 +25,7 @@ func generateTestToken(userID string) (string, error) {
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	userID := "test-user-id"
-	token, err := generateTestToken(userID)
+	token, err := generateTestToken(userID, testJwtSecret)
 	if err != nil {
 		t.Fatalf("Failed to generate test token: %v", err)
 	}
@@ -46,7 +48,8 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	handler := AuthMiddleware(nextHandler)
+	middleware := NewAuthMiddleware(testJwtSecret)
+	handler := middleware(nextHandler)
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -70,7 +73,8 @@ func TestAuthMiddleware_MissingToken(t *testing.T) {
 		handled = true
 	})
 
-	handler := AuthMiddleware(nextHandler)
+	middleware := NewAuthMiddleware(testJwtSecret)
+	handler := middleware(nextHandler)
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
@@ -95,7 +99,8 @@ func TestAuthMiddleware_InvalidTokenFormat(t *testing.T) {
 		handled = true
 	})
 
-	handler := AuthMiddleware(nextHandler)
+	middleware := NewAuthMiddleware(testJwtSecret)
+	handler := middleware(nextHandler)
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
@@ -108,13 +113,8 @@ func TestAuthMiddleware_InvalidTokenFormat(t *testing.T) {
 
 func TestAuthMiddleware_InvalidSignature(t *testing.T) {
 	userID := "test-user-id"
-	// Generate a token with a different secret
 	badSecret := []byte("wrongsecret")
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-	})
-	badTokenString, err := token.SignedString(badSecret)
+	badTokenString, err := generateTestToken(userID, badSecret)
 	if err != nil {
 		t.Fatalf("Failed to generate bad test token: %v", err)
 	}
@@ -132,7 +132,8 @@ func TestAuthMiddleware_InvalidSignature(t *testing.T) {
 		handled = true
 	})
 
-	handler := AuthMiddleware(nextHandler)
+	middleware := NewAuthMiddleware(testJwtSecret)
+	handler := middleware(nextHandler)
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
@@ -148,7 +149,7 @@ func TestAuthMiddleware_TokenWithoutUserIDClaim(t *testing.T) {
 		"foo": "bar",
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 	})
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(testJwtSecret)
 	if err != nil {
 		t.Fatalf("Failed to generate test token: %v", err)
 	}
@@ -166,7 +167,8 @@ func TestAuthMiddleware_TokenWithoutUserIDClaim(t *testing.T) {
 		handled = true
 	})
 
-	handler := AuthMiddleware(nextHandler)
+	middleware := NewAuthMiddleware(testJwtSecret)
+	handler := middleware(nextHandler)
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
