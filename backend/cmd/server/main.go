@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"noteapp/internal/api"
+	"noteapp/internal/middleware"
 	"noteapp/internal/repository/contentrepo"
 	"noteapp/internal/repository/noterepo"
 	"noteapp/internal/repository/userrepo"
@@ -13,11 +14,14 @@ import (
 	"noteapp/internal/usecase/useruc"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
 func main() {
+	// TODO: Move this to a configuration or environment variable in a production environment.
+	var jwtSecret = []byte("supersecretkey")
+
 	// 1. Dependency Injection
 	noteRepo := noterepo.NewInMemoryNoteRepository()
 	contentRepo := contentrepo.NewInMemoryContentRepository()
@@ -29,7 +33,7 @@ func main() {
 	userUsecase := useruc.NewUserUsecase(userRepo, userMapper)
 
 	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase, userUsecase)
-	userHandler := api.NewUserHandler(userUsecase)
+	userHandler := api.NewUserHandler(userUsecase, jwtSecret)
 
 	// test data
 	n1, err := noteUsecase.CreateNote("", "Test Note 1", "testUser1")
@@ -48,7 +52,7 @@ func main() {
 
 	// 2. Routing
 	router := chi.NewRouter()
-	router.Use(middleware.Logger) // Add a logger middleware
+	router.Use(chiMiddleware.Logger) // Add a logger middleware
 
 	// Custom middleware to log the Origin header
 	router.Use(func(next http.Handler) http.Handler {
@@ -71,19 +75,25 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by any major browsers
 	}))
 
+	// Public routes
 	router.Post("/register", userHandler.Register)
 	router.Post("/login", userHandler.Login)
 
-	router.Post("/notes", noteHandler.CreateNote)
-	router.Get("/notes/{id}", noteHandler.GetNoteByID)
-	router.Delete("/notes/{id}", noteHandler.DeleteNote)
-	router.Put("/notes/{id}", noteHandler.UpdateNote)
-	router.Post("/notes/{id}/contents", noteHandler.AddContent)
-	router.Put("/notes/{id}/contents/{contentId}", noteHandler.UpdateContent)
-	router.Delete("/notes/{id}/contents/{contentId}", noteHandler.DeleteContent)
-	router.Get("/users/{userID}/accessible-notes", noteHandler.GetAccessibleNotesForUser)
-	router.Delete("/users/{ownerID}/notes/{noteID}/shares", noteHandler.RevokeAccess)
-	router.Get("/notes/{noteID}/ws", noteHandler.HandleWebSocket)
+	// Protected routes
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.NewAuthMiddleware(jwtSecret)) // Use our new AuthMiddleware
+
+		r.Post("/notes", noteHandler.CreateNote)
+		r.Get("/notes/{id}", noteHandler.GetNoteByID)
+		r.Delete("/notes/{id}", noteHandler.DeleteNote)
+		r.Put("/notes/{id}", noteHandler.UpdateNote)
+		r.Post("/notes/{id}/contents", noteHandler.AddContent)
+		r.Put("/notes/{id}/contents/{contentId}", noteHandler.UpdateContent)
+		r.Delete("/notes/{id}/contents/{contentId}", noteHandler.DeleteContent)
+		r.Get("/users/{userID}/accessible-notes", noteHandler.GetAccessibleNotesForUser)
+		r.Delete("/users/{ownerID}/notes/{noteID}/shares", noteHandler.RevokeAccess)
+		r.Get("/notes/{noteID}/ws", noteHandler.HandleWebSocket)
+	})
 
 	// 3. Server Startup
 	port := ":8080"

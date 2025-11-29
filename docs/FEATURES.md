@@ -109,8 +109,10 @@ User facing APIs should guard against illegal parameters
     - [ ] **T7.1:** Implement a production-safe `CheckOrigin` function for WebSockets, using an environment variable to manage a whitelist of allowed origins.
     - [x] **T7.2:** Implement a JWT-based authentication middleware as a standalone component, used by the API handlers to protect endpoints. This includes integrating a Go JWT library.
     - [x] **T7.3:** Update the `Login` use case and handler to generate and return a JWT upon successful internal authentication.
-    - [ ] **T7.4:** Apply the authentication middleware to all relevant API endpoints that require a logged-in user.
-    - [ ] **T7.5:** Enhance the middleware to extract the user's identity (e.g., user ID) from the validated JWT and pass it to the downstream handlers via the request context.
+    - [x] **T7.4:** Apply the authentication middleware to all relevant API endpoints that require a logged-in user.
+    - [x] **T7.5:** Enhance the middleware to extract the user's identity (e.g., user ID) from the validated JWT and pass it to the downstream handlers via the request context.
+    - [ ] **T7.6:** Refactor user-specific endpoints to remove userID/ownerID from URL paths, relying on the authenticated user's ID from the JWT context for authorization.
+    - [ ] **T7.7:** Refactor API handlers (e.g., `CreateNote`, `UpdateNote`, `DeleteNote`, `AddContent`, `UpdateContent`, `DeleteContent`) to extract the authenticated `userID` from the request context. This `userID` will then be passed to the use case layer to perform authorization checks (e.g., verifying note ownership and permissions).
 - [ ] **F8:** Decouple Data Persistence with a Repository Layer.
     - [x] **T8.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
     - [x] **T8.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
