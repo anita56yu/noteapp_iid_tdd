@@ -111,7 +111,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T7.3:** Update the `Login` use case and handler to generate and return a JWT upon successful internal authentication.
     - [x] **T7.4:** Apply the authentication middleware to all relevant API endpoints that require a logged-in user.
     - [x] **T7.5:** Enhance the middleware to extract the user's identity (e.g., user ID) from the validated JWT and pass it to the downstream handlers via the request context.
-    - [ ] **T7.6:** Refactor user-specific endpoints to remove userID/ownerID from URL paths, relying on the authenticated user's ID from the JWT context for authorization.
+    - [x] **T7.6:** Refactor user-specific endpoints to remove userID/ownerID from URL paths, relying on the authenticated user's ID from the JWT context for authorization. For testing, a mock authentication middleware will be created to read a user ID from a custom `X-Test-User-ID` header. A helper function will generate authenticated requests with this header, and relevant tests will be refactored to use this new approach.
     - [ ] **T7.7:** Refactor API handlers (e.g., `CreateNote`, `UpdateNote`, `DeleteNote`, `AddContent`, `UpdateContent`, `DeleteContent`) to extract the authenticated `userID` from the request context. This `userID` will then be passed to the use case layer to perform authorization checks (e.g., verifying note ownership and permissions).
 - [ ] **F8:** Decouple Data Persistence with a Repository Layer.
     - [x] **T8.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).

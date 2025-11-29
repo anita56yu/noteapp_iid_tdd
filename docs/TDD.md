@@ -112,7 +112,7 @@ unc TestUserAccessibleNotes(t *testing.T) {
 write commit message as a one-liner in this style:
 
 ```bash
-git commit -m "feat(backend): Implement UserRepository and UserPO (T15.2)"
+git commit -m "feat(backend) T7.5: Implement UserRepository and UserPO"
 ```
 
 don't write commit message that are too verbal like this:

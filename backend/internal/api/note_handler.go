@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"noteapp/internal/middleware"
 	"noteapp/internal/usecase/contentuc"
 	"noteapp/internal/usecase/noteuc"
 	"noteapp/internal/usecase/useruc"
@@ -53,8 +54,7 @@ type WebSocketEvent struct {
 
 // CreateNoteRequest represents the request body for creating a note.
 type CreateNoteRequest struct {
-	Title   string `json:"title"`
-	OwnerID string `json:"owner_id"`
+	Title string `json:"title"`
 }
 
 // CreateNoteResponse represents the response body for creating a note.
@@ -131,20 +131,25 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: user ID not found in context", http.StatusUnauthorized)
+		return
+	}
 	//make sure owner exists
-	if _, err := h.userUsecase.CheckUser(req.OwnerID); err != nil {
+	if _, err := h.userUsecase.CheckUser(userID); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
-	noteID, err := h.noteUsecase.CreateNote("", req.Title, req.OwnerID)
+	noteID, err := h.noteUsecase.CreateNote("", req.Title, userID)
 	if err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
 	// Add the note to the owner's accessible notes
-	if err := h.userUsecase.AddAccessibleNote(req.OwnerID, noteID); err != nil {
+	if err := h.userUsecase.AddAccessibleNote(userID, noteID); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
@@ -222,6 +227,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteNote is the handler for the DELETE /notes/{id} endpoint.
+// TODO: should check ownership before deleting
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -417,10 +423,15 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// TagNote is the handler for the POST /users/{userID}/notes/{noteID}/keyword endpoint.
+// TagNote is the handler for the POST /notes/{noteID}/keyword endpoint.
 func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userID")
 	noteID := chi.URLParam(r, "noteID")
+
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	var req TagNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -443,8 +454,12 @@ func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
 
 // FindNotesByKeyword is the handler for the GET /users/{userID}/notes?keyword={keyword} endpoint.
 func (h *NoteHandler) FindNotesByKeyword(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userID")
 	keyword := r.URL.Query().Get("keyword")
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	notes, err := h.noteUsecase.FindNotesByKeyword(userID, keyword)
 	if err != nil {
@@ -459,9 +474,14 @@ func (h *NoteHandler) FindNotesByKeyword(w http.ResponseWriter, r *http.Request)
 
 // UntagNote is the handler for the DELETE /users/{userID}/notes/{noteID}/keyword/{keyword} endpoint.
 func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userID")
 	noteID := chi.URLParam(r, "noteID")
 	keyword := chi.URLParam(r, "keyword")
+
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	var req UntagNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -484,8 +504,13 @@ func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
 
 // ShareNote is the handler for the POST /users/{ownerID}/notes/{noteID}/shares endpoint.
 func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
-	ownerID := chi.URLParam(r, "ownerID")
 	noteID := chi.URLParam(r, "noteID")
+
+	ownerID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	var req ShareNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -520,7 +545,12 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 
 // GetAccessibleNotesForUser is the handler for the GET /users/{userID}/notes endpoint.
 func (h *NoteHandler) GetAccessibleNotesForUser(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userID")
+
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	notesDTO, err := h.noteUsecase.GetAccessibleNotesForUser(userID)
 	if err != nil {
@@ -557,8 +587,13 @@ func (h *NoteHandler) GetAccessibleNotesForUser(w http.ResponseWriter, r *http.R
 
 // RevokeAccess is the handler for the DELETE /users/{ownerID}/notes/{noteID}/shares endpoint.
 func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
-	ownerID := chi.URLParam(r, "ownerID")
 	noteID := chi.URLParam(r, "noteID")
+
+	ownerID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	var req RevokeAccessRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

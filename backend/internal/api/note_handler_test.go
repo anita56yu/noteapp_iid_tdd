@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"noteapp/internal/middleware"
 	"noteapp/internal/repository/contentrepo"
 	"noteapp/internal/repository/noterepo"
 	"noteapp/internal/repository/userrepo"
@@ -31,19 +32,22 @@ func setupTest() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase, *use
 	uuc.Register("user1id", "user-1", "password")
 	handler := NewNoteHandler(nuc, cuc, uuc)
 	router := chi.NewRouter()
-	router.Post("/notes", handler.CreateNote)
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.MockAuthMiddleware())
+		r.Post("/notes", handler.CreateNote)
+		r.Post("/notes/{noteID}/keyword", handler.TagNote)
+		r.Get("/notes", handler.FindNotesByKeyword)
+		r.Delete("/notes/{noteID}/keyword/{keyword}", handler.UntagNote)
+		r.Post("/notes/{noteID}/shares", handler.ShareNote)
+		r.Delete("/notes/{noteID}/shares", handler.RevokeAccess)
+		r.Get("/notes/accessible-notes", handler.GetAccessibleNotesForUser)
+	})
 	router.Get("/notes/{id}", handler.GetNoteByID)
 	router.Put("/notes/{id}", handler.UpdateNote)
 	router.Delete("/notes/{id}", handler.DeleteNote)
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
-	router.Post("/users/{userID}/notes/{noteID}/keyword", handler.TagNote)
-	router.Get("/users/{userID}/notes", handler.FindNotesByKeyword)
-	router.Delete("/users/{userID}/notes/{noteID}/keyword/{keyword}", handler.UntagNote)
-	router.Post("/users/{ownerID}/notes/{noteID}/shares", handler.ShareNote)
-	router.Delete("/users/{ownerID}/notes/{noteID}/shares", handler.RevokeAccess)
-	router.Get("/users/{userID}/accessible-notes", handler.GetAccessibleNotesForUser)
 
 	router.Get("/ws/notes/{noteID}", handler.HandleWebSocket)
 	return router, nuc, cuc, uuc
@@ -60,7 +64,7 @@ func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
 	nc.TagNote(note2, "user-1", "testing", 0)
 	nc.TagNote(note3, "user-2", "testing", 0)
 
-	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=testing", nil)
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes?keyword=testing", "user-1", nil)
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -90,7 +94,7 @@ func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
 	nc.TagNote(note2, "user-1", "testing", 0)
 	nc.TagNote(note3, "user-2", "testing", 0)
 
-	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=go", nil)
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes?keyword=go", "user-1", nil)
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -116,7 +120,7 @@ func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 
 	nc.TagNote(note1, "user-1", "testing", 0)
 
-	req := httptest.NewRequest(http.MethodGet, "/users/user-1/notes?keyword=", nil)
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes?keyword=", "user-1", nil)
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -513,12 +517,12 @@ func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 func TestNoteHandler_CreateNote_Success(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
+	ownerID := "owner-1"
 	requestBody := CreateNoteRequest{
-		OwnerID: "owner-1",
-		Title:   "Test Title",
+		Title: "Test Title",
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -550,12 +554,12 @@ func TestNoteHandler_CreateNote_Success(t *testing.T) {
 func TestNoteHandler_CreateNote_UserNotFound(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
+	nonExistentUserID := "non-existent-user"
 	requestBody := CreateNoteRequest{
-		OwnerID: "non-existent-user",
-		Title:   "Test Title",
+		Title: "Test Title",
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes", nonExistentUserID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -570,8 +574,9 @@ func TestNoteHandler_CreateNote_UserNotFound(t *testing.T) {
 func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
+	ownerID := "owner-1"
 	invalidBody := []byte(`{"title": "Test", "content":`) // Malformed JSON
-	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(invalidBody))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes", ownerID, bytes.NewBuffer(invalidBody))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -586,9 +591,10 @@ func TestNoteHandler_CreateNote_InvalidJSON(t *testing.T) {
 func TestNoteHandler_CreateNote_EmptyTitle(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
-	requestBody := CreateNoteRequest{Title: "", OwnerID: "owner-1"}
+	requestBody := CreateNoteRequest{Title: ""}
+	ownerID := "owner-1"
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -856,11 +862,11 @@ func TestNoteHandler_TagNote_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
-	userID := "user-1"
+	userID := "user1id"
 	keyword := "test-keyword"
 	requestBody := TagNoteRequest{Keyword: keyword, NoteVersion: intPtr(0)}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/keyword", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/keyword", userID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -889,7 +895,7 @@ func TestNoteHandler_TagNote_NoteNotFound(t *testing.T) {
 	keyword := "test-keyword"
 	requestBody := TagNoteRequest{Keyword: keyword, NoteVersion: intPtr(0)}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/non-existent-id/keyword", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/non-existent-id/keyword", userID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -908,10 +914,10 @@ func TestNoteHandler_TagNote_EmptyKeyword(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
-	userID := "user-1"
+	userID := "userid1"
 	requestBody := TagNoteRequest{Keyword: "", NoteVersion: intPtr(0)}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+userID+"/notes/"+noteID+"/keyword", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/keyword", userID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -938,7 +944,7 @@ func TestNoteHandler_UntagNote_Success(t *testing.T) {
 	requestBody := UntagNoteRequest{NoteVersion: intPtr(2)}
 	body, _ := json.Marshal(requestBody)
 
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID1+"/notes/"+noteID+"/keyword/"+keyword, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/keyword/"+keyword, userID1, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -965,7 +971,7 @@ func TestNoteHandler_UntagNote_NoteNotFound(t *testing.T) {
 	router, _, _, _ := setupTest()
 	requestBody := UntagNoteRequest{NoteVersion: intPtr(0)}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodDelete, "/users/user-1/notes/non-existent-id/keyword/test-keyword", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/non-existent-id/keyword/test-keyword", "user-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -989,7 +995,7 @@ func TestNoteHandler_UntagNote_UserNotFound(t *testing.T) {
 	nc.TagNote(noteID, userID, keyword, 0)
 	requestBody := UntagNoteRequest{NoteVersion: intPtr(1)}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodDelete, "/users/non-existent-user/notes/"+noteID+"/keyword/"+keyword, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/keyword/"+keyword, "non-existent-user", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1013,8 +1019,7 @@ func TestNoteHandler_UntagNote_KeywordNotFound(t *testing.T) {
 	nc.TagNote(noteID, userID, keyword, 0)
 	requestBody := UntagNoteRequest{NoteVersion: intPtr(1)}
 	body, _ := json.Marshal(requestBody)
-
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+userID+"/notes/"+noteID+"/keyword/non-existent-keyword", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/keyword/non-existent-keyword", userID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1044,7 +1049,7 @@ func TestNoteHandler_ShareNote_Success(t *testing.T) {
 		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1092,7 +1097,7 @@ func TestNoteHandler_ShareNote_Unauthorized(t *testing.T) {
 		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+nonOwnerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/shares", nonOwnerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1124,7 +1129,7 @@ func TestNoteHandler_ShareNote_NoteNotFound(t *testing.T) {
 		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+nonExistentNoteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+nonExistentNoteID+"/shares", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1160,7 +1165,7 @@ func TestNoteHandler_ShareNote_InvalidPermission(t *testing.T) {
 		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1197,7 +1202,7 @@ func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 		"note_version": 0,
 	}
 	initialBody, _ := json.Marshal(initialRequestBody)
-	initialReq := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(initialBody))
+	initialReq := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(initialBody))
 	initialRR := httptest.NewRecorder()
 	router.ServeHTTP(initialRR, initialReq)
 	if initialRR.Code != http.StatusCreated {
@@ -1211,7 +1216,7 @@ func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 		"note_version": 1,
 	}
 	updateBody, _ := json.Marshal(updateRequestBody)
-	updateReq := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(updateBody))
+	updateReq := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(updateBody))
 	updateRR := httptest.NewRecorder()
 
 	// Act
@@ -1258,7 +1263,7 @@ func TestNoteHandler_ShareNote_CollaboratorNotFound(t *testing.T) {
 		"note_version": 0,
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1303,7 +1308,7 @@ func TestNoteHandler_GetAccessibleNotesForUser(t *testing.T) {
 		t.Fatalf("failed to share note: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/users/"+userID+"/accessible-notes", nil)
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes/accessible-notes", userID, nil)
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1344,7 +1349,7 @@ func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
 		"username":     collaboratorUsername1,
 		"note_version": intPtr(4),
 	})
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1410,7 +1415,7 @@ func TestNoteHandler_RevokeAccess_NotOwner(t *testing.T) {
 	uuc.AddAccessibleNote(collaboratorID, noteID)
 
 	body, _ := json.Marshal(map[string]interface{}{"username": collaboratorUsername, "note_version": intPtr(1)})
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+nonOwnerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/shares", nonOwnerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1455,7 +1460,7 @@ func TestNoteHandler_RevokeAccess_UserNotFound(t *testing.T) {
 	uuc.AddAccessibleNote(collaboratorID, noteID)
 
 	body, _ := json.Marshal(map[string]interface{}{"username": "non-existent-user", "note_version": intPtr(1)})
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1479,7 +1484,7 @@ func TestNoteHandler_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	uuc.AddAccessibleNote(collaboratorID, noteID)
 
 	body, _ := json.Marshal(map[string]interface{}{"username": noncollaboratorUsername, "note_version": intPtr(1)})
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+ownerID+"/notes/"+noteID+"/shares", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/shares", ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
