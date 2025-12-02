@@ -73,15 +73,18 @@ func setUpRepositoryAndUsecaseWithTaggedNotes() (*noterepo.InMemoryNoteRepositor
 	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
 	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-2")
 	note3, _ := noteUsecase.CreateNote("", "Note 3", "owner-3")
+	noteUsecase.ShareNote(note1, "owner-1", "user-1", "read", 0)
+	noteUsecase.ShareNote(note1, "owner-1", "user-2", "read", 1)
 	noteUsecase.ShareNote(note2, "owner-2", "user-1", "read", 0)
 	noteUsecase.ShareNote(note2, "owner-2", "user-2", "read", 1)
-	noteUsecase.TagNote(note1, "user-1", "go", 0)
-	noteUsecase.TagNote(note1, "user-1", "testing", 1)
-	noteUsecase.TagNote(note1, "user-2", "go", 2)
+	noteUsecase.ShareNote(note3, "owner-3", "user-2", "read", 0)
+	noteUsecase.TagNote(note1, "user-1", "go", 2)
+	noteUsecase.TagNote(note1, "user-1", "testing", 3)
+	noteUsecase.TagNote(note1, "user-2", "go", 4)
 	noteUsecase.TagNote(note2, "user-1", "testing", 2)
 	noteUsecase.TagNote(note2, "user-2", "java", 3)
-	noteUsecase.TagNote(note3, "user-2", "java", 0)
-	noteUsecase.TagNote(note3, "user-2", "testing", 1)
+	noteUsecase.TagNote(note3, "user-2", "java", 1)
+	noteUsecase.TagNote(note3, "user-2", "testing", 2)
 
 	return repo, noteUsecase, note1, note2, note3
 }
@@ -186,7 +189,7 @@ func TestNoteUsecase_GetNoteByID(t *testing.T) {
 	_, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	noteDTO, err := noteUsecase.GetNoteByID(id)
+	noteDTO, err := noteUsecase.GetNoteByID(id, "owner-1")
 	if err != nil {
 		t.Fatalf("GetNoteByID() returned an unexpected error: %v", err)
 	}
@@ -208,7 +211,7 @@ func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
 	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	_, err := noteUsecase.GetNoteByID("non-existent-id")
+	_, err := noteUsecase.GetNoteByID("non-existent-id", "owner-1")
 
 	// Assert
 	if err == nil {
@@ -224,7 +227,7 @@ func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
 	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	_, err := noteUsecase.GetNoteByID("") // Empty ID
+	_, err := noteUsecase.GetNoteByID("", "owner-1") // Empty ID
 
 	// Assert
 	if err == nil {
@@ -240,7 +243,7 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.DeleteNote(id, 0)
+	err := noteUsecase.DeleteNote(id, "owner-1", 0)
 	if err != nil {
 		t.Fatalf("DeleteNote() returned an unexpected error: %v", err)
 	}
@@ -252,12 +255,29 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 	}
 }
 
+func TestNoteUsecase_DeleteNote_Unauthorized(t *testing.T) {
+	// Arrange
+	repo, noteUsecase, id := setUpRepositoryAndUsecaseWithNote()
+
+	// Act
+	err := noteUsecase.DeleteNote(id, "unauthorized-user", 0)
+	if err != ErrPermissionDenied {
+		t.Fatalf("Expected error %v, but got %v", ErrPermissionDenied, err)
+	}
+
+	// Assert
+	_, err = repo.FindByID(id)
+	if err != nil {
+		t.Errorf("Expected note to still exist, but got error: %v", err)
+	}
+}
+
 func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
 	// Arrange
 	_, noteUsecase := setUpRepositoryAndUsecase()
 
 	// Act
-	err := noteUsecase.DeleteNote("non-existent-id", 0)
+	err := noteUsecase.DeleteNote("non-existent-id", "owner-1", 0)
 
 	// Assert
 	if err == nil {
@@ -273,7 +293,7 @@ func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.DeleteNote("", 0) // Empty ID
+	err := noteUsecase.DeleteNote("", "owner-1", 0) // Empty ID
 
 	// Assert
 	if err == nil {
@@ -289,7 +309,7 @@ func TestNoteUsecase_DeleteNote_Conflict(t *testing.T) {
 	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.DeleteNote(noteID, 99) // Incorrect version
+	err := noteUsecase.DeleteNote(noteID, "owner-1", 99) // Incorrect version
 
 	// Assert
 	if err == nil {
@@ -305,7 +325,7 @@ func TestNoteUsecase_GetNoteByID_WithMultipleContents(t *testing.T) {
 	_, noteUsecase, noteID, contentID, contentID1 := setUpRepositoryAndUsecaseWithNoteAndContents()
 
 	// Act
-	noteDTO, err := noteUsecase.GetNoteByID(noteID)
+	noteDTO, err := noteUsecase.GetNoteByID(noteID, "owner-1")
 
 	// Assert
 	if err != nil {
@@ -333,7 +353,7 @@ func TestNoteUsecase_RemoveContent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RemoveContent() returned an unexpected error: %v", err)
 	}
-	note, err := noteUsecase.GetNoteByID(noteID)
+	note, err := noteUsecase.GetNoteByID(noteID, "owner-1")
 	if err != nil {
 		t.Fatalf("GetNoteByID() failed: %v", err)
 	}
@@ -398,9 +418,10 @@ func TestNoteUsecase_TagNote(t *testing.T) {
 	repo, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 	userID := "user-1"
 	keyword := "test-keyword"
+	noteUsecase.ShareNote(noteID, "owner-1", "user-1", "read-write", 0)
 
 	// Act
-	err := noteUsecase.TagNote(noteID, userID, keyword, 0)
+	err := noteUsecase.TagNote(noteID, userID, keyword, 1)
 
 	// Assert
 	if err != nil {
@@ -525,7 +546,7 @@ func TestNoteUsecase_UntagNote_Success(t *testing.T) {
 	userID2 := "user-2"
 
 	// Act
-	err := noteUsecase.UntagNote(noteID, userID1, keywordToRemove, 3)
+	err := noteUsecase.UntagNote(noteID, userID1, keywordToRemove, 5)
 
 	// Assert
 	if err != nil {
@@ -552,7 +573,7 @@ func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
 	keyword := "go"
 
 	// Act
-	err := noteUsecase.UntagNote(noteID, "non-existent-user", keyword, 3)
+	err := noteUsecase.UntagNote(noteID, "non-existent-user", keyword, 5)
 
 	// Assert
 	if err == nil {
@@ -569,7 +590,7 @@ func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 	userID := "user-1"
 
 	// Act
-	err := noteUsecase.UntagNote(noteID, userID, "non-existent-keyword", 3)
+	err := noteUsecase.UntagNote(noteID, userID, "non-existent-keyword", 5)
 
 	// Assert
 	if err == nil {
@@ -722,7 +743,7 @@ func TestNoteUsecase_RevokeAccess_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RevokeAccess() returned an unexpected error: %v", err)
 	}
-	note, _ := noteUsecase.GetNoteByID(noteID)
+	note, _ := noteUsecase.GetNoteByID(noteID, ownerID)
 	if _, ok := note.Collaborators[collaboratorID1]; ok {
 		t.Errorf("Expected collaborator 1 to be removed, but they still exist")
 	}
@@ -744,7 +765,7 @@ func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
 	collaboratorID := "user-2"
 
 	// Act
-	err := noteUsecase.RevokeAccess(noteID, nonOwnerID, collaboratorID, 3)
+	err := noteUsecase.RevokeAccess(noteID, nonOwnerID, collaboratorID, 5)
 
 	// Assert
 	if err != ErrPermissionDenied {
@@ -758,7 +779,7 @@ func TestNoteUsecase_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	ownerID := "owner-1"
 
 	// Act
-	err := noteUsecase.RevokeAccess(noteID, ownerID, "non-existent-user", 3)
+	err := noteUsecase.RevokeAccess(noteID, ownerID, "non-existent-user", 5)
 
 	// Assert
 	if err != ErrUserNotFound {
@@ -865,13 +886,13 @@ func TestNoteUsecase_ChangeTitle_Success(t *testing.T) {
 	newTitle := "Updated Title"
 
 	// Act
-	err := noteUsecase.ChangeTitle(noteID, newTitle, 0)
+	err := noteUsecase.ChangeTitle(noteID, "owner-1", newTitle, 0)
 
 	// Assert
 	if err != nil {
 		t.Fatalf("ChangeTitle() returned an unexpected error: %v", err)
 	}
-	updatedNote, err := noteUsecase.GetNoteByID(noteID)
+	updatedNote, err := noteUsecase.GetNoteByID(noteID, "owner-1")
 	if err != nil {
 		t.Fatalf("GetNoteByID() failed: %v", err)
 	}
@@ -888,7 +909,7 @@ func TestNoteUsecase_ChangeTitle_NotFound(t *testing.T) {
 	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.ChangeTitle("non-existent-id", "New Title", 0)
+	err := noteUsecase.ChangeTitle("non-existent-id", "owner-1", "New Title", 0)
 
 	// Assert
 	if err == nil {
@@ -904,7 +925,7 @@ func TestNoteUsecase_ChangeTitle_InvalidID(t *testing.T) {
 	_, noteUsecase, _ := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.ChangeTitle("", "New Title", 0) // Empty ID
+	err := noteUsecase.ChangeTitle("", "owner-1", "New Title", 0) // Empty ID
 
 	// Assert
 	if err == nil {
@@ -920,7 +941,7 @@ func TestNoteUsecase_ChangeTitle_EmptyTitle(t *testing.T) {
 	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.ChangeTitle(noteID, "", 0) // Empty title
+	err := noteUsecase.ChangeTitle(noteID, "owner-1", "", 0) // Empty title
 
 	// Assert
 	if err == nil {
@@ -936,7 +957,7 @@ func TestNoteUsecase_ChangeTitle_Conflict(t *testing.T) {
 	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
 
 	// Act
-	err := noteUsecase.ChangeTitle(noteID, "New Title", 99) // Incorrect version
+	err := noteUsecase.ChangeTitle(noteID, "owner-1", "New Title", 99) // Incorrect version
 
 	// Assert
 	if err == nil {
@@ -944,5 +965,22 @@ func TestNoteUsecase_ChangeTitle_Conflict(t *testing.T) {
 	}
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	}
+}
+
+func TestNoteUsecase_ChangeTitle_Unauthorized(t *testing.T) {
+	// Arrange
+	_, noteUsecase, noteID := setUpRepositoryAndUsecaseWithNote()
+	newTitle := "Updated Title"
+
+	// Act
+	err := noteUsecase.ChangeTitle(noteID, "unauthorized-user", newTitle, 0)
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected an error for unauthorized user, but got nil")
+	}
+	if !errors.Is(err, ErrPermissionDenied) {
+		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
 	}
 }

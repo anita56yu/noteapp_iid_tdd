@@ -187,6 +187,7 @@ func TestNote_AddKeyword(t *testing.T) {
 	userID := "user-1"
 	keyword, _ := NewKeyword("test-keyword")
 
+	note.AddCollaborator("owner-1", userID, ReadWrite)
 	note.AddKeyword(userID, keyword)
 
 	keywords := note.UserKeywords(userID)
@@ -201,6 +202,7 @@ func TestNote_AddKeyword(t *testing.T) {
 func TestNote_RemoveKeyword_Success(t *testing.T) {
 	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	userID := "user-1"
+	note.AddCollaborator("owner-1", userID, ReadWrite)
 	keyword1, _ := NewKeyword("keyword1")
 	keyword2, _ := NewKeyword("keyword2")
 	note.AddKeyword(userID, keyword1)
@@ -235,6 +237,7 @@ func TestNote_RemoveKeyword_UserNotFound(t *testing.T) {
 func TestNote_RemoveKeyword_KeywordNotFound(t *testing.T) {
 	note, _ := NewNote("note-1", "Test Note", "owner-1")
 	userID := "user-1"
+	note.AddCollaborator("owner-1", userID, ReadWrite)
 	keyword, _ := NewKeyword("keyword")
 	nonExistentKeyword, _ := NewKeyword("non-existent-keyword")
 	note.AddKeyword(userID, keyword)

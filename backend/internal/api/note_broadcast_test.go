@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"noteapp/internal/middleware"
 	"noteapp/internal/repository/contentrepo"
 	"noteapp/internal/repository/noterepo"
 	"noteapp/internal/repository/userrepo"
@@ -29,21 +30,17 @@ func setupTestForBroadcast() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentU
 	uuc := useruc.NewUserUsecase(userRepo, &useruc.UserMapper{})
 	handler := NewNoteHandler(nuc, cuc, uuc)
 	uuc.Register("owner-1", "owneruser", "password")
+	uuc.Register("user-2", "user2", "password")
 
 	router := chi.NewRouter()
-	router.Post("/notes", handler.CreateNote)
-	router.Get("/notes/{id}", handler.GetNoteByID)
-	router.Delete("/notes/{id}", handler.DeleteNote)
-	router.Put("/notes/{id}", handler.UpdateNote)
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.MockAuthMiddleware())
+		r.Put("/notes/{id}", handler.UpdateNote)
+		r.Delete("/notes/{id}", handler.DeleteNote)
+	})
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
-	router.Post("/users/{userID}/notes/{noteID}/keyword", handler.TagNote)
-	router.Get("/users/{userID}/notes", handler.FindNotesByKeyword)
-	router.Delete("/users/{userID}/notes/{noteID}/keyword/{keyword}", handler.UntagNote)
-	router.Post("/users/{ownerID}/notes/{noteID}/shares", handler.ShareNote)
-	router.Delete("/users/{ownerID}/notes/{noteID}/shares", handler.RevokeAccess)
-	router.Get("/users/{userID}/accessible-notes", handler.GetAccessibleNotesForUser)
 
 	router.Get("/ws/notes/{noteID}", handler.HandleWebSocket)
 	return router, nuc, cuc, handler.connManager
@@ -211,7 +208,7 @@ func TestNoteHandler_WebSocket_BroadcastOnDelete(t *testing.T) {
 		NoteVersion: intPtr(2),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
@@ -417,7 +414,7 @@ func TestNoteHandler_UpdateNote_Broadcast(t *testing.T) {
 		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 

@@ -79,7 +79,7 @@ func (uc *NoteUsecase) CreateNote(id, title, ownerID string) (string, error) {
 }
 
 // GetNoteByID retrieves a note by its ID.
-func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
+func (uc *NoteUsecase) GetNoteByID(id, userID string) (*NoteDTO, error) {
 	if id == "" {
 		return nil, ErrInvalidID
 	}
@@ -89,14 +89,22 @@ func (uc *NoteUsecase) GetNoteByID(id string) (*NoteDTO, error) {
 	}
 
 	n := uc.mapper.ToDomain(notePO)
+	if !n.HasReadPermission(userID) {
+		return nil, ErrPermissionDenied
+	}
 	return uc.mapper.toNoteDTO(n), nil
 }
 
 // DeleteNote deletes a note by its ID.
-func (uc *NoteUsecase) DeleteNote(id string, version int) error {
-	_, err := uc.getNotePOAndCheckVersion(id, version)
+func (uc *NoteUsecase) DeleteNote(id, userID string, version int) error {
+	notePO, err := uc.getNotePOAndCheckVersion(id, version)
 	if err != nil {
 		return err
+	}
+
+	n := uc.mapper.ToDomain(notePO)
+	if !n.IsOwner(userID) {
+		return ErrPermissionDenied
 	}
 
 	if err := uc.repo.Delete(id); err != nil {
@@ -127,7 +135,7 @@ func (uc *NoteUsecase) AddContent(noteID, contentID string, index, version int) 
 }
 
 // ChangeTitle updates the title of a note.
-func (uc *NoteUsecase) ChangeTitle(noteID, newTitle string, version int) error {
+func (uc *NoteUsecase) ChangeTitle(noteID, userID, newTitle string, version int) error {
 	if noteID == "" {
 		return ErrInvalidID
 	}
@@ -137,7 +145,7 @@ func (uc *NoteUsecase) ChangeTitle(noteID, newTitle string, version int) error {
 	}
 
 	n := uc.mapper.ToDomain(notePO)
-	if err := n.ChangeTitle(newTitle); err != nil {
+	if err := n.ChangeTitle(userID, newTitle); err != nil {
 		return uc.mapDomainError(err)
 	}
 

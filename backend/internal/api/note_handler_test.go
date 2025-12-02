@@ -41,10 +41,11 @@ func setupTest() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase, *use
 		r.Post("/notes/{noteID}/shares", handler.ShareNote)
 		r.Delete("/notes/{noteID}/shares", handler.RevokeAccess)
 		r.Get("/notes/accessible-notes", handler.GetAccessibleNotesForUser)
+		r.Put("/notes/{id}", handler.UpdateNote)
+		r.Get("/notes/{id}", handler.GetNoteByID)
+		r.Delete("/notes/{id}", handler.DeleteNote)
+
 	})
-	router.Get("/notes/{id}", handler.GetNoteByID)
-	router.Put("/notes/{id}", handler.UpdateNote)
-	router.Delete("/notes/{id}", handler.DeleteNote)
 	router.Post("/notes/{id}/contents", handler.AddContent)
 	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
@@ -60,9 +61,16 @@ func TestNoteHandler_FindNotesByKeyword(t *testing.T) {
 	note2, _ := nc.CreateNote("", "Note 2", "owner-1")
 	note3, _ := nc.CreateNote("", "Note 3", "owner-1")
 
-	nc.TagNote(note1, "user-1", "testing", 0)
-	nc.TagNote(note2, "user-1", "testing", 0)
-	nc.TagNote(note3, "user-2", "testing", 0)
+	nc.ShareNote(note1, "owner-1", "user-1", string(noteuc.PermissionReadWrite), 0)
+	nc.ShareNote(note1, "owner-1", "user-2", string(noteuc.PermissionReadWrite), 1)
+	nc.ShareNote(note2, "owner-1", "user-1", string(noteuc.PermissionReadWrite), 0)
+	nc.ShareNote(note2, "owner-1", "user-2", string(noteuc.PermissionReadWrite), 1)
+	nc.ShareNote(note3, "owner-1", "user-1", string(noteuc.PermissionReadWrite), 0)
+	nc.ShareNote(note3, "owner-1", "user-2", string(noteuc.PermissionReadWrite), 1)
+
+	nc.TagNote(note1, "user-1", "testing", 2)
+	nc.TagNote(note2, "user-1", "testing", 2)
+	nc.TagNote(note3, "user-2", "testing", 2)
 
 	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes?keyword=testing", "user-1", nil)
 	rr := httptest.NewRecorder()
@@ -90,9 +98,16 @@ func TestNoteHandler_FindNotesByKeyword_NoMatch(t *testing.T) {
 	note2, _ := nc.CreateNote("", "Note 2", "owner-1")
 	note3, _ := nc.CreateNote("", "Note 3", "owner-1")
 
-	nc.TagNote(note1, "user-1", "testing", 0)
-	nc.TagNote(note2, "user-1", "testing", 0)
-	nc.TagNote(note3, "user-2", "testing", 0)
+	nc.ShareNote(note1, "owner-1", "user-1", string(noteuc.PermissionReadWrite), 0)
+	nc.ShareNote(note1, "owner-1", "user-2", string(noteuc.PermissionReadWrite), 1)
+	nc.ShareNote(note2, "owner-1", "user-1", string(noteuc.PermissionReadWrite), 0)
+	nc.ShareNote(note2, "owner-1", "user-2", string(noteuc.PermissionReadWrite), 1)
+	nc.ShareNote(note3, "owner-1", "user-1", string(noteuc.PermissionReadWrite), 0)
+	nc.ShareNote(note3, "owner-1", "user-2", string(noteuc.PermissionReadWrite), 1)
+
+	nc.TagNote(note1, "user-1", "testing", 2)
+	nc.TagNote(note2, "user-1", "testing", 2)
+	nc.TagNote(note3, "user-2", "testing", 2)
 
 	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes?keyword=go", "user-1", nil)
 	rr := httptest.NewRecorder()
@@ -177,7 +192,7 @@ func TestNoteHandler_AddContent_Success(t *testing.T) {
 	}
 
 	// Verify that the content ID was added to the note.
-	note, err := nuc.GetNoteByID(noteID)
+	note, err := nuc.GetNoteByID(noteID, "owner-1")
 	if err != nil {
 		t.Fatalf("failed to get note by ID: %v", err)
 	}
@@ -301,7 +316,7 @@ func TestNoteHandler_DeleteNote_InvalidID(t *testing.T) {
 		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodDelete, "/notes/", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -320,7 +335,7 @@ func TestNoteHandler_DeleteNote_NotFound(t *testing.T) {
 		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/non-existent-id", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -345,8 +360,7 @@ func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -358,13 +372,58 @@ func TestNoteHandler_DeleteNote_Success(t *testing.T) {
 	}
 
 	// Verify the note is actually deleted
-	_, err = nc.GetNoteByID(noteID)
+	_, err = nc.GetNoteByID(noteID, "owner-1")
 	if err != noteuc.ErrNoteNotFound {
 		t.Errorf("expected ErrNoteNotFound after deletion, but got %v", err)
 	}
 	ownerDTO, _ := uuc.Login("owner-1", "password")
 	if len(ownerDTO.AccessibleNoteIDs) != 0 {
 		t.Errorf("expected owner to have 0 accessible notes after deletion, but got %d", len(ownerDTO.AccessibleNoteIDs))
+	}
+}
+
+func TestNoteHandler_DeleteNoteWithCollaborator_Unauthorized(t *testing.T) {
+	// Arrange
+	router, nc, _, uuc := setupTest()
+	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	uuc.AddAccessibleNote("owner-1", noteID)
+	uuc.AddAccessibleNote("user2id", noteID)
+	err = nc.ShareNote(noteID, "owner-1", "user2id", "read-write", 0)
+	if err != nil {
+		t.Fatalf("setup: failed to share note: %v", err)
+	}
+
+	requestBody := DeleteNoteRequest{
+		NoteVersion: intPtr(1),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID, "user2id", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
+	}
+
+	// Verify the note is not deleted
+	_, err = nc.GetNoteByID(noteID, "owner-1")
+	if err != nil {
+		t.Errorf("expected note to still exist, but got error: %v", err)
+	}
+
+	ownerDTO, _ := uuc.Login("owner-1", "password")
+	if len(ownerDTO.AccessibleNoteIDs) != 1 {
+		t.Errorf("expected owner to have 1 accessible notes after deletion failure, but got %d", len(ownerDTO.AccessibleNoteIDs))
+	}
+	collabDTO, _ := uuc.Login("user-2", "password")
+	if len(collabDTO.AccessibleNoteIDs) != 1 {
+		t.Errorf("expected collaborator to have 1 accessible notes after deletion failure, but got %d", len(collabDTO.AccessibleNoteIDs))
 	}
 }
 
@@ -382,24 +441,23 @@ func TestNoteHandler_DeleteNoteWithCollaborator_Success(t *testing.T) {
 		t.Fatalf("setup: failed to share note: %v", err)
 	}
 
-	requestBody1 := DeleteNoteRequest{
+	requestBody := DeleteNoteRequest{
 		NoteVersion: intPtr(1),
 	}
-	body1, _ := json.Marshal(requestBody1)
-
-	req1 := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, bytes.NewBuffer(body1))
-	rr1 := httptest.NewRecorder()
+	body, _ := json.Marshal(requestBody)
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID, "owner-1", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
 
 	// Act
-	router.ServeHTTP(rr1, req1)
+	router.ServeHTTP(rr, req)
 
 	// Assert
-	if rr1.Code != http.StatusNoContent {
-		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr1.Code)
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
 	}
 
 	// Verify the note is actually deleted
-	_, err = nc.GetNoteByID(noteID)
+	_, err = nc.GetNoteByID(noteID, "owner-1")
 	if err != noteuc.ErrNoteNotFound {
 		t.Errorf("expected ErrNoteNotFound after deletion, but got %v", err)
 	}
@@ -416,7 +474,7 @@ func TestNoteHandler_DeleteNoteWithCollaborator_Success(t *testing.T) {
 func TestNoteHandler_GetNoteByID_InvalidID(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
-	req := httptest.NewRequest(http.MethodGet, "/notes/", nil) // Empty ID
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes/", "owner-1", nil) // Empty ID
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -431,7 +489,7 @@ func TestNoteHandler_GetNoteByID_InvalidID(t *testing.T) {
 func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
-	req := httptest.NewRequest(http.MethodGet, "/notes/non-existent-id", nil)
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes/non-existent-id", "owner-1", nil)
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -440,6 +498,25 @@ func TestNoteHandler_GetNoteByID_NotFound(t *testing.T) {
 	// Assert
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	}
+}
+
+func TestNoteHandler_GetNoteByID_Unauthorized(t *testing.T) {
+	// Arrange
+	router, nuc, _, _ := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes/"+noteID, "userid2", nil)
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
 	}
 }
 
@@ -470,7 +547,7 @@ func TestNoteHandler_GetNoteByID_Success(t *testing.T) {
 		t.Fatalf("setup: failed to add content 2 to note: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/notes/"+noteID, nil)
+	req := MockAuthenticatedRequestForTest(http.MethodGet, "/notes/"+noteID, "owner-1", nil)
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -775,7 +852,7 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	}
 
 	// Verify that the content ID was removed from the note.
-	note, err := nuc.GetNoteByID(noteID)
+	note, err := nuc.GetNoteByID(noteID, "owner-1")
 	if err != nil {
 		t.Fatalf("failed to get note: %v", err)
 	}
@@ -855,6 +932,7 @@ func TestNoteHandler_DeleteContent_MissingVersion(t *testing.T) {
 	}
 }
 
+// TODO: should break
 func TestNoteHandler_TagNote_Success(t *testing.T) {
 	// Arrange
 	router, nc, _, _ := setupTest()
@@ -862,9 +940,10 @@ func TestNoteHandler_TagNote_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: failed to create note: %v", err)
 	}
+	nc.ShareNote(noteID, "owner-1", "user1id", "read", 0)
 	userID := "user1id"
 	keyword := "test-keyword"
-	requestBody := TagNoteRequest{Keyword: keyword, NoteVersion: intPtr(0)}
+	requestBody := TagNoteRequest{Keyword: keyword, NoteVersion: intPtr(1)}
 	body, _ := json.Marshal(requestBody)
 	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/keyword", userID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
@@ -876,7 +955,7 @@ func TestNoteHandler_TagNote_Success(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Errorf("expected status %d; got %d", http.StatusCreated, rr.Code)
 	}
-	note, err := nc.GetNoteByID(noteID)
+	note, err := nc.GetNoteByID(noteID, userID)
 	if err != nil {
 		t.Fatalf("failed to get note: %v", err)
 	}
@@ -939,9 +1018,11 @@ func TestNoteHandler_UntagNote_Success(t *testing.T) {
 	userID1 := "user-1"
 	userID2 := "user-2"
 	keyword := "test-keyword"
-	nc.TagNote(noteID, userID1, keyword, 0)
-	nc.TagNote(noteID, userID2, keyword, 1)
-	requestBody := UntagNoteRequest{NoteVersion: intPtr(2)}
+	nc.ShareNote(noteID, "owner-1", userID1, "read", 0)
+	nc.ShareNote(noteID, "owner-1", userID2, "read", 1)
+	nc.TagNote(noteID, userID1, keyword, 2)
+	nc.TagNote(noteID, userID2, keyword, 3)
+	requestBody := UntagNoteRequest{NoteVersion: intPtr(4)}
 	body, _ := json.Marshal(requestBody)
 
 	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/keyword/"+keyword, userID1, bytes.NewBuffer(body))
@@ -954,7 +1035,7 @@ func TestNoteHandler_UntagNote_Success(t *testing.T) {
 	if rr.Code != http.StatusNoContent {
 		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
 	}
-	note, err := nc.GetNoteByID(noteID)
+	note, err := nc.GetNoteByID(noteID, userID1)
 	if err != nil {
 		t.Fatalf("failed to get note: %v", err)
 	}
@@ -1059,7 +1140,7 @@ func TestNoteHandler_ShareNote_Success(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Errorf("expected status %d; got %d", http.StatusCreated, rr.Code)
 	}
-	note, err := nc.GetNoteByID(noteID)
+	note, err := nc.GetNoteByID(noteID, ownerID)
 	if err != nil {
 		t.Fatalf("failed to get note: %v", err)
 	}
@@ -1227,7 +1308,7 @@ func TestNoteHandler_ShareNote_UpdatePermission(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusCreated, updateRR.Code)
 	}
 
-	note, err := nc.GetNoteByID(noteID)
+	note, err := nc.GetNoteByID(noteID, ownerID)
 	if err != nil {
 		t.Fatalf("failed to get note: %v", err)
 	}
@@ -1273,7 +1354,7 @@ func TestNoteHandler_ShareNote_CollaboratorNotFound(t *testing.T) {
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected status %d; got %d", http.StatusBadRequest, rr.Code)
 	}
-	note, err := nc.GetNoteByID(noteID)
+	note, err := nc.GetNoteByID(noteID, ownerID)
 	if err != nil {
 		t.Fatalf("failed to get note: %v", err)
 	}
@@ -1359,7 +1440,7 @@ func TestNoteHandler_RevokeAccess_Success(t *testing.T) {
 	if rr.Code != http.StatusNoContent {
 		t.Errorf("expected status %d; got %d", http.StatusNoContent, rr.Code)
 	}
-	note, _ := nc.GetNoteByID(noteID)
+	note, _ := nc.GetNoteByID(noteID, ownerID)
 	if _, ok := note.Collaborators[collaboratorID1]; ok {
 		t.Errorf("Expected collaborator 1 to be removed, but they still exist")
 	}
@@ -1522,8 +1603,7 @@ func TestNoteHandler_DeleteNote_DeletesAssociatedContent(t *testing.T) {
 		NoteVersion: intPtr(2),
 	}
 	body, _ := json.Marshal(requestBody)
-
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1535,7 +1615,7 @@ func TestNoteHandler_DeleteNote_DeletesAssociatedContent(t *testing.T) {
 	}
 
 	// Verify the note is deleted
-	_, err = nuc.GetNoteByID(noteID)
+	_, err = nuc.GetNoteByID(noteID, "owner-1")
 	if !errors.Is(err, noteuc.ErrNoteNotFound) {
 		t.Errorf("expected ErrNoteNotFound after deletion, but got %v", err)
 	}
@@ -1551,7 +1631,7 @@ func TestNoteHandler_DeleteNote_DeletesAssociatedContent(t *testing.T) {
 	}
 }
 
-func TestNoteHandler_ChangeTitle_Success(t *testing.T) {
+func TestNoteHandler_UpdateNote_Success(t *testing.T) {
 	// Arrange
 	router, nuc, _, _ := setupTest()
 	ownerID := "owner-1"
@@ -1566,7 +1646,7 @@ func TestNoteHandler_ChangeTitle_Success(t *testing.T) {
 		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID, ownerID, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -1578,7 +1658,7 @@ func TestNoteHandler_ChangeTitle_Success(t *testing.T) {
 	}
 
 	// Verify the note's title was updated
-	updatedNote, err := nuc.GetNoteByID(noteID)
+	updatedNote, err := nuc.GetNoteByID(noteID, ownerID)
 	if err != nil {
 		t.Fatalf("failed to get updated note: %v", err)
 	}
@@ -1587,5 +1667,33 @@ func TestNoteHandler_ChangeTitle_Success(t *testing.T) {
 	}
 	if updatedNote.Version != 1 {
 		t.Errorf("expected note version 1; got %d", updatedNote.Version)
+	}
+}
+
+func TestNoteHandler_UpdateNote_Unauthorized(t *testing.T) {
+	// Arrange
+	router, nuc, _, _ := setupTest()
+	ownerID := "owner-1"
+	noteID, err := nuc.CreateNote("", "Original Title", ownerID)
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	nonOwnerID := "user-2"
+	newTitle := "New and Improved Title"
+	requestBody := UpdateNoteRequest{
+		Title:       newTitle,
+		NoteVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID, nonOwnerID, bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
 	}
 }

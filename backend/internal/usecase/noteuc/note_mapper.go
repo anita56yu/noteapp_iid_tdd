@@ -48,15 +48,17 @@ func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
 	note.ContentIDs = make([]string, len(po.ContentIDs))
 	copy(note.ContentIDs, po.ContentIDs)
 
+	for userID, permission := range po.Collaborators {
+		note.AddCollaborator(note.OwnerID, userID, domainnote.Permission(permission))
+	}
+
 	for userID, keywords := range po.Keywords {
 		for _, keywordStr := range keywords {
 			keyword, _ := domainnote.NewKeyword(keywordStr)
 			note.AddKeyword(userID, keyword)
 		}
 	}
-	for userID, permission := range po.Collaborators {
-		note.AddCollaborator(note.OwnerID, userID, domainnote.Permission(permission))
-	}
+
 	return note
 }
 

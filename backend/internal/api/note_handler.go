@@ -164,7 +164,13 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	noteDTO, err := h.noteUsecase.GetNoteByID(id)
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: user ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	noteDTO, err := h.noteUsecase.GetNoteByID(id, userID)
 	if err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
@@ -196,6 +202,11 @@ func (h *NoteHandler) GetNoteByID(w http.ResponseWriter, r *http.Request) {
 // UpdateNote is the handler for the PUT /notes/{id} endpoint.
 func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: user ID not found in context", http.StatusUnauthorized)
+		return
+	}
 
 	var req UpdateNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -208,7 +219,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.noteUsecase.ChangeTitle(noteID, req.Title, *req.NoteVersion); err != nil {
+	if err := h.noteUsecase.ChangeTitle(noteID, userID, req.Title, *req.NoteVersion); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
@@ -231,6 +242,12 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: user ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
 	var req DeleteNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -242,14 +259,14 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	noteDTO, err := h.noteUsecase.GetNoteByID(id)
+	noteDTO, err := h.noteUsecase.GetNoteByID(id, userID)
 	if err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}
 
 	// Now, delete the note itself.
-	if err := h.noteUsecase.DeleteNote(id, *req.NoteVersion); err != nil {
+	if err := h.noteUsecase.DeleteNote(id, userID, *req.NoteVersion); err != nil {
 		mapErrorToHTTPStatus(w, err)
 		return
 	}

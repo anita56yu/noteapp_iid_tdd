@@ -74,7 +74,10 @@ func NewNote(id, title, ownerID string) (*Note, error) {
 }
 
 // ChangeTitle updates the title of the note.
-func (n *Note) ChangeTitle(newTitle string) error {
+func (n *Note) ChangeTitle(userID, newTitle string) error {
+	if !n.HasWritePermission(userID) {
+		return ErrPermissionDenied
+	}
 	if newTitle == "" {
 		return ErrEmptyTitle
 	}
@@ -102,6 +105,28 @@ func (n *Note) RemoveCollaborator(callerID string, collaboratorID string) error 
 	delete(n.Collaborators, collaboratorID)
 	delete(n.keywords, collaboratorID)
 	return nil
+}
+
+// HasWritePermission checks if a user has write permission for the note.
+func (n *Note) HasWritePermission(userID string) bool {
+	if n.OwnerID == userID {
+		return true
+	}
+	if permission, ok := n.Collaborators[userID]; ok && permission == ReadWrite {
+		return true
+	}
+	return false
+}
+
+// HasReadPermission checks if a user has read permission for the note.
+func (n *Note) HasReadPermission(userID string) bool {
+	if n.OwnerID == userID {
+		return true
+	}
+	if _, ok := n.Collaborators[userID]; ok {
+		return true
+	}
+	return false
 }
 
 // Keywords returns a deep copy of the note's keywords.
@@ -140,8 +165,12 @@ func (n *Note) AddContentID(id string, index int) error {
 }
 
 // AddKeyword adds a new keyword to the note for a specific user.
-func (n *Note) AddKeyword(userID string, keyword Keyword) {
+func (n *Note) AddKeyword(userID string, keyword Keyword) error {
+	if !n.HasReadPermission(userID) {
+		return ErrPermissionDenied
+	}
 	n.keywords[userID] = append(n.keywords[userID], keyword)
+	return nil
 }
 
 // RemoveContentID removes a content ID from the note.
@@ -169,4 +198,8 @@ func (n *Note) RemoveKeyword(userID string, keyword Keyword) error {
 		}
 	}
 	return ErrKeywordNotFound
+}
+
+func (n *Note) IsOwner(userID string) bool {
+	return n.OwnerID == userID
 }

@@ -16,6 +16,7 @@ func TestToNoteDTO(t *testing.T) {
 	n.AddContentID("content-2", -1)
 	keyword1, _ := note.NewKeyword("keyword1")
 	keyword2, _ := note.NewKeyword("keyword2")
+	n.AddCollaborator("owner-1", "user-1", note.ReadWrite)
 	n.AddKeyword("user-1", keyword1)
 	n.AddKeyword("user-1", keyword2)
 
@@ -59,6 +60,7 @@ func TestNoteMapper_ToPO(t *testing.T) {
 	// Arrange
 	n, _ := note.NewNote("note-1", "Test Note", "owner-1")
 	n.AddContentID("content-1", -1)
+	n.AddCollaborator("owner-1", "user-1", note.ReadWrite)
 	keyword, _ := note.NewKeyword("test-keyword")
 	n.AddKeyword("user-1", keyword)
 
@@ -91,9 +93,12 @@ func TestNoteMapper_ToPO(t *testing.T) {
 func TestNoteMapper_ToDomain(t *testing.T) {
 	// Arrange
 	po := &noterepo.NotePO{
-		ID:         "note-1",
-		Title:      "Test Note",
-		OwnerID:    "owner-1",
+		ID:      "note-1",
+		Title:   "Test Note",
+		OwnerID: "owner-1",
+		Collaborators: map[string]string{
+			"user-1": string(note.ReadWrite),
+		},
 		ContentIDs: []string{"content-1"},
 		Keywords: map[string][]string{
 			"user-1": {"test-keyword"},
@@ -102,6 +107,7 @@ func TestNoteMapper_ToDomain(t *testing.T) {
 
 	expectedNote, _ := note.NewNote("note-1", "Test Note", "owner-1")
 	expectedNote.AddContentID("content-1", -1)
+	expectedNote.AddCollaborator("owner-1", "user-1", note.ReadWrite)
 	keyword, _ := note.NewKeyword("test-keyword")
 	expectedNote.AddKeyword("user-1", keyword)
 
