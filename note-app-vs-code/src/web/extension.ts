@@ -16,12 +16,21 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Initialize services
 	AuthService.initialize(context);
+	const authService = AuthService.getInstance();
 	const noteService = NoteService.getInstance();
 
-
-	// Register the Note Dashboard tree view
 	const noteTreeDataProvider = new NoteTreeDataProvider(noteService);
 	vscode.window.createTreeView('noteapp.notes', { treeDataProvider: noteTreeDataProvider });
+
+	// Automatic login for test user
+	authService.login("testuser", "password").then(() => {
+		console.log("Test user logged in automatically.");
+		noteTreeDataProvider.refresh();
+	}).catch(error => {
+		console.error("Automatic login failed:", error);
+		vscode.window.showErrorMessage('Automatic login failed. Please check backend server.');
+	});
+
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { AuthService } from './authService';
 
 export interface Note {
   id: string;
@@ -20,9 +21,20 @@ export class NoteService {
     return NoteService.instance;
   }
 
-  async getNotes(userId: string): Promise<Note[]> {
+  private async getAuthHeaders(): Promise<{ Authorization?: string }> {
+    const token = await AuthService.getInstance().getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async getNotes(): Promise<Note[]> {
     try {
-      const response = await axios.get<Note[]>(`${this.baseUrl}/users/${userId}/accessible-notes`);
+      const token = await AuthService.getInstance().getToken();
+      if (!token) {
+        console.log('No authentication token found. Returning empty notes array.');
+        return [];
+      }
+      const headers = await this.getAuthHeaders();
+      const response = await axios.get<Note[]>(`${this.baseUrl}/notes/accessible-notes`, { headers });
       console.log('Fetched notes:', response);
       return response.data;
     } catch (error) {
