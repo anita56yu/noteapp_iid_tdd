@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { NoteTreeDataProvider } from './noteTreeDataProvider';
 import { NoteService } from './noteService';
 import { openNoteEditor } from './noteEditor';
+import { AuthService } from './authService';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -13,8 +14,12 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "note-app-vs-code" is now active in the web extension host!');
 
-	// Register the Note Dashboard tree view
+	// Initialize services
+	AuthService.initialize(context);
 	const noteService = NoteService.getInstance();
+
+
+	// Register the Note Dashboard tree view
 	const noteTreeDataProvider = new NoteTreeDataProvider(noteService);
 	vscode.window.createTreeView('noteapp.notes', { treeDataProvider: noteTreeDataProvider });
 

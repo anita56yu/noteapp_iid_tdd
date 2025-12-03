@@ -168,7 +168,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T16.1:** Initialize the VS Code extension frontend.
 - [ ] **F17 (VS Code Extension):** User Authentication. Users can log in to access their notes.
     - [x] **T17.1:** Create an `AuthService` in the VS Code extension to handle registration API calls.
-    - [ ] **T17.2:** Update `AuthService` to handle login API calls, and to store and retrieve the JWT from secret storage.
+    - [x] **T17.2:** Update `AuthService` to handle login API calls, and to store and retrieve the JWT from secret storage.
     - [ ] **T17.3:** Implement `note-app.register` and `note-app.login` commands in `extension.ts` that use `AuthService` and prompt for credentials.
     - [ ] **T17.4:** Update `NoteService` to get the JWT from `AuthService` and include it in the `Authorization` header of all API requests. Refactor its methods to remove the `userId` parameter as it is now identified by the JWT.
     - [ ] **T17.5:** Update `NoteTreeDataProvider` to call the revised `NoteService` methods without the `userId`.
