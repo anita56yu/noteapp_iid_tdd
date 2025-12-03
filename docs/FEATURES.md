@@ -171,7 +171,6 @@ User facing APIs should guard against illegal parameters
     - [x] **T17.2:** Update `AuthService` to handle login API calls, and to store and retrieve the JWT from secret storage.
     - [ ] **T17.3:** Implement `note-app.register` and `note-app.login` commands in `extension.ts` that use `AuthService` and prompt for credentials.
     - [x] **T17.4:** Update `NoteService` to get the JWT from `AuthService` and include it in the `Authorization` header of all API requests. Refactor its methods to remove the `userId` parameter as it is now identified by the JWT.
-    - [ ] **T17.5:** Update `NoteTreeDataProvider` to call the revised `NoteService` methods without the `userId`.
     - [ ] **T17.6:** Implement a `note-app.logout` command that clears the stored JWT from `AuthService` and refreshes the note view.
     - [ ] **T17.7:** Add a status bar item that shows the logged-in user's status and provides a logout option.
     - [ ] **T17.8:** On extension startup, have `AuthService` check for a stored JWT and update the application's state to logged-in if a valid token is found.
@@ -188,7 +187,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T19.1:** Create a `noteEditor.ts` file to manage the webview panel.
     - [ ] **T19.2:** Design the basic HTML structure for the note editor's webview, including elements for the note title and content.
     - [x] **T19.3:** Update the `note-app-vs-code.openNote` command to open the note in our new custom editor.
-    - [ ] **T19.4:** Implement the logic to load the note's data. When a note is opened, the extension will use the `NoteService` to fetch its content and send it to the webview for display.
+    - [x] **T19.4:** Implement the logic to load the note's data. When a note is opened, the extension will use the `NoteService` to fetch its content and send it to the webview for display.
     - [ ] **T19.5:** Establish a two-way communication channel between the webview and the extension. The webview will send messages back to the extension when the user edits the content.
     - [ ] **T19.6:** Add a unit test for the `openNoteEditor` function to verify that it correctly creates and configures a `WebviewPanel`.
 - [ ] **F20 (VS Code Extension):** Real-time Collaboration. View real-time updates from other collaborators.

@@ -1,11 +1,20 @@
 import axios from 'axios';
 import { AuthService } from './authService';
 
+export interface Content {
+  id: string;
+  note_id: string;
+  data: string;
+  content_type: string;
+  version: number;
+}
+
 export interface Note {
   id: string;
   title: string;
   content_ids: string[];
   version: number;
+  contents?: Content[];
 }
 
 export class NoteService {
@@ -40,6 +49,17 @@ export class NoteService {
     } catch (error) {
       console.error('Error fetching notes:', error);
       return [];
+    }
+  }
+
+  async getNoteById(noteId: string): Promise<Note | undefined> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await axios.get<Note>(`${this.baseUrl}/notes/${noteId}`, { headers });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching note ${noteId}:`, error);
+      return undefined;
     }
   }
 }

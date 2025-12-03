@@ -33,20 +33,31 @@ func main() {
 	userUsecase := useruc.NewUserUsecase(userRepo, userMapper)
 
 	// Create a test user for development
-	_, err := userUsecase.Register("testUser1", "testuser", "password")
+	var testUserID string
+	testUserDTO, err := userUsecase.Register("", "testuser", "password")
 	if err != nil {
-		log.Fatalf("Failed to create test user: %v", err)
+		if err != nil {
+			log.Fatalf("Failed to register test user: %v", err)
+		}
+		// If user already exists, find the user to get the ID
+		var foundErr error
+		testUserID, foundErr = userUsecase.FindUserIDByUsername("testuser")
+		if foundErr != nil {
+			log.Fatalf("Failed to find existing test user: %v", foundErr)
+		}
+	} else {
+		testUserID = testUserDTO.ID
 	}
 
 	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase, userUsecase)
 	userHandler := api.NewUserHandler(userUsecase, jwtSecret)
 
 	// test data
-	n1, err := noteUsecase.CreateNote("", "Test Note 1", "testUser1")
+	n1, err := noteUsecase.CreateNote("", "Test Note 1", testUserID)
 	if err != nil {
 		log.Fatalf("Failed to create test note: %v", err)
 	}
-	_, err = noteUsecase.CreateNote("", "Test Note 2", "testUser1")
+	_, err = noteUsecase.CreateNote("", "Test Note 2", testUserID)
 	if err != nil {
 		log.Fatalf("Failed to create test note: %v", err)
 	}
