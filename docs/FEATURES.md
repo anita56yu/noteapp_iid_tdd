@@ -128,6 +128,10 @@ User facing APIs should guard against illegal parameters
     - [x] **T10.1:** Create `NotePO` and `ContentPO` in the `repository` layer, and implement a `NoteMapper` in the `usecase` layer to map between `domain.Note` and `repository.NotePO`.
     - [x] **T10.2:** Update the `NoteRepository` interface, `InMemoryNoteRepository`, and `NoteUsecase` to use the new `NotePO` and `NoteMapper`.
 - [ ] **F11 (Frontend):** User Authentication. Users can log in to access their notes.
+    - [x] **T11.1:** Add a login service for the angular frontend.
+    - [x] **T11.2:** Change existing api calls to use the token and modified endpoint.
+    - [x] **T11.3:** Add a login page that take a username and a password
+    - [ ] **T11.4:** Redirect to dashboard if a token exists
 - [ ] **F12 (Frontend):** Note Dashboard. Display all notes accessible to the logged-in user.
     - [x] **T12.1:** Create the `NoteDashboard` component.
     - [x] **T12.2:** Create a `NoteService` and implement a method to fetch all accessible notes for a user.

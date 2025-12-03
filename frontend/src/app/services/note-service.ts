@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { AuthService } from './auth-service';
 
 export interface Content {
   id: string;
@@ -27,37 +28,42 @@ export class NoteService {
   private usersApiUrl = 'http://localhost:8080/users'; // Assuming backend runs on 8080
   private notesApiUrl = 'http://localhost:8080/notes'; // Assuming backend runs on 8080
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private authService: AuthService) {}
 
-  getAccessibleNotes(userId: string): Observable<Note[]> {
-    return this.http.get<Note[]>(`${this.usersApiUrl}/${userId}/accessible-notes`);
+  private getAuthHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  getAccessibleNotes(): Observable<Note[]> {
+    return this.http.get<Note[]>(`${this.notesApiUrl}/accessible-notes`, { headers: this.getAuthHeaders() });
   }
 
   getNoteById(noteId: string): Observable<Note> {
-    return this.http.get<Note>(`${this.notesApiUrl}/${noteId}`);
+    return this.http.get<Note>(`${this.notesApiUrl}/${noteId}`, { headers: this.getAuthHeaders() });
   }
 
   addContent(noteId: string, content: Content, noteVersion: number): Observable<{ id: string }> {
     const { data, type, position } = content;
-    return this.http.post<{ id: string }>(`${this.notesApiUrl}/${noteId}/contents`, { data, type, index: position, note_version: noteVersion });
+    return this.http.post<{ id: string }>(`${this.notesApiUrl}/${noteId}/contents`, { data, type, index: position, note_version: noteVersion }, { headers: this.getAuthHeaders() });
   }
 
   updateContent(content: Content): Observable<void> {
     const { data, version } = content;
     console.log('Updating content ID:', content.id, 'note ID:', content.noteId, 'with new text:', data);
-    return this.http.put<void>(`${this.notesApiUrl}/${content.noteId}/contents/${content.id}`, { data, content_version: version });
+    return this.http.put<void>(`${this.notesApiUrl}/${content.noteId}/contents/${content.id}`, { data, content_version: version }, { headers: this.getAuthHeaders() });
   }
 
   deleteContent(noteId: string, contentId: string, noteVersion: number, contentVersion: number): Observable<void> {
-    return this.http.request<void>('DELETE', `${this.notesApiUrl}/${noteId}/contents/${contentId}`, { body: { note_version: noteVersion, content_version: contentVersion } });
+    return this.http.request<void>('DELETE', `${this.notesApiUrl}/${noteId}/contents/${contentId}`, { body: { note_version: noteVersion, content_version: contentVersion }, headers: this.getAuthHeaders() });
   }
 
-  createNote(userId: string): Observable<{ id: string }> {
+  createNote(): Observable<{ id: string }> {
     const defaultTitle = 'New Note';
-    return this.http.post<{ id: string }>(this.notesApiUrl, { title: defaultTitle, owner_id: userId });
+    return this.http.post<{ id: string }>(this.notesApiUrl, { title: defaultTitle }, { headers: this.getAuthHeaders() });
   }
 
   updateNote(noteId: string, title: string, noteVersion: number): Observable<void> {
-    return this.http.put<void>(`${this.notesApiUrl}/${noteId}`, { title, note_version: noteVersion });
+    return this.http.put<void>(`${this.notesApiUrl}/${noteId}`, { title, note_version: noteVersion }, { headers: this.getAuthHeaders() });
   }
 }

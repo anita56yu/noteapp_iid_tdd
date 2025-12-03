@@ -113,8 +113,8 @@ func main() {
 		r.Delete("/notes/{noteID}/keywords/{keyword}", noteHandler.UntagNote)
 		r.Post("/notes/{noteID}/shares", noteHandler.ShareNote)
 		r.Delete("/notes/{noteID}/shares", noteHandler.RevokeAccess)
-		r.Get("/notes/{noteID}/ws", noteHandler.HandleWebSocket)
 	})
+	router.Get("/notes/{noteID}/ws", noteHandler.HandleWebSocket)
 
 	// 3. Server Startup
 	port := ":8080"

@@ -28,7 +28,7 @@ export class NoteDashboard implements OnInit {
   private fetchNotes(): void {
     this.isLoading = true;
     this.hasError = false;
-    this.noteService.getAccessibleNotes(this.userId).subscribe({
+    this.noteService.getAccessibleNotes().subscribe({
       next: (notes) => {
         this.notes = notes;
         this.isLoading = false;
@@ -52,9 +52,9 @@ export class NoteDashboard implements OnInit {
   }
 
   createNewNote(): void {
-    this.noteService.createNote(this.userId).subscribe({
+    this.noteService.createNote().subscribe({
       next: (newNote) => {
-        this.noteService.getAccessibleNotes(this.userId).subscribe({
+        this.noteService.getAccessibleNotes().subscribe({
           next: (notes) => {
             this.notes = notes;
             this.viewNote(newNote.id);

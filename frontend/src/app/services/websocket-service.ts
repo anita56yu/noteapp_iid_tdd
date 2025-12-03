@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Observable } from 'rxjs';
+import { AuthService } from './auth-service';
 
 @Injectable({
   providedIn: 'root'
@@ -8,7 +9,7 @@ import { Observable } from 'rxjs';
 export class WebSocketService {
   private socket$: WebSocketSubject<any> | null = null;
 
-  constructor() { }
+  constructor(private authService: AuthService) { }
 
   connect(noteId: string): Observable<any> {
     if (!this.socket$ || this.socket$.closed) {
