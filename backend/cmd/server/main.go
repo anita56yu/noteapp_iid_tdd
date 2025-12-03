@@ -32,6 +32,12 @@ func main() {
 	userMapper := &useruc.UserMapper{}
 	userUsecase := useruc.NewUserUsecase(userRepo, userMapper)
 
+	// Create a test user for development
+	_, err := userUsecase.Register("testUser1", "testuser", "password")
+	if err != nil {
+		log.Fatalf("Failed to create test user: %v", err)
+	}
+
 	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase, userUsecase)
 	userHandler := api.NewUserHandler(userUsecase, jwtSecret)
 

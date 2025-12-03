@@ -53,6 +53,7 @@ User facing APIs should guard against illegal parameters
     - [x] **T1.10:** Implement the `DELETE /notes/{id}` API endpoint.
     - [x] **T1.11:** Refactor `NoteUsecase` to translate repository-specific errors into use case-level errors.
     - [ ] **T1.12:** Add a 'LastModifiedTime' field to the Note model and update relevant use cases and repository methods.
+    - [ ] **T1.13:** Add a factory method for Note domain model (to be used in ToDomain mapper.)
 - [ ] **F2:** Note Content Management. A note is composed of text and pictures. Users can add, edit, and delete note contents.
     - [x] **T2.1:** Redefine the `Note` and `Content` models in the `domain` layer.
     - [x] **T2.2:** Implement `AddContent` and `Contents` methods on the `Note` entity in the domain layer.
@@ -112,7 +113,8 @@ User facing APIs should guard against illegal parameters
     - [x] **T7.4:** Apply the authentication middleware to all relevant API endpoints that require a logged-in user.
     - [x] **T7.5:** Enhance the middleware to extract the user's identity (e.g., user ID) from the validated JWT and pass it to the downstream handlers via the request context.
     - [x] **T7.6:** Refactor user-specific endpoints to remove userID/ownerID from URL paths, relying on the authenticated user's ID from the JWT context for authorization. For testing, a mock authentication middleware will be created to read a user ID from a custom `X-Test-User-ID` header. A helper function will generate authenticated requests with this header, and relevant tests will be refactored to use this new approach.
-    - [ ] **T7.7:** Refactor API handlers (e.g., `CreateNote`, `UpdateNote`, `DeleteNote`, `AddContent`, `UpdateContent`, `DeleteContent`) to extract the authenticated `userID` from the request context. This `userID` will then be passed to the use case layer to perform authorization checks (e.g., verifying note ownership and permissions).
+    - [x] **T7.7:** Refactor API handlers (e.g., `CreateNote`, `UpdateNote`, `DeleteNote`) to extract the authenticated `userID` from the request context. This `userID` will then be passed to the use case layer to perform authorization checks (e.g., verifying note ownership and permissions).
+    - [ ] **T17.8** Refactor API handlers (`AddContent`, `UpdateContent`, `DeleteContent`) to extract the authenticated `userID` from the request context. This `userID` will then be passed to the use case layer to perform authorization checks (e.g., verifying note ownership and permissions).
 - [ ] **F8:** Decouple Data Persistence with a Repository Layer.
     - [x] **T8.1:** Define a `NoteRepository` interface with methods for note persistence (e.g., `Save`, `GetByID`).
     - [x] **T8.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
@@ -165,11 +167,14 @@ User facing APIs should guard against illegal parameters
 - [x] **F16 (VS Code Extension Frontend):** Integrate the VS Code extension as a frontend for the note app.
     - [x] **T16.1:** Initialize the VS Code extension frontend.
 - [ ] **F17 (VS Code Extension):** User Authentication. Users can log in to access their notes.
-    - [ ] **T17.1:** Create an `AuthService` in the VS Code extension to handle registration and login API calls.
-    - [ ] **T17.2:** Implement commands `note-app.register` and `note-app.login` in `extension.ts` that use `AuthService` and prompt the user for credentials.
-    - [ ] **T17.3:** Store the logged-in `UserDTO` (specifically `id`) in the extension's global state to persist the session.
-    - [ ] **T17.4:** Update `NoteTreeDataProvider` to use the stored user ID from `AuthService` (or global state) instead of a hardcoded value.
-    - [ ] **T17.5:** Add a status bar item to display the currently logged-in user and a command to log out.
+    - [x] **T17.1:** Create an `AuthService` in the VS Code extension to handle registration API calls.
+    - [ ] **T17.2:** Update `AuthService` to handle login API calls, and to store and retrieve the JWT from secret storage.
+    - [ ] **T17.3:** Implement `note-app.register` and `note-app.login` commands in `extension.ts` that use `AuthService` and prompt for credentials.
+    - [ ] **T17.4:** Update `NoteService` to get the JWT from `AuthService` and include it in the `Authorization` header of all API requests. Refactor its methods to remove the `userId` parameter as it is now identified by the JWT.
+    - [ ] **T17.5:** Update `NoteTreeDataProvider` to call the revised `NoteService` methods without the `userId`.
+    - [ ] **T17.6:** Implement a `note-app.logout` command that clears the stored JWT from `AuthService` and refreshes the note view.
+    - [ ] **T17.7:** Add a status bar item that shows the logged-in user's status and provides a logout option.
+    - [ ] **T17.8:** On extension startup, have `AuthService` check for a stored JWT and update the application's state to logged-in if a valid token is found.
 - [ ] **F18 (VS Code Extension):** Note Dashboard. Display all notes accessible to the logged-in user in a tree view.
     - [x] **T18.1:** In `package.json`, declare a custom view container and a tree view to be displayed in the VS Code activity bar.
     - [x] **T18.2:** Create a `NoteTreeDataProvider` class that implements VS Code's `TreeDataProvider` interface.

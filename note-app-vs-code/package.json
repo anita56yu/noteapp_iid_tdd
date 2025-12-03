@@ -9,8 +9,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-  ],
+  "activationEvents": [],
   "browser": "./dist/web/extension.js",
   "contributes": {
     "commands": [
@@ -38,7 +37,6 @@
           "id": "noteapp.notes",
           "name": "My Notes",
           "icon": "resources/note.svg"
-
         }
       ]
     }
@@ -57,21 +55,21 @@
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
   },
   "devDependencies": {
-    "@types/vscode": "^1.106.1",
-    "@types/mocha": "^10.0.10",
-    "@types/assert": "^1.5.11",
-    "@types/sinon": "^17.0.3",
-    "eslint": "^9.39.1",
-    "typescript-eslint": "^8.46.3",
-    "mocha": "^11.7.5",
-    "typescript": "^5.9.3",
-    "@vscode/test-web": "^0.0.75",
-    "esbuild": "^0.27.0",
-    "glob": "^11.0.3",
-    "npm-run-all": "^4.1.5",
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@types/assert": "^1.5.11",
+    "@types/mocha": "^10.0.10",
+    "@types/sinon": "^17.0.4",
+    "@types/vscode": "^1.106.1",
+    "@vscode/test-web": "^0.0.75",
     "assert": "^2.1.0",
-    "sinon": "^18.0.0",
-    "axios": "^0.27.2"
+    "axios": "^0.27.2",
+    "esbuild": "^0.27.0",
+    "eslint": "^9.39.1",
+    "glob": "^11.0.3",
+    "mocha": "^11.7.5",
+    "npm-run-all": "^4.1.5",
+    "sinon": "^18.0.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.3"
   }
 }
