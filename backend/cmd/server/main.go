@@ -34,6 +34,7 @@ func main() {
 
 	// Create a test user for development
 	var testUserID string
+	var testUser2ID string
 	testUserDTO, err := userUsecase.Register("", "testuser", "password")
 	if err != nil {
 		if err != nil {
@@ -48,24 +49,39 @@ func main() {
 	} else {
 		testUserID = testUserDTO.ID
 	}
+	testUserDTO2, err := userUsecase.Register("", "testuser2", "password")
+	if err != nil {
+		if err != nil {
+			log.Fatalf("Failed to register test user: %v", err)
+		}
+		// If user already exists, find the user to get the ID
+		var foundErr error
+		testUserID, foundErr = userUsecase.FindUserIDByUsername("testuser")
+		if foundErr != nil {
+			log.Fatalf("Failed to find existing test user: %v", foundErr)
+		}
+	} else {
+		testUser2ID = testUserDTO2.ID
+	}
 
 	noteHandler := api.NewNoteHandler(noteUsecase, contentUsecase, userUsecase)
 	userHandler := api.NewUserHandler(userUsecase, jwtSecret)
 
 	// test data
-	n1, err := noteUsecase.CreateNote("", "Test Note 1", testUserID)
+	n1, err := noteUsecase.CreateNote("", "Shared Note", testUserID)
 	if err != nil {
 		log.Fatalf("Failed to create test note: %v", err)
 	}
-	_, err = noteUsecase.CreateNote("", "Test Note 2", testUserID)
+	_, err = noteUsecase.CreateNote("", "Private Note", testUserID)
 	if err != nil {
 		log.Fatalf("Failed to create test note: %v", err)
 	}
-	c1, err := contentUsecase.CreateContent(n1, "", "Content for Note 1", "text")
+	c1, err := contentUsecase.CreateContent(n1, "", "Content for Shared Note", "text")
 	if err != nil {
 		log.Fatalf("Failed to create test content: %v", err)
 	}
 	noteUsecase.AddContent(n1, c1, -1, 0)
+	noteUsecase.ShareNote(n1, testUserID, testUser2ID, "read-write", 1)
 
 	// 2. Routing
 	router := chi.NewRouter()

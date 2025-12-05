@@ -37,10 +37,10 @@ func setupTestForBroadcast() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentU
 		r.Use(middleware.MockAuthMiddleware())
 		r.Put("/notes/{id}", handler.UpdateNote)
 		r.Delete("/notes/{id}", handler.DeleteNote)
+		r.Post("/notes/{id}/contents", handler.AddContent)
+		r.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
+		r.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	})
-	router.Post("/notes/{id}/contents", handler.AddContent)
-	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
-	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
 
 	router.Get("/ws/notes/{noteID}", handler.HandleWebSocket)
 	return router, nuc, cuc, handler.connManager
@@ -119,7 +119,7 @@ func TestNoteHandler_WebSocket_BroadcastOnUpdate(t *testing.T) {
 		Index:       intPtr(2),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/contents", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
@@ -278,7 +278,7 @@ func TestNoteHandler_WebSocket_BroadcastOnUpdateContent(t *testing.T) {
 		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
@@ -346,7 +346,7 @@ func TestNoteHandler_WebSocket_BroadcastOnDeleteContent(t *testing.T) {
 		NoteVersion:    intPtr(2),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 

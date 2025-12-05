@@ -127,8 +127,7 @@ var ErrUnsupportedContentType = errors.New("unsupported content type")
 // CreateNote is the handler for the POST /notes endpoint.
 func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	var req CreateNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -209,8 +208,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -249,8 +247,7 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req DeleteNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -306,9 +303,20 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
 
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: user ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	// Authorization check: Ensure the user has access to the note.
+	if ok := h.noteUsecase.HasWritePermission(noteID, userID); !ok {
+		http.Error(w, "Forbidden: You do not have permission to modify this note", http.StatusForbidden)
+		return
+	}
+
 	var req AddContentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -332,7 +340,7 @@ func (h *NoteHandler) AddContent(w http.ResponseWriter, r *http.Request) {
 	contentID, err := h.contentUsecase.CreateContent(noteID, "", req.Data, contentType)
 	if err != nil {
 		// Error handling for content creation can be added here.
-		http.Error(w, "Failed to create content", http.StatusInternalServerError)
+		mapErrorToHTTPStatus(w, err) // Use mapErrorToHTTPStatus for consistency
 		return
 	}
 
@@ -368,9 +376,19 @@ func (h *NoteHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
 	contentID := chi.URLParam(r, "contentId")
 
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Authorization check: Ensure the user has access to the note.
+	if ok := h.noteUsecase.HasWritePermission(noteID, userID); !ok {
+		http.Error(w, "Forbidden: You do not have permission to modify this note", http.StatusForbidden)
+		return
+	}
+
 	var req UpdateContentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -404,9 +422,19 @@ func (h *NoteHandler) DeleteContent(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
 	contentID := chi.URLParam(r, "contentId")
 
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Authorization check: Ensure the user has access to the note.
+	if ok := h.noteUsecase.HasWritePermission(noteID, userID); !ok {
+		http.Error(w, "Forbidden: You do not have permission to modify this note", http.StatusForbidden)
+		return
+	}
+
 	var req DeleteContentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -451,8 +479,7 @@ func (h *NoteHandler) TagNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req TagNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -501,8 +528,7 @@ func (h *NoteHandler) UntagNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UntagNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -530,8 +556,7 @@ func (h *NoteHandler) ShareNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req ShareNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -613,8 +638,7 @@ func (h *NoteHandler) RevokeAccess(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req RevokeAccessRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if ok := checkValidBodyAndDecode(w, r, &req); !ok {
 		return
 	}
 
@@ -704,4 +728,18 @@ func mapErrorToHTTPStatus(w http.ResponseWriter, err error) {
 	default:
 		http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 	}
+}
+
+// generic type T for request type
+// <typename T>
+func checkValidBodyAndDecode[T any](w http.ResponseWriter, r *http.Request, req T) bool {
+	if r.Body == nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return false
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return false
+	}
+	return true
 }

@@ -44,11 +44,10 @@ func setupTest() (*chi.Mux, *noteuc.NoteUsecase, *contentuc.ContentUsecase, *use
 		r.Put("/notes/{id}", handler.UpdateNote)
 		r.Get("/notes/{id}", handler.GetNoteByID)
 		r.Delete("/notes/{id}", handler.DeleteNote)
-
+		r.Post("/notes/{id}/contents", handler.AddContent)
+		r.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
+		r.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
 	})
-	router.Post("/notes/{id}/contents", handler.AddContent)
-	router.Put("/notes/{id}/contents/{contentId}", handler.UpdateContent)
-	router.Delete("/notes/{id}/contents/{contentId}", handler.DeleteContent)
 
 	router.Get("/ws/notes/{noteID}", handler.HandleWebSocket)
 	return router, nuc, cuc, uuc
@@ -154,6 +153,35 @@ func TestNoteHandler_FindNotesByKeyword_EmptyKeyword(t *testing.T) {
 	}
 }
 
+func TestNoteHandler_AddContent_UnauthorizedUser(t *testing.T) {
+	// Arrange
+	router, nuc, _, _ := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+
+	requestBody := AddContentRequest{
+		Type:        "text",
+		Data:        "Unauthorized content",
+		NoteVersion: intPtr(0),
+		Index:       intPtr(-1),
+	}
+	body, _ := json.Marshal(requestBody)
+
+	// Create a request *without* authentication
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/contents", "user-1", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
+	}
+}
+
 func TestNoteHandler_AddContent_Success(t *testing.T) {
 	// Arrange
 	router, nuc, cuc, _ := setupTest()
@@ -169,7 +197,7 @@ func TestNoteHandler_AddContent_Success(t *testing.T) {
 		Index:       intPtr(-1),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/contents", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -228,23 +256,27 @@ func TestNoteHandler_AddContent_NotFound(t *testing.T) {
 		Index:       intPtr(-1),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes/non-existent-id/contents", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/non-existent-id/contents", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
 	router.ServeHTTP(rr, req)
 
 	// Assert
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
 	}
 }
 
 func TestNoteHandler_AddContent_InvalidJSON(t *testing.T) {
 	// Arrange
-	router, _, _, _ := setupTest()
+	router, nuc, _, _ := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
 	invalidBody := []byte(`{"type": "text", "data":`) // Malformed JSON
-	req := httptest.NewRequest(http.MethodPost, "/notes/some-id/contents", bytes.NewBuffer(invalidBody))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/contents", "owner-1", bytes.NewBuffer(invalidBody))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -271,7 +303,7 @@ func TestNoteHandler_AddContent_UnsupportedContentType(t *testing.T) {
 		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/contents", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -297,7 +329,7 @@ func TestNoteHandler_AddContent_OutOfBoundsIndex(t *testing.T) {
 		NoteVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/notes/"+noteID+"/contents", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPost, "/notes/"+noteID+"/contents", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -711,7 +743,7 @@ func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -735,6 +767,38 @@ func TestNoteHandler_UpdateContent_Success(t *testing.T) {
 	}
 }
 
+func TestNoteHandler_UpdateContent_Unauthorized(t *testing.T) {
+	// Arrange
+	router, nuc, cuc, _ := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	contentID, err := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
+	if err != nil {
+		t.Fatalf("setup: failed to create content: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID, -1, 0); err != nil {
+		t.Fatalf("setup: failed to add content to note: %v", err)
+	}
+
+	requestBody := UpdateContentRequest{
+		Data:           "Updated Content",
+		ContentVersion: intPtr(0),
+	}
+	body, _ := json.Marshal(requestBody)
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, "user-2", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
+	}
+}
+
 func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
@@ -743,15 +807,15 @@ func TestNoteHandler_UpdateContent_NoteNotFound(t *testing.T) {
 		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPut, "/notes/non-existent-id/contents/some-content-id", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/non-existent-id/contents/some-content-id", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
 	router.ServeHTTP(rr, req)
 
 	// Assert
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
 	}
 }
 
@@ -768,7 +832,7 @@ func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
 		ContentVersion: intPtr(0),
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/non-existent-content-id", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID+"/contents/non-existent-content-id", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -782,9 +846,13 @@ func TestNoteHandler_UpdateContent_ContentNotFound(t *testing.T) {
 
 func TestNoteHandler_UpdateContent_InvalidJSON(t *testing.T) {
 	// Arrange
-	router, _, _, _ := setupTest()
+	router, nc, _, _ := setupTest()
+	noteID, err := nc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
 	invalidBody := []byte(`{"data":`) // Malformed JSON
-	req := httptest.NewRequest(http.MethodPut, "/notes/some-id/contents/some-content-id", bytes.NewBuffer(invalidBody))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID+"/contents/some-content-id", "owner-1", bytes.NewBuffer(invalidBody))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -808,7 +876,7 @@ func TestNoteHandler_UpdateContent_MissingVersion(t *testing.T) {
 		"data": "Updated Content",
 	}
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodPut, "/notes/"+noteID+"/contents/"+contentID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -840,7 +908,7 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 		NoteVersion:    intPtr(1),
 	}
 	body, _ := json.Marshal(deleteReq)
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -867,6 +935,53 @@ func TestNoteHandler_DeleteContent_Success(t *testing.T) {
 	}
 }
 
+func TestNoteHandler_DeleteContent_Unauthorized(t *testing.T) {
+	// Arrange
+	router, nuc, cuc, _ := setupTest()
+	noteID, err := nuc.CreateNote("", "Test Title", "owner-1")
+	if err != nil {
+		t.Fatalf("setup: failed to create note: %v", err)
+	}
+	contentID, err := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
+	if err != nil {
+		t.Fatalf("setup: failed to create content: %v", err)
+	}
+	if err := nuc.AddContent(noteID, contentID, -1, 0); err != nil {
+		t.Fatalf("setup: failed to add content to note: %v", err)
+	}
+
+	deleteReq := DeleteContentRequest{
+		ContentVersion: intPtr(0),
+		NoteVersion:    intPtr(1),
+	}
+	body, _ := json.Marshal(deleteReq)
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, "user-2", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+
+	// Act
+	router.ServeHTTP(rr, req)
+
+	// Assert
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
+	}
+
+	// Verify that the content ID was removed from the note.
+	note, err := nuc.GetNoteByID(noteID, "owner-1")
+	if err != nil {
+		t.Fatalf("failed to get note: %v", err)
+	}
+	if len(note.ContentIDs) != 1 {
+		t.Errorf("expected 1 content block, got %d", len(note.ContentIDs))
+	}
+
+	// Verify that the content was deleted from the repository.
+	_, err = cuc.GetContentByID(contentID)
+	if err != nil {
+		t.Errorf("expected content to exist, but got %v", err)
+	}
+}
+
 func TestNoteHandler_DeleteContent_NoteNotFound(t *testing.T) {
 	// Arrange
 	router, _, _, _ := setupTest()
@@ -875,15 +990,15 @@ func TestNoteHandler_DeleteContent_NoteNotFound(t *testing.T) {
 		NoteVersion:    intPtr(0),
 	}
 	body, _ := json.Marshal(deleteReq)
-	req := httptest.NewRequest(http.MethodDelete, "/notes/non-existent-id/contents/some-content-id", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/non-existent-id/contents/some-content-id", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
 	router.ServeHTTP(rr, req)
 
 	// Assert
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("expected status %d; got %d", http.StatusNotFound, rr.Code)
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected status %d; got %d", http.StatusForbidden, rr.Code)
 	}
 }
 
@@ -900,7 +1015,7 @@ func TestNoteHandler_DeleteContent_ContentNotFound(t *testing.T) {
 		NoteVersion:    intPtr(0),
 	}
 	body, _ := json.Marshal(deleteReq)
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/non-existent-content-id", bytes.NewBuffer(body))
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/contents/non-existent-content-id", "owner-1", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -919,8 +1034,8 @@ func TestNoteHandler_DeleteContent_MissingVersion(t *testing.T) {
 	contentID, _ := cuc.CreateContent(noteID, "", "Initial Content", contentuc.TextContentType)
 	nuc.AddContent(noteID, contentID, -1, 0)
 
-	// Empty body
-	req := httptest.NewRequest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, nil)
+	// Request body without version fields
+	req := MockAuthenticatedRequestForTest(http.MethodDelete, "/notes/"+noteID+"/contents/"+contentID, "owner-1", nil)
 	rr := httptest.NewRecorder()
 
 	// Act
@@ -932,7 +1047,6 @@ func TestNoteHandler_DeleteContent_MissingVersion(t *testing.T) {
 	}
 }
 
-// TODO: should break
 func TestNoteHandler_TagNote_Success(t *testing.T) {
 	// Arrange
 	router, nc, _, _ := setupTest()

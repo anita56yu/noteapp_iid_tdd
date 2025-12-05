@@ -63,6 +63,17 @@ func NewNoteUsecase(repo noterepo.NoteRepository) *NoteUsecase {
 	return &NoteUsecase{repo: repo, mapper: NewNoteMapper()}
 }
 
+// HasWritePermission checks if the user has write permission for the given note.
+func (uc *NoteUsecase) HasWritePermission(noteID, userID string) bool {
+	notePO, err := uc.repo.FindByID(noteID)
+	if err != nil {
+		// If note is not found or other repo error, assume no write permission.
+		return false
+	}
+	n := uc.mapper.ToDomain(notePO)
+	return n.HasWritePermission(userID)
+}
+
 // CreateNote creates a new note.
 func (uc *NoteUsecase) CreateNote(id, title, ownerID string) (string, error) {
 	n, err := note.NewNote(id, title, ownerID)
