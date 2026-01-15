@@ -6,18 +6,42 @@ import (
 
 // InMemoryNoteRepository is an in-memory implementation of NoteRepository.
 type InMemoryNoteRepository struct {
-	notes map[string]*NotePO
-	mu    sync.RWMutex
+	notes      map[string]*NotePO
+	noteEvents map[string][]*NoteEventPO
+	mu         sync.RWMutex
 }
 
 // NewInMemoryNoteRepository creates a new InMemoryNoteRepository.
 func NewInMemoryNoteRepository() *InMemoryNoteRepository {
 	return &InMemoryNoteRepository{
-		notes: make(map[string]*NotePO),
+		notes:      make(map[string]*NotePO),
+		noteEvents: make(map[string][]*NoteEventPO),
 	}
 }
 
-// Save saves a note to the repository.
+// Saves a note and its events to the repository.
+func (r *InMemoryNoteRepository) SaveWithEvent(note *NotePO, events []*NoteEventPO) error {
+	if note == nil {
+		return ErrNilNote
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if existing, ok := r.notes[note.ID]; ok {
+		if existing.Version != note.Version {
+			return ErrNoteConflict
+		}
+		note.Version++
+	} else {
+		note.Version = 0
+	}
+
+	r.notes[note.ID] = note
+	r.noteEvents[note.ID] = append(r.noteEvents[note.ID], events...)
+	return nil
+}
+
+// Saves a note to the repository.
 func (r *InMemoryNoteRepository) Save(note *NotePO) error {
 	if note == nil {
 		return ErrNilNote

@@ -2,6 +2,7 @@ package note
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -43,6 +44,7 @@ type Note struct {
 	ContentIDs    []string
 	keywords      map[string][]Keyword
 	Collaborators map[string]Permission
+	events        []NoteEvent
 }
 
 // NewNoteWithVersion creates a new Note instance with a specific version.
@@ -56,6 +58,15 @@ func NewNoteWithVersion(id, title, ownerID string, version int) (*Note, error) {
 		id = uuid.New().String()
 	}
 
+	events := []NoteEvent{}
+	events = append(events, NoteEvent{
+		OccurredAt: time.Now(),
+		EventID:    uuid.New().String(),
+		NoteID:     id,
+		Payload:    map[string]interface{}{"OwnerID": ownerID, "Title": title},
+		EventType:  "NoteCreated",
+	})
+
 	return &Note{
 		ID:            id,
 		OwnerID:       ownerID,
@@ -64,6 +75,7 @@ func NewNoteWithVersion(id, title, ownerID string, version int) (*Note, error) {
 		ContentIDs:    []string{},
 		keywords:      make(map[string][]Keyword),
 		Collaborators: make(map[string]Permission),
+		events:        events,
 	}, nil
 }
 
@@ -202,4 +214,10 @@ func (n *Note) RemoveKeyword(userID string, keyword Keyword) error {
 
 func (n *Note) IsOwner(userID string) bool {
 	return n.OwnerID == userID
+}
+
+func (n *Note) Events() []NoteEvent {
+	events := make([]NoteEvent, len(n.events))
+	copy(events, n.events)
+	return events
 }

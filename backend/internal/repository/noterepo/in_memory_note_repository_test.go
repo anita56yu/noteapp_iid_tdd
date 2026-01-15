@@ -255,3 +255,63 @@ func TestInMemoryNoteRepository_Save_Conflict(t *testing.T) {
 		t.Errorf("Expected one of the saves to fail with a conflict error, but got err1: %v, err2: %v", err1, err2)
 	}
 }
+
+func TestInMemoryNoteRepository_SaveWithEventAndFindByID_Success(t *testing.T) {
+	// Arrange
+	repo := NewInMemoryNoteRepository()
+	note := &NotePO{
+		ID:    "test-id",
+		Title: "Test Title",
+	}
+	AggregateEvents := []*NoteEventPO{
+		{
+			EventID:    "event-1",
+			NoteID:     "test-id",
+			OccurredAt: time.Now(),
+			EventType:  "NoteCreated",
+			Payload:    map[string]interface{}{"Title": "Test Title"},
+		},
+	}
+
+	// Act
+	err := repo.SaveWithEvent(note, AggregateEvents)
+	if err != nil {
+		t.Fatalf("SaveWithEvents() returned an unexpected error: %v", err)
+	}
+
+	// Assert
+	foundNote, err := repo.FindByID("test-id")
+	if err != nil {
+		t.Fatalf("FindByID() returned an unexpected error: %v", err)
+	}
+	if foundNote == nil {
+		t.Fatal("FindByID() returned nil, expected a note")
+	}
+	if foundNote.ID != note.ID {
+		t.Errorf("Expected ID %s, got %s", note.ID, foundNote.ID)
+	}
+	if foundNote.Title != note.Title {
+		t.Errorf("Expected Title %s, got %s", note.Title, foundNote.Title)
+	}
+	savedEvents := repo.noteEvents["test-id"]
+	for i, event := range savedEvents {
+		if event.EventID != AggregateEvents[i].EventID {
+			t.Errorf("Expected EventID %s, got %s", AggregateEvents[i].EventID, event.EventID)
+		}
+		if event.NoteID != AggregateEvents[i].NoteID {
+			t.Errorf("Expected NoteID %s, got %s", AggregateEvents[i].NoteID, event.NoteID)
+		}
+		if event.EventType != AggregateEvents[i].EventType {
+			t.Errorf("Expected EventType %s, got %s", AggregateEvents[i].EventType, event.EventType)
+		}
+		if len(event.Payload) != len(AggregateEvents[i].Payload) {
+			t.Errorf("Expected Payload length %d, got %d", len(AggregateEvents[i].Payload), len(event.Payload))
+		}
+		for k, v := range event.Payload {
+			if v != AggregateEvents[i].Payload[k] {
+				t.Errorf("Expected Payload value for key %s to be %v, got %v", k, AggregateEvents[i].Payload[k], v)
+			}
+		}
+	}
+
+}

@@ -1,5 +1,7 @@
 package noterepo
 
+import "time"
+
 // ContentPO represents the persistent state of a content block.
 type ContentPO struct {
 	ID   string
@@ -16,4 +18,12 @@ type NotePO struct {
 	ContentIDs    []string
 	Keywords      map[string][]string
 	Collaborators map[string]string
+}
+
+type NoteEventPO struct {
+	EventType  string                 `json:"event_type"`
+	EventID    string                 `json:"event_id"`
+	OccurredAt time.Time              `json:"occurred_at"`
+	NoteID     string                 `json:"note_id"`
+	Payload    map[string]interface{} `json:"payload"`
 }

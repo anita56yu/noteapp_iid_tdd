@@ -82,7 +82,8 @@ func (uc *NoteUsecase) CreateNote(id, title, ownerID string) (string, error) {
 	}
 
 	notePO := uc.mapper.ToPO(n)
-	if err := uc.repo.Save(notePO); err != nil {
+	eventPOs := uc.mapper.toEventPOs(n)
+	if err := uc.repo.SaveWithEvent(notePO, eventPOs); err != nil {
 		return "", uc.mapRepositoryError(err)
 	}
 

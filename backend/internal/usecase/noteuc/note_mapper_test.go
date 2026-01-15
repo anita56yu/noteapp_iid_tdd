@@ -208,3 +208,40 @@ func TestNoteMapper_ToDTO_WithCollaborators(t *testing.T) {
 		t.Errorf("Expected collaborator 'user-1' to have permission '%s', but got '%s'", PermissionReadWrite, permission)
 	}
 }
+
+func TestNodeMapper_ToEventPOs(t *testing.T) {
+	// Arrange
+	n, _ := note.NewNote("note-1", "Test Note", "owner-1")
+	mapper := NewNoteMapper()
+
+	// Act
+	events := mapper.toEventPOs(n)
+
+	// Assert
+	aggregateEvents := n.Events()
+	if len(events) != len(aggregateEvents) {
+		t.Fatalf("Expected %d events, but got %d", len(aggregateEvents), len(events))
+	}
+
+	for i, event := range events {
+		if event.EventType != aggregateEvents[i].EventType {
+			t.Errorf("Expected EventType to be '%s', but got '%s'", aggregateEvents[i].EventType, event.EventType)
+		}
+		if event.NoteID != "note-1" {
+			t.Errorf("Expected NoteID to be 'note-1', but got '%s'", event.NoteID)
+		}
+		payload := event.Payload
+		if payload["OwnerID"] != aggregateEvents[i].Payload["OwnerID"] {
+			t.Errorf("Expected OwnerID in payload to be 'owner-1', but got '%s'", payload["OwnerID"])
+		}
+		if payload["Title"] != aggregateEvents[i].Payload["Title"] {
+			t.Errorf("Expected Title in payload to be 'Test Note', but got '%s'", payload["Title"])
+		}
+		if event.EventID != aggregateEvents[i].EventID {
+			t.Errorf("Expected EventID to be '%s', but got '%s'", aggregateEvents[i].EventID, event.EventID)
+		}
+		if !event.OccurredAt.Equal(aggregateEvents[i].OccurredAt) {
+			t.Errorf("Expected OccurredAt to be '%v', but got '%v'", aggregateEvents[i].OccurredAt, event.OccurredAt)
+		}
+	}
+}

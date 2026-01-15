@@ -29,6 +29,28 @@ func TestNewNote_ValidCreation_WithInjectedID(t *testing.T) {
 	if len(note.ContentIDs) != 0 {
 		t.Errorf("Expected ContentIDs to be empty, but got %d elements", len(note.ContentIDs))
 	}
+
+	if len(note.events) != 1 {
+		t.Errorf("Expected 1 event to be recorded, but got %d", len(note.events))
+	}
+
+	createdEvent := note.events[0]
+
+	if createdEvent.NoteID != id {
+		t.Errorf("Expected NoteID in event to be '%s', but got '%s'", id, createdEvent.NoteID)
+	}
+	if createdEvent.Payload["OwnerID"] != ownerID {
+		t.Errorf("Expected OwnerID in event to be '%s', but got '%s'", ownerID, createdEvent.Payload["OwnerID"])
+	}
+	if createdEvent.Payload["Title"] != title {
+		t.Errorf("Expected Title in event to be '%s', but got '%s'", title, createdEvent.Payload["Title"])
+	}
+	if createdEvent.EventID == "" {
+		t.Error("Expected EventID to be non-empty, but it was empty")
+	}
+	if createdEvent.EventType != "NoteCreated" {
+		t.Errorf("Expected EventType to be 'NoteCreated', but got '%s'", createdEvent.EventType)
+	}
 }
 
 func TestNewNote_ValidCreation_WithGeneratedID(t *testing.T) {

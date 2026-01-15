@@ -41,6 +41,25 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 	}
 }
 
+func (m *NoteMapper) toEventPOs(note *domainnote.Note) []*noterepo.NoteEventPO {
+	events := make([]*noterepo.NoteEventPO, len(note.Events()))
+	for i, event := range note.Events() {
+		noteEvent := event
+		payload := make(map[string]interface{})
+		for k, v := range noteEvent.Payload {
+			payload[k] = v
+		}
+		events[i] = &noterepo.NoteEventPO{
+			EventType:  noteEvent.EventType,
+			NoteID:     noteEvent.NoteID,
+			OccurredAt: noteEvent.OccurredAt,
+			EventID:    noteEvent.EventID,
+			Payload:    payload,
+		}
+	}
+	return events
+}
+
 // ToDomain converts a repository.NotePO to a domain.Note.
 func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
 	note, _ := domainnote.NewNoteWithVersion(po.ID, po.Title, po.OwnerID, po.Version)

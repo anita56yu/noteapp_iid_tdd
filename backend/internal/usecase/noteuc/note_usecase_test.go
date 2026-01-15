@@ -9,6 +9,7 @@ import (
 // mockNoteRepository is a mock implementation of the NoteRepository for testing error cases.
 type mockNoteRepository struct {
 	SaveFunc                       func(note *noterepo.NotePO) error
+	SaveWithEventFunc              func(note *noterepo.NotePO, events []*noterepo.NoteEventPO) error
 	FindByIDFunc                   func(id string) (*noterepo.NotePO, error)
 	DeleteFunc                     func(id string) error
 	FindByKeywordForUserFunc       func(userID, keyword string) ([]*noterepo.NotePO, error)
@@ -21,6 +22,14 @@ func (m *mockNoteRepository) Save(note *noterepo.NotePO) error {
 	}
 	return nil
 }
+
+func (m *mockNoteRepository) SaveWithEvent(note *noterepo.NotePO, events []*noterepo.NoteEventPO) error {
+	if m.SaveWithEventFunc != nil {
+		return m.SaveWithEventFunc(note, events)
+	}
+	return nil
+}
+
 func (m *mockNoteRepository) FindByID(id string) (*noterepo.NotePO, error) {
 	if m.FindByIDFunc != nil {
 		return m.FindByIDFunc(id)
@@ -165,7 +174,7 @@ func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 	// Arrange
 	mockRepo := &mockNoteRepository{
-		SaveFunc: func(note *noterepo.NotePO) error {
+		SaveWithEventFunc: func(note *noterepo.NotePO, events []*noterepo.NoteEventPO) error {
 			return noterepo.ErrNilNote
 		},
 	}
