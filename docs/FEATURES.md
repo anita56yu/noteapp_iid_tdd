@@ -203,5 +203,7 @@ User facing APIs should guard against illegal parameters
     - [*] **T22.2:** Add event `NoteCreated` for Note aggregate.
     - [ ] **T22.3:** Add GetNoteEventsByID to note repo.
     - [*] **T22.4:** Add event bus between note usecase and user usecase. 
+    - [*] **T22.5:** Add GetNewNoteEventStream to note repo interface and InMemoryNoteRepository.
+    - [ ] **T22.6:** Add NoteEventPoller to constantly poll new note events from note repo and publish new events using event bus.
 
     

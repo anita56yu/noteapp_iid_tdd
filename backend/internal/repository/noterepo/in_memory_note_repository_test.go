@@ -294,7 +294,7 @@ func TestInMemoryNoteRepository_SaveWithEventAndFindByID_Success(t *testing.T) {
 	if foundNote.Title != note.Title {
 		t.Errorf("Expected Title %s, got %s", note.Title, foundNote.Title)
 	}
-	savedEvents := repo.noteEvents["test-id"]
+	savedEvents := repo.noteEvents
 	for i, event := range savedEvents {
 		if event.EventID != AggregateEvents[i].EventID {
 			t.Errorf("Expected EventID %s, got %s", AggregateEvents[i].EventID, event.EventID)
@@ -313,6 +313,72 @@ func TestInMemoryNoteRepository_SaveWithEventAndFindByID_Success(t *testing.T) {
 				t.Errorf("Expected Payload value for key %s to be %v, got %v", k, AggregateEvents[i].Payload[k], v)
 			}
 		}
+	}
+
+}
+
+func TestInMemoryNoteRepository_GetEventStream(t *testing.T) {
+	// Arrange
+	repo := NewInMemoryNoteRepository()
+	note := &noteuc.NotePO{
+		ID:    "test-id",
+		Title: "Test Title",
+	}
+	AggregateEvents := []*noteuc.NoteEventPO{
+		{
+			EventID:    "event-1",
+			NoteID:     "test-id",
+			OccurredAt: time.Now(),
+			EventType:  "NoteCreated",
+			Payload:    map[string]interface{}{"Title": "Test Title"},
+		},
+		{
+			EventID:    "event-2",
+			NoteID:     "test-id2",
+			OccurredAt: time.Now(),
+			EventType:  "NoteCreated",
+			Payload:    map[string]interface{}{"Title": "Test Title2"},
+		},
+	}
+	err := repo.SaveWithEvent(note, AggregateEvents)
+	if err != nil {
+		t.Fatalf("SaveWithEvents() returned an unexpected error: %v", err)
+	}
+
+	// Act
+	allEvents := repo.GetNewNoteEventStream("")
+	lastEvent := repo.GetNewNoteEventStream("event-1")
+	noEvent := repo.GetNewNoteEventStream("event-2")
+
+	// Assert
+	savedEvents := repo.noteEvents
+	for i, event := range savedEvents {
+		if event.EventID != allEvents[i].EventID {
+			t.Errorf("Expected EventID %s, got %s", allEvents[i].EventID, event.EventID)
+		}
+		if event.NoteID != allEvents[i].NoteID {
+			t.Errorf("Expected NoteID %s, got %s", allEvents[i].NoteID, event.NoteID)
+		}
+		if event.EventType != allEvents[i].EventType {
+			t.Errorf("Expected EventType %s, got %s", allEvents[i].EventType, event.EventType)
+		}
+		if len(event.Payload) != len(allEvents[i].Payload) {
+			t.Errorf("Expected Payload length %d, got %d", len(allEvents[i].Payload), len(event.Payload))
+		}
+		for k, v := range event.Payload {
+			if v != allEvents[i].Payload[k] {
+				t.Errorf("Expected Payload value for key %s to be %v, got %v", k, allEvents[i].Payload[k], v)
+			}
+		}
+	}
+	if len(lastEvent) != 1 {
+		t.Errorf("Expected 1 event after lastEvent, got %d", len(lastEvent))
+	}
+	if lastEvent[0].EventID != "event-2" {
+		t.Errorf("Expected EventID 'event-2', got %s", lastEvent[0].EventID)
+	}
+	if len(noEvent) != 0 {
+		t.Errorf("Expected 0 events after noEvent, got %d", len(noEvent))
 	}
 
 }

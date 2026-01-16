@@ -16,6 +16,7 @@ type mockNoteRepository struct {
 	DeleteFunc                     func(id string) error
 	FindByKeywordForUserFunc       func(userID, keyword string) ([]*noteuc.NotePO, error)
 	GetAccessibleNotesByUserIDFunc func(userID string) ([]*noteuc.NotePO, error)
+	GetNewNoteEventStreamFunc      func(fromEventID string) []*noteuc.NoteEventPO
 }
 
 func (m *mockNoteRepository) Save(note *noteuc.NotePO) error {
@@ -55,6 +56,13 @@ func (m *mockNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*noteu
 		return m.GetAccessibleNotesByUserIDFunc(userID)
 	}
 	return nil, nil
+}
+
+func (m *mockNoteRepository) GetNewNoteEventStream(fromEventID string) []*noteuc.NoteEventPO {
+	if m.GetNewNoteEventStreamFunc != nil {
+		return m.GetNewNoteEventStreamFunc(fromEventID)
+	}
+	return nil
 }
 
 func setUpRepositoryAndUsecase() (*noterepo.InMemoryNoteRepository, *noteuc.NoteUsecase) {

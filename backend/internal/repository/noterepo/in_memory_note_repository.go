@@ -8,7 +8,7 @@ import (
 // InMemoryNoteRepository is an in-memory implementation of NoteRepository.
 type InMemoryNoteRepository struct {
 	notes      map[string]*noteuc.NotePO
-	noteEvents map[string][]*noteuc.NoteEventPO
+	noteEvents []*noteuc.NoteEventPO
 	mu         sync.RWMutex
 }
 
@@ -16,7 +16,7 @@ type InMemoryNoteRepository struct {
 func NewInMemoryNoteRepository() *InMemoryNoteRepository {
 	return &InMemoryNoteRepository{
 		notes:      make(map[string]*noteuc.NotePO),
-		noteEvents: make(map[string][]*noteuc.NoteEventPO),
+		noteEvents: make([]*noteuc.NoteEventPO, 0),
 	}
 }
 
@@ -38,7 +38,8 @@ func (r *InMemoryNoteRepository) SaveWithEvent(note *noteuc.NotePO, events []*no
 	}
 
 	r.notes[note.ID] = note
-	r.noteEvents[note.ID] = append(r.noteEvents[note.ID], events...)
+	// No sorting needed although events of different notes might be out of order, events of the same note are always in order
+	r.noteEvents = append(r.noteEvents, events...)
 	return nil
 }
 
@@ -140,4 +141,22 @@ func (r *InMemoryNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*n
 		}
 	}
 	return accessibleNotes, nil
+}
+
+func (r *InMemoryNoteRepository) GetNewNoteEventStream(fromEventID string) []*noteuc.NoteEventPO {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var newEvents []*noteuc.NoteEventPO
+	if fromEventID == "" {
+		newEvents = append(newEvents, r.noteEvents...)
+		return newEvents
+	}
+	for i, event := range r.noteEvents {
+		if event.EventID == fromEventID {
+			newEvents = append(newEvents, r.noteEvents[i+1:]...)
+			break
+		}
+	}
+	return newEvents
 }
