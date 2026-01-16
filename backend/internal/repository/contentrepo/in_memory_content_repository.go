@@ -1,30 +1,31 @@
 package contentrepo
 
 import (
+	"noteapp/internal/usecase/contentuc"
 	"sync"
 )
 
 // InMemoryContentRepository is an in-memory implementation of ContentRepository.
 type InMemoryContentRepository struct {
 	mu       sync.RWMutex
-	contents map[string]*ContentPO
+	contents map[string]*contentuc.ContentPO
 }
 
 // NewInMemoryContentRepository creates a new InMemoryContentRepository.
 func NewInMemoryContentRepository() *InMemoryContentRepository {
 	return &InMemoryContentRepository{
-		contents: make(map[string]*ContentPO),
+		contents: make(map[string]*contentuc.ContentPO),
 	}
 }
 
 // Save saves a content to the repository.
-func (r *InMemoryContentRepository) Save(c *ContentPO) error {
+func (r *InMemoryContentRepository) Save(c *contentuc.ContentPO) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if existing, ok := r.contents[c.ID]; ok {
 		if existing.Version != c.Version {
-			return ErrContentConflict
+			return contentuc.ErrConflict
 		}
 		c.Version++
 	} else {
@@ -36,7 +37,7 @@ func (r *InMemoryContentRepository) Save(c *ContentPO) error {
 }
 
 // GetByID retrieves a content by its ID.
-func (r *InMemoryContentRepository) GetByID(id string) (*ContentPO, error) {
+func (r *InMemoryContentRepository) GetByID(id string) (*contentuc.ContentPO, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -45,15 +46,15 @@ func (r *InMemoryContentRepository) GetByID(id string) (*ContentPO, error) {
 		copy := *c
 		return &copy, nil
 	}
-	return nil, ErrContentNotFound
+	return nil, contentuc.ErrContentNotFound
 }
 
 // GetAllByNoteID retrieves all contents for a given note ID.
-func (r *InMemoryContentRepository) GetAllByNoteID(noteID string) ([]*ContentPO, error) {
+func (r *InMemoryContentRepository) GetAllByNoteID(noteID string) ([]*contentuc.ContentPO, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var results []*ContentPO
+	var results []*contentuc.ContentPO
 	for _, c := range r.contents {
 		if c.NoteID == noteID {
 			results = append(results, c)
@@ -68,7 +69,7 @@ func (r *InMemoryContentRepository) Delete(id string) error {
 	defer r.mu.Unlock()
 
 	if _, ok := r.contents[id]; !ok {
-		return ErrContentNotFound
+		return contentuc.ErrContentNotFound
 	}
 	delete(r.contents, id)
 	return nil

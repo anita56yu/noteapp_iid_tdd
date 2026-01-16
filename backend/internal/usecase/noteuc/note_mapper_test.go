@@ -2,7 +2,6 @@ package noteuc
 
 import (
 	"noteapp/internal/domain/note"
-	"noteapp/internal/repository/noterepo"
 	"testing"
 )
 
@@ -92,7 +91,7 @@ func TestNoteMapper_ToPO(t *testing.T) {
 
 func TestNoteMapper_ToDomain(t *testing.T) {
 	// Arrange
-	po := &noterepo.NotePO{
+	po := &NotePO{
 		ID:      "note-1",
 		Title:   "Test Note",
 		OwnerID: "owner-1",
@@ -163,7 +162,7 @@ func TestNoteMapper_ToPO_WithCollaborators(t *testing.T) {
 
 func TestNoteMapper_ToDomain_WithCollaborators(t *testing.T) {
 	// Arrange
-	po := &noterepo.NotePO{
+	po := &NotePO{
 		ID:      "note-1",
 		OwnerID: "owner-1",
 		Title:   "Test Note",

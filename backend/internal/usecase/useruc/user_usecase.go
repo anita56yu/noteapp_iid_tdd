@@ -2,19 +2,18 @@ package useruc
 
 import (
 	"noteapp/internal/domain/user"
-	"noteapp/internal/repository/userrepo"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 // UserUsecase provides business logic for user management.
 type UserUsecase struct {
-	repo   userrepo.UserRepository
+	repo   UserRepository
 	mapper *UserMapper
 }
 
 // NewUserUsecase creates a new UserUsecase.
-func NewUserUsecase(repo userrepo.UserRepository, mapper *UserMapper) *UserUsecase {
+func NewUserUsecase(repo UserRepository, mapper *UserMapper) *UserUsecase {
 	return &UserUsecase{
 		repo:   repo,
 		mapper: mapper,
@@ -44,7 +43,7 @@ func (uc *UserUsecase) Register(id, username, password string) (*UserDTO, error)
 	userPO := uc.mapper.FromDomain(domainUser)
 	err = uc.repo.Save(userPO)
 	if err != nil {
-		return nil, mapRepositoryError(err)
+		return nil, err
 	}
 
 	return uc.mapper.ToDTO(domainUser), nil
@@ -54,7 +53,7 @@ func (uc *UserUsecase) Register(id, username, password string) (*UserDTO, error)
 func (uc *UserUsecase) Login(username, password string) (*UserDTO, error) {
 	userPO, err := uc.repo.FindByUsername(username)
 	if err != nil {
-		return nil, mapRepositoryError(err)
+		return nil, err
 	}
 
 	domainUser, err := uc.mapper.ToDomain(userPO)
@@ -73,7 +72,7 @@ func (uc *UserUsecase) Login(username, password string) (*UserDTO, error) {
 func (uc *UserUsecase) AddAccessibleNote(userID, noteID string) error {
 	userPO, err := uc.repo.FindByID(userID)
 	if err != nil {
-		return mapRepositoryError(err)
+		return err
 	}
 
 	domainUser, err := uc.mapper.ToDomain(userPO)
@@ -86,7 +85,7 @@ func (uc *UserUsecase) AddAccessibleNote(userID, noteID string) error {
 	updatedUserPO := uc.mapper.FromDomain(domainUser)
 	err = uc.repo.Save(updatedUserPO)
 	if err != nil {
-		return mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -96,7 +95,7 @@ func (uc *UserUsecase) AddAccessibleNote(userID, noteID string) error {
 func (uc *UserUsecase) RemoveAccessibleNote(userID, noteID string) error {
 	userPO, err := uc.repo.FindByID(userID)
 	if err != nil {
-		return mapRepositoryError(err)
+		return err
 	}
 
 	domainUser, err := uc.mapper.ToDomain(userPO)
@@ -109,7 +108,7 @@ func (uc *UserUsecase) RemoveAccessibleNote(userID, noteID string) error {
 	updatedUserPO := uc.mapper.FromDomain(domainUser)
 	err = uc.repo.Save(updatedUserPO)
 	if err != nil {
-		return mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -119,7 +118,7 @@ func (uc *UserUsecase) RemoveAccessibleNote(userID, noteID string) error {
 func (uc *UserUsecase) CheckUser(userID string) (bool, error) {
 	_, err := uc.repo.FindByID(userID)
 	if err != nil {
-		return false, mapRepositoryError(err)
+		return false, err
 	}
 	return true, nil
 }
@@ -127,7 +126,7 @@ func (uc *UserUsecase) CheckUser(userID string) (bool, error) {
 func (uc *UserUsecase) FindUserIDByUsername(username string) (string, error) {
 	userPO, err := uc.repo.FindByUsername(username)
 	if err != nil {
-		return "", mapRepositoryError(err)
+		return "", err
 	}
 	return userPO.ID, nil
 }

@@ -1,4 +1,4 @@
-package noterepo
+package noteuc
 
 import "time"
 

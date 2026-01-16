@@ -2,7 +2,6 @@ package noteuc
 
 import (
 	domainnote "noteapp/internal/domain/note"
-	"noteapp/internal/repository/noterepo"
 )
 
 // NoteMapper handles mapping between domain.Note and other representations.
@@ -14,7 +13,7 @@ func NewNoteMapper() *NoteMapper {
 }
 
 // ToPO converts a domain.Note to a repository.NotePO.
-func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
+func (m *NoteMapper) ToPO(note *domainnote.Note) *NotePO {
 	keywordPOs := make(map[string][]string)
 	for userID, keywords := range note.Keywords() {
 		for _, keyword := range keywords {
@@ -30,7 +29,7 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 	contentIDs := make([]string, len(note.ContentIDs))
 	copy(contentIDs, note.ContentIDs)
 
-	return &noterepo.NotePO{
+	return &NotePO{
 		ID:            note.ID,
 		OwnerID:       note.OwnerID,
 		Title:         note.Title,
@@ -41,15 +40,15 @@ func (m *NoteMapper) ToPO(note *domainnote.Note) *noterepo.NotePO {
 	}
 }
 
-func (m *NoteMapper) toEventPOs(note *domainnote.Note) []*noterepo.NoteEventPO {
-	events := make([]*noterepo.NoteEventPO, len(note.Events()))
+func (m *NoteMapper) toEventPOs(note *domainnote.Note) []*NoteEventPO {
+	events := make([]*NoteEventPO, len(note.Events()))
 	for i, event := range note.Events() {
 		noteEvent := event
 		payload := make(map[string]interface{})
 		for k, v := range noteEvent.Payload {
 			payload[k] = v
 		}
-		events[i] = &noterepo.NoteEventPO{
+		events[i] = &NoteEventPO{
 			EventType:  noteEvent.EventType,
 			NoteID:     noteEvent.NoteID,
 			OccurredAt: noteEvent.OccurredAt,
@@ -61,7 +60,7 @@ func (m *NoteMapper) toEventPOs(note *domainnote.Note) []*noterepo.NoteEventPO {
 }
 
 // ToDomain converts a repository.NotePO to a domain.Note.
-func (m *NoteMapper) ToDomain(po *noterepo.NotePO) *domainnote.Note {
+func (m *NoteMapper) ToDomain(po *NotePO) *domainnote.Note {
 	note, _ := domainnote.NewNoteWithVersion(po.ID, po.Title, po.OwnerID, po.Version)
 
 	note.ContentIDs = make([]string, len(po.ContentIDs))

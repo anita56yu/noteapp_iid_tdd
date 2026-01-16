@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"noteapp/internal/domain/user"
-	"noteapp/internal/repository/userrepo"
 	"noteapp/internal/usecase/useruc"
 )
 
 func TestUserMapper_ToDomain(t *testing.T) {
 	// Arrange
 	mapper := &useruc.UserMapper{}
-	userPO := &userrepo.UserPO{
+	userPO := &useruc.UserPO{
 		ID:                "test-id",
 		Username:          "testuser",
 		PasswordHash:      "testhash",

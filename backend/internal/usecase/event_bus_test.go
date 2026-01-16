@@ -1,14 +1,14 @@
 package usecase
 
 import (
-	"noteapp/internal/repository/noterepo"
+	"noteapp/internal/usecase/noteuc"
 	"sync"
 	"testing"
 )
 
 func TestEventBus_Init(t *testing.T) {
 	// Arrange
-	eb := NewEventBus[noterepo.NoteEventPO]()
+	eb := NewEventBus[noteuc.NoteEventPO]()
 
 	// Assert
 	if eb == nil {
@@ -18,12 +18,12 @@ func TestEventBus_Init(t *testing.T) {
 
 func TestEventBus_SubscribeAndPublish(t *testing.T) {
 	// Arrange
-	eb := NewEventBus[noterepo.NoteEventPO]()
+	eb := NewEventBus[noteuc.NoteEventPO]()
 	var wg sync.WaitGroup
 	wg.Add(2)
 	eventReceived := false
 
-	subscriber := func(event noterepo.NoteEventPO) {
+	subscriber := func(event noteuc.NoteEventPO) {
 		defer wg.Done()
 		if event.EventType == "test-event" && event.NoteID == "note-1" {
 			eventReceived = true
@@ -34,7 +34,7 @@ func TestEventBus_SubscribeAndPublish(t *testing.T) {
 	eb.Subscribe(subscriber)
 	go func() {
 		defer wg.Done()
-		eb.Publish(noterepo.NoteEventPO{EventType: "test-event", NoteID: "note-1"})
+		eb.Publish(noteuc.NoteEventPO{EventType: "test-event", NoteID: "note-1"})
 	}()
 
 	// Assert
@@ -46,12 +46,12 @@ func TestEventBus_SubscribeAndPublish(t *testing.T) {
 
 func TestEventBus_SubscribeAndPublish_MultipleSubscribers(t *testing.T) {
 	// Arrange
-	eb := NewEventBus[noterepo.NoteEventPO]()
+	eb := NewEventBus[noteuc.NoteEventPO]()
 	var wg sync.WaitGroup
 	wg.Add(3)
 	eventReceived := 0
 
-	subscriber := func(event noterepo.NoteEventPO) {
+	subscriber := func(event noteuc.NoteEventPO) {
 		defer wg.Done()
 		if event.EventType == "test-event" && event.NoteID == "note-1" {
 			eventReceived += 1
@@ -63,7 +63,7 @@ func TestEventBus_SubscribeAndPublish_MultipleSubscribers(t *testing.T) {
 	eb.Subscribe(subscriber)
 	go func() {
 		defer wg.Done()
-		eb.Publish(noterepo.NoteEventPO{EventType: "test-event", NoteID: "note-1"})
+		eb.Publish(noteuc.NoteEventPO{EventType: "test-event", NoteID: "note-1"})
 	}()
 
 	// Assert

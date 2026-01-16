@@ -1,20 +1,17 @@
 package contentuc
 
 import (
-	"errors"
-	"fmt"
 	"noteapp/internal/domain/content"
-	"noteapp/internal/repository/contentrepo"
 )
 
 // ContentUsecase handles the business logic for content.
 type ContentUsecase struct {
-	repo   contentrepo.ContentRepository
+	repo   ContentRepository
 	mapper *ContentMapper
 }
 
 // NewContentUsecase creates a new ContentUsecase.
-func NewContentUsecase(repo contentrepo.ContentRepository) *ContentUsecase {
+func NewContentUsecase(repo ContentRepository) *ContentUsecase {
 	return &ContentUsecase{repo: repo, mapper: NewContentMapper()}
 }
 
@@ -27,7 +24,7 @@ func (uc *ContentUsecase) CreateContent(noteID, contentID, data string, contentT
 	c := content.NewContent(contentID, noteID, data, domainContentType, 0)
 	po := uc.mapper.ToPO(c)
 	if err := uc.repo.Save(po); err != nil {
-		return "", uc.mapRepositoryError(err)
+		return "", err
 	}
 	return c.ID, nil
 }
@@ -39,7 +36,7 @@ func (uc *ContentUsecase) GetContentByID(id string) (*ContentDTO, error) {
 	}
 	po, err := uc.repo.GetByID(id)
 	if err != nil {
-		return nil, uc.mapRepositoryError(err)
+		return nil, err
 	}
 	c := uc.mapper.ToDomain(po)
 	return uc.mapper.ToDTO(c), nil
@@ -49,7 +46,7 @@ func (uc *ContentUsecase) GetContentByID(id string) (*ContentDTO, error) {
 func (uc *ContentUsecase) UpdateContent(id, data string, version int) error {
 	po, err := uc.repo.GetByID(id)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	if po.Version != version {
@@ -63,7 +60,7 @@ func (uc *ContentUsecase) UpdateContent(id, data string, version int) error {
 
 	po = uc.mapper.ToPO(c)
 	if err := uc.repo.Save(po); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 	return nil
 }
@@ -72,7 +69,7 @@ func (uc *ContentUsecase) UpdateContent(id, data string, version int) error {
 func (uc *ContentUsecase) DeleteContent(id string, version int) error {
 	po, err := uc.repo.GetByID(id)
 	if err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	if po.Version != version {
@@ -80,7 +77,7 @@ func (uc *ContentUsecase) DeleteContent(id string, version int) error {
 	}
 
 	if err := uc.repo.Delete(id); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 	return nil
 }
@@ -88,20 +85,9 @@ func (uc *ContentUsecase) DeleteContent(id string, version int) error {
 // DeleteAllContentsByNoteID deletes all content associated with a given note ID.
 func (uc *ContentUsecase) DeleteAllContentsByNoteID(noteID string) error {
 	if err := uc.repo.DeleteAllByNoteID(noteID); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 	return nil
-}
-
-func (uc *ContentUsecase) mapRepositoryError(err error) error {
-	switch {
-	case errors.Is(err, contentrepo.ErrContentNotFound):
-		return ErrContentNotFound
-	case errors.Is(err, contentrepo.ErrContentConflict):
-		return ErrConflict
-	default:
-		return fmt.Errorf("an unexpected repository error occurred: %w", err)
-	}
 }
 
 func mapToDomainContentType(ct ContentType) (content.ContentType, error) {

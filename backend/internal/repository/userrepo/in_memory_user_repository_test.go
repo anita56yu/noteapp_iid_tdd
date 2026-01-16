@@ -2,13 +2,14 @@ package userrepo
 
 import (
 	"errors"
+	"noteapp/internal/usecase/useruc"
 	"testing"
 )
 
 func TestInMemoryUserRepository_SaveAndFindByID_Success(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryUserRepository()
-	user := &UserPO{
+	user := &useruc.UserPO{
 		ID:                "test-id",
 		Username:          "testuser",
 		PasswordHash:      "hash",
@@ -51,15 +52,15 @@ func TestInMemoryUserRepository_FindByID_NotFound(t *testing.T) {
 	_, err := repo.FindByID("non-existent-id")
 
 	// Assert
-	if !errors.Is(err, ErrUserNotFound) {
-		t.Errorf("Expected error %v, got %v", ErrUserNotFound, err)
+	if !errors.Is(err, useruc.ErrInvalidCredentials) {
+		t.Errorf("Expected error %v, got %v", useruc.ErrInvalidCredentials, err)
 	}
 }
 
 func TestInMemoryUserRepository_FindByUsername_Success(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryUserRepository()
-	user := &UserPO{
+	user := &useruc.UserPO{
 		ID:           "test-id",
 		Username:     "testuser",
 		PasswordHash: "hash",
@@ -89,15 +90,15 @@ func TestInMemoryUserRepository_FindByUsername_NotFound(t *testing.T) {
 	_, err := repo.FindByUsername("non-existent-user")
 
 	// Assert
-	if !errors.Is(err, ErrUserNotFound) {
-		t.Errorf("Expected error %v, got %v", ErrUserNotFound, err)
+	if !errors.Is(err, useruc.ErrInvalidCredentials) {
+		t.Errorf("Expected error %v, got %v", useruc.ErrInvalidCredentials, err)
 	}
 }
 
 func TestInMemoryUserRepository_DeepCopy(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryUserRepository()
-	user := &UserPO{
+	user := &useruc.UserPO{
 		ID:                "test-id",
 		Username:          "testuser",
 		AccessibleNoteIDs: []string{"n1"},
@@ -118,12 +119,12 @@ func TestInMemoryUserRepository_DeepCopy(t *testing.T) {
 func TestInMemoryUserRepository_Save_DuplicateUsername(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryUserRepository()
-	user1 := &UserPO{
+	user1 := &useruc.UserPO{
 		ID:           "user1-id",
 		Username:     "duplicateusername",
 		PasswordHash: "hash1",
 	}
-	user2 := &UserPO{
+	user2 := &useruc.UserPO{
 		ID:           "user2-id",
 		Username:     "duplicateusername",
 		PasswordHash: "hash2",
@@ -138,7 +139,7 @@ func TestInMemoryUserRepository_Save_DuplicateUsername(t *testing.T) {
 		t.Fatalf("Save() for user1 returned an unexpected error: %v", err1)
 	}
 
-	if !errors.Is(err2, ErrUsernameInUseByExistingUser) {
-		t.Errorf("Expected error %v, got %v", ErrUsernameInUseByExistingUser, err2)
+	if !errors.Is(err2, useruc.ErrUsernameExists) {
+		t.Errorf("Expected error %v, got %v", useruc.ErrUsernameExists, err2)
 	}
 }

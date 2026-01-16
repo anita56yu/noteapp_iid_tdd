@@ -1,36 +1,38 @@
-package noteuc
+package usecasetests
 
 import (
 	"errors"
 	"noteapp/internal/repository/noterepo"
+	"noteapp/internal/usecase/noteuc"
+
 	"testing"
 )
 
 // mockNoteRepository is a mock implementation of the NoteRepository for testing error cases.
 type mockNoteRepository struct {
-	SaveFunc                       func(note *noterepo.NotePO) error
-	SaveWithEventFunc              func(note *noterepo.NotePO, events []*noterepo.NoteEventPO) error
-	FindByIDFunc                   func(id string) (*noterepo.NotePO, error)
+	SaveFunc                       func(note *noteuc.NotePO) error
+	SaveWithEventFunc              func(note *noteuc.NotePO, events []*noteuc.NoteEventPO) error
+	FindByIDFunc                   func(id string) (*noteuc.NotePO, error)
 	DeleteFunc                     func(id string) error
-	FindByKeywordForUserFunc       func(userID, keyword string) ([]*noterepo.NotePO, error)
-	GetAccessibleNotesByUserIDFunc func(userID string) ([]*noterepo.NotePO, error)
+	FindByKeywordForUserFunc       func(userID, keyword string) ([]*noteuc.NotePO, error)
+	GetAccessibleNotesByUserIDFunc func(userID string) ([]*noteuc.NotePO, error)
 }
 
-func (m *mockNoteRepository) Save(note *noterepo.NotePO) error {
+func (m *mockNoteRepository) Save(note *noteuc.NotePO) error {
 	if m.SaveFunc != nil {
 		return m.SaveFunc(note)
 	}
 	return nil
 }
 
-func (m *mockNoteRepository) SaveWithEvent(note *noterepo.NotePO, events []*noterepo.NoteEventPO) error {
+func (m *mockNoteRepository) SaveWithEvent(note *noteuc.NotePO, events []*noteuc.NoteEventPO) error {
 	if m.SaveWithEventFunc != nil {
 		return m.SaveWithEventFunc(note, events)
 	}
 	return nil
 }
 
-func (m *mockNoteRepository) FindByID(id string) (*noterepo.NotePO, error) {
+func (m *mockNoteRepository) FindByID(id string) (*noteuc.NotePO, error) {
 	if m.FindByIDFunc != nil {
 		return m.FindByIDFunc(id)
 	}
@@ -42,32 +44,32 @@ func (m *mockNoteRepository) Delete(id string) error {
 	}
 	return nil
 }
-func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*noterepo.NotePO, error) {
+func (m *mockNoteRepository) FindByKeywordForUser(userID, keyword string) ([]*noteuc.NotePO, error) {
 	if m.FindByKeywordForUserFunc != nil {
 		return m.FindByKeywordForUserFunc(userID, keyword)
 	}
 	return nil, nil
 }
-func (m *mockNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*noterepo.NotePO, error) {
+func (m *mockNoteRepository) GetAccessibleNotesByUserID(userID string) ([]*noteuc.NotePO, error) {
 	if m.GetAccessibleNotesByUserIDFunc != nil {
 		return m.GetAccessibleNotesByUserIDFunc(userID)
 	}
 	return nil, nil
 }
 
-func setUpRepositoryAndUsecase() (*noterepo.InMemoryNoteRepository, *NoteUsecase) {
+func setUpRepositoryAndUsecase() (*noterepo.InMemoryNoteRepository, *noteuc.NoteUsecase) {
 	repo := noterepo.NewInMemoryNoteRepository()
-	noteUsecase := NewNoteUsecase(repo)
+	noteUsecase := noteuc.NewNoteUsecase(repo)
 	return repo, noteUsecase
 }
 
-func setUpRepositoryAndUsecaseWithNote() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string) {
+func setUpRepositoryAndUsecaseWithNote() (*noterepo.InMemoryNoteRepository, *noteuc.NoteUsecase, string) {
 	repo, noteUsecase := setUpRepositoryAndUsecase()
 	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	return repo, noteUsecase, noteID
 }
 
-func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string, string, string) {
+func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepository, *noteuc.NoteUsecase, string, string, string) {
 	repo, noteUsecase := setUpRepositoryAndUsecase()
 	noteID, _ := noteUsecase.CreateNote("", "Test Title", "owner-1")
 	contentID := "content-1"
@@ -77,7 +79,7 @@ func setUpRepositoryAndUsecaseWithNoteAndContents() (*noterepo.InMemoryNoteRepos
 	return repo, noteUsecase, noteID, contentID, contentID1
 }
 
-func setUpRepositoryAndUsecaseWithTaggedNotes() (*noterepo.InMemoryNoteRepository, *NoteUsecase, string, string, string) {
+func setUpRepositoryAndUsecaseWithTaggedNotes() (*noterepo.InMemoryNoteRepository, *noteuc.NoteUsecase, string, string, string) {
 	repo, noteUsecase := setUpRepositoryAndUsecase()
 	note1, _ := noteUsecase.CreateNote("", "Note 1", "owner-1")
 	note2, _ := noteUsecase.CreateNote("", "Note 2", "owner-2")
@@ -166,19 +168,19 @@ func TestNoteUsecase_CreateNote_DomainError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for empty title, but got nil")
 	}
-	if !errors.Is(err, ErrEmptyTitle) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyTitle, err)
+	if !errors.Is(err, noteuc.ErrEmptyTitle) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrEmptyTitle, err)
 	}
 }
 
 func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 	// Arrange
 	mockRepo := &mockNoteRepository{
-		SaveWithEventFunc: func(note *noterepo.NotePO, events []*noterepo.NoteEventPO) error {
-			return noterepo.ErrNilNote
+		SaveWithEventFunc: func(note *noteuc.NotePO, events []*noteuc.NoteEventPO) error {
+			return noteuc.ErrNilNote
 		},
 	}
-	noteUsecase := NewNoteUsecase(mockRepo)
+	noteUsecase := noteuc.NewNoteUsecase(mockRepo)
 
 	// Act
 	_, err := noteUsecase.CreateNote("test-id", "Test Title", "owner-1")
@@ -188,8 +190,8 @@ func TestNoteUsecase_CreateNote_NilNoteError(t *testing.T) {
 		t.Fatal("Expected a repository error, but got nil")
 	}
 
-	if err != ErrNilNote {
-		t.Errorf("Expected error message '%s', but got '%s'", ErrNilNote, err)
+	if err != noteuc.ErrNilNote {
+		t.Errorf("Expected error message '%s', but got '%s'", noteuc.ErrNilNote, err)
 	}
 }
 
@@ -226,8 +228,8 @@ func TestNoteUsecase_GetNoteByID_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent note, but got nil")
 	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -242,8 +244,8 @@ func TestNoteUsecase_GetNoteByID_InvalidID(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for an invalid ID, but got nil")
 	}
-	if !errors.Is(err, ErrInvalidID) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
+	if !errors.Is(err, noteuc.ErrInvalidID) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrInvalidID, err)
 	}
 }
 
@@ -259,8 +261,8 @@ func TestNoteUsecase_DeleteNote_Success(t *testing.T) {
 
 	// Assert
 	_, err = repo.FindByID(id)
-	if !errors.Is(err, noterepo.ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", noterepo.ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -270,8 +272,8 @@ func TestNoteUsecase_DeleteNote_Unauthorized(t *testing.T) {
 
 	// Act
 	err := noteUsecase.DeleteNote(id, "unauthorized-user", 0)
-	if err != ErrPermissionDenied {
-		t.Fatalf("Expected error %v, but got %v", ErrPermissionDenied, err)
+	if err != noteuc.ErrPermissionDenied {
+		t.Fatalf("Expected error %v, but got %v", noteuc.ErrPermissionDenied, err)
 	}
 
 	// Assert
@@ -292,8 +294,8 @@ func TestNoteUsecase_DeleteNote_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent note, but got nil")
 	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -308,8 +310,8 @@ func TestNoteUsecase_DeleteNote_InvalidID(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for an invalid ID, but got nil")
 	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -324,8 +326,8 @@ func TestNoteUsecase_DeleteNote_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -385,8 +387,8 @@ func TestNoteUsecase_RemoveContent_NoteNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent note, but got nil")
 	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -401,8 +403,8 @@ func TestNoteUsecase_RemoveContent_ContentNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for non-existent content, but got nil")
 	}
-	if !errors.Is(err, ErrContentNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrContentNotFound, err)
+	if !errors.Is(err, noteuc.ErrContentNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrContentNotFound, err)
 	}
 }
 
@@ -417,8 +419,8 @@ func TestNoteUsecase_RemoveContent_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -460,8 +462,8 @@ func TestNoteUsecase_TagNote_EmptyKeyword(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for empty keyword, but got nil")
 	}
-	if !errors.Is(err, ErrEmptyKeyword) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyKeyword, err)
+	if !errors.Is(err, noteuc.ErrEmptyKeyword) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrEmptyKeyword, err)
 	}
 }
 
@@ -478,8 +480,8 @@ func TestNoteUsecase_TagNote_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -588,8 +590,8 @@ func TestNoteUsecase_UntagNote_UserNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent user, but got nil")
 	}
-	if !errors.Is(err, ErrUserNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrUserNotFound, err)
+	if !errors.Is(err, noteuc.ErrUserNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrUserNotFound, err)
 	}
 }
 
@@ -605,8 +607,8 @@ func TestNoteUsecase_UntagNote_KeywordNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent keyword, but got nil")
 	}
-	if !errors.Is(err, ErrKeywordNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrKeywordNotFound, err)
+	if !errors.Is(err, noteuc.ErrKeywordNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrKeywordNotFound, err)
 	}
 }
 
@@ -623,8 +625,8 @@ func TestNoteUsecase_UntagNote_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -640,8 +642,8 @@ func TestNoteUsecase_ShareNote_NotOwner(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error when sharing a note by a non-owner, but got nil")
 	}
-	if !errors.Is(err, ErrPermissionDenied) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
+	if !errors.Is(err, noteuc.ErrPermissionDenied) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrPermissionDenied, err)
 	}
 }
 
@@ -701,8 +703,8 @@ func TestNoteUsecase_ShareNote_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -777,8 +779,8 @@ func TestNoteUsecase_RevokeAccess_NotOwner(t *testing.T) {
 	err := noteUsecase.RevokeAccess(noteID, nonOwnerID, collaboratorID, 5)
 
 	// Assert
-	if err != ErrPermissionDenied {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
+	if err != noteuc.ErrPermissionDenied {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrPermissionDenied, err)
 	}
 }
 
@@ -791,8 +793,8 @@ func TestNoteUsecase_RevokeAccess_CollaboratorNotFound(t *testing.T) {
 	err := noteUsecase.RevokeAccess(noteID, ownerID, "non-existent-user", 5)
 
 	// Assert
-	if err != ErrUserNotFound {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrUserNotFound, err)
+	if err != noteuc.ErrUserNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrUserNotFound, err)
 	}
 }
 
@@ -809,8 +811,8 @@ func TestNoteUsecase_RevokeAccess_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -850,8 +852,8 @@ func TestNoteUsecase_AddContent_NoteNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent note, but got nil")
 	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -867,8 +869,8 @@ func TestNoteUsecase_AddContent_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -884,8 +886,8 @@ func TestNoteUsecase_AddContent_IndexOutOfBounds(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for out of bounds index, but got nil")
 	}
-	if !errors.Is(err, ErrIndexOutOfBounds) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrIndexOutOfBounds, err)
+	if !errors.Is(err, noteuc.ErrIndexOutOfBounds) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrIndexOutOfBounds, err)
 	}
 }
 
@@ -924,8 +926,8 @@ func TestNoteUsecase_ChangeTitle_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for a non-existent note, but got nil")
 	}
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -940,8 +942,8 @@ func TestNoteUsecase_ChangeTitle_InvalidID(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for an invalid ID, but got nil")
 	}
-	if !errors.Is(err, ErrInvalidID) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrInvalidID, err)
+	if !errors.Is(err, noteuc.ErrInvalidID) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrInvalidID, err)
 	}
 }
 
@@ -956,8 +958,8 @@ func TestNoteUsecase_ChangeTitle_EmptyTitle(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for empty title, but got nil")
 	}
-	if !errors.Is(err, ErrEmptyTitle) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrEmptyTitle, err)
+	if !errors.Is(err, noteuc.ErrEmptyTitle) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrEmptyTitle, err)
 	}
 }
 
@@ -972,8 +974,8 @@ func TestNoteUsecase_ChangeTitle_Conflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected a conflict error, but got nil")
 	}
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrConflict, err)
+	if !errors.Is(err, noteuc.ErrConflict) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrConflict, err)
 	}
 }
 
@@ -989,7 +991,7 @@ func TestNoteUsecase_ChangeTitle_Unauthorized(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected an error for unauthorized user, but got nil")
 	}
-	if !errors.Is(err, ErrPermissionDenied) {
-		t.Errorf("Expected error to be '%v', but got '%v'", ErrPermissionDenied, err)
+	if !errors.Is(err, noteuc.ErrPermissionDenied) {
+		t.Errorf("Expected error to be '%v', but got '%v'", noteuc.ErrPermissionDenied, err)
 	}
 }

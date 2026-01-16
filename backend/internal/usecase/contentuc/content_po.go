@@ -1,4 +1,4 @@
-package contentrepo
+package contentuc
 
 // ContentPO represents the persistence model for a Content object.
 type ContentPO struct {

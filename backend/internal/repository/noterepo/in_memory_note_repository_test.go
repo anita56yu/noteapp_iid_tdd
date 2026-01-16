@@ -2,6 +2,7 @@ package noterepo
 
 import (
 	"errors"
+	"noteapp/internal/usecase/noteuc"
 	"sync"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ import (
 func TestInMemoryNoteRepository_SaveAndFindByID_Success(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note := &NotePO{
+	note := &noteuc.NotePO{
 		ID:         "test-id",
 		Title:      "Test Title",
 		ContentIDs: []string{"c1", "c2"},
@@ -52,17 +53,17 @@ func TestInMemoryNoteRepository_FindByID_NotFound(t *testing.T) {
 	_, err := repo.FindByID("non-existent-id")
 
 	// Assert
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error %v, got %v", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error %v, got %v", noteuc.ErrNoteNotFound, err)
 	}
 }
 
 func TestInMemoryNoteRepository_Save_UpdateExisting(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note := &NotePO{ID: "test-id", Title: "Original Title"}
+	note := &noteuc.NotePO{ID: "test-id", Title: "Original Title"}
 	repo.Save(note)
-	updatedNote := &NotePO{ID: "test-id", Title: "Updated Title"}
+	updatedNote := &noteuc.NotePO{ID: "test-id", Title: "Updated Title"}
 
 	// Act
 	err := repo.Save(updatedNote)
@@ -85,15 +86,15 @@ func TestInMemoryNoteRepository_Save_NilNote(t *testing.T) {
 	err := repo.Save(nil)
 
 	// Assert
-	if !errors.Is(err, ErrNilNote) {
-		t.Errorf("Expected error %v, got %v", ErrNilNote, err)
+	if !errors.Is(err, noteuc.ErrNilNote) {
+		t.Errorf("Expected error %v, got %v", noteuc.ErrNilNote, err)
 	}
 }
 
 func TestInMemoryNoteRepository_Delete(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note := &NotePO{ID: "test-id", Title: "Test Title"}
+	note := &noteuc.NotePO{ID: "test-id", Title: "Test Title"}
 	repo.Save(note)
 
 	// Act
@@ -104,8 +105,8 @@ func TestInMemoryNoteRepository_Delete(t *testing.T) {
 
 	// Assert
 	_, err = repo.FindByID("test-id")
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error %v after delete, got %v", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error %v after delete, got %v", noteuc.ErrNoteNotFound, err)
 	}
 }
 
@@ -117,15 +118,15 @@ func TestInMemoryNoteRepository_Delete_NotFound(t *testing.T) {
 	err := repo.Delete("non-existent-id")
 
 	// Assert
-	if !errors.Is(err, ErrNoteNotFound) {
-		t.Errorf("Expected error %v, got %v", ErrNoteNotFound, err)
+	if !errors.Is(err, noteuc.ErrNoteNotFound) {
+		t.Errorf("Expected error %v, got %v", noteuc.ErrNoteNotFound, err)
 	}
 }
 
 func TestInMemoryNoteRepository_FindByKeywordForUser(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note1 := &NotePO{
+	note1 := &noteuc.NotePO{
 		ID:    "note-1",
 		Title: "Note 1",
 		Keywords: map[string][]string{
@@ -133,14 +134,14 @@ func TestInMemoryNoteRepository_FindByKeywordForUser(t *testing.T) {
 			"user-2": {"go"},
 		},
 	}
-	note2 := &NotePO{
+	note2 := &noteuc.NotePO{
 		ID:    "note-2",
 		Title: "Note 2",
 		Keywords: map[string][]string{
 			"user-1": {"testing"},
 		},
 	}
-	note3 := &NotePO{
+	note3 := &noteuc.NotePO{
 		ID:    "note-3",
 		Title: "Note 3",
 		Keywords: map[string][]string{
@@ -176,15 +177,15 @@ func TestInMemoryNoteRepository_GetAccessibleNoteByUserID(t *testing.T) {
 	otherUserID := "user-2"
 
 	// Note owned by the user
-	ownedNote := &NotePO{ID: "owned-note", OwnerID: ownerID}
+	ownedNote := &noteuc.NotePO{ID: "owned-note", OwnerID: ownerID}
 	repo.Save(ownedNote)
 
 	// Note shared with the user
-	sharedNote := &NotePO{ID: "shared-note", OwnerID: otherUserID, Collaborators: map[string]string{ownerID: "read"}}
+	sharedNote := &noteuc.NotePO{ID: "shared-note", OwnerID: otherUserID, Collaborators: map[string]string{ownerID: "read"}}
 	repo.Save(sharedNote)
 
 	// Note not related to the user
-	otherNote := &NotePO{ID: "other-note", OwnerID: otherUserID}
+	otherNote := &noteuc.NotePO{ID: "other-note", OwnerID: otherUserID}
 	repo.Save(otherNote)
 
 	// Act
@@ -219,7 +220,7 @@ func TestInMemoryNoteRepository_GetAccessibleNoteByUserID(t *testing.T) {
 
 func TestInMemoryNoteRepository_Save_Conflict(t *testing.T) {
 	repo := NewInMemoryNoteRepository()
-	note := &NotePO{
+	note := &noteuc.NotePO{
 		ID:      "n1",
 		Title:   "Test note",
 		Version: 0,
@@ -251,7 +252,7 @@ func TestInMemoryNoteRepository_Save_Conflict(t *testing.T) {
 
 	wg.Wait()
 
-	if err1 != nil || err2 != ErrNoteConflict {
+	if err1 != nil || err2 != noteuc.ErrConflict {
 		t.Errorf("Expected one of the saves to fail with a conflict error, but got err1: %v, err2: %v", err1, err2)
 	}
 }
@@ -259,11 +260,11 @@ func TestInMemoryNoteRepository_Save_Conflict(t *testing.T) {
 func TestInMemoryNoteRepository_SaveWithEventAndFindByID_Success(t *testing.T) {
 	// Arrange
 	repo := NewInMemoryNoteRepository()
-	note := &NotePO{
+	note := &noteuc.NotePO{
 		ID:    "test-id",
 		Title: "Test Title",
 	}
-	AggregateEvents := []*NoteEventPO{
+	AggregateEvents := []*noteuc.NoteEventPO{
 		{
 			EventID:    "event-1",
 			NoteID:     "test-id",

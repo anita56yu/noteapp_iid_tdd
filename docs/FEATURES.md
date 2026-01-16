@@ -120,7 +120,8 @@ User facing APIs should guard against illegal parameters
     - [x] **T8.2:** Create an `InMemoryNoteRepository` implementation that satisfies the `NoteRepository` interface.
     - [x] **T8.3:** Make the `InMemoryNoteRepository` thread-safe, and anti-racing. When two users are changing the same note, the PO in the repository should be anti-racing.
     - [ ] **T8.4:** (Potential) Refactor the repository to use a transactional callback pattern for thread-safe updates, moving locking logic out of the usecase layer.
-    - [ ] **T8.5:** Move the repository interfaces, POs into the usecase layer to decouple the usecase layer from the repository layer.
+    - [x] **T8.5:** Move the repository interfaces, POs into the usecase layer to decouple the usecase layer from the repository layer.
+    - [*] **T8.6:** Move integration tests into another independent package. 
 - [ ] **F9:** API and Codebase Polish.
     - [ ] **T9.1:** Refactor: Standardize API error responses to return JSON objects.
     - [ ] **T9.2:** Refactor: Move router setup out of `main.go` to improve modularity.
@@ -201,5 +202,6 @@ User facing APIs should guard against illegal parameters
     - [*] **T22.1:** Add NoteEvent and Note() to note, add NoteEventPO to note repo, add ToEventPOs to note uc mapper, and add SaveWithEvent to note repo.
     - [*] **T22.2:** Add event `NoteCreated` for Note aggregate.
     - [ ] **T22.3:** Add GetNoteEventsByID to note repo.
-    - [ ] **T22.4:** Add event bus between note usecase and user usecase. 
+    - [*] **T22.4:** Add event bus between note usecase and user usecase. 
+
     

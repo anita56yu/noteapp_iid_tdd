@@ -2,7 +2,6 @@ package contentuc
 
 import (
 	"noteapp/internal/domain/content"
-	"noteapp/internal/repository/contentrepo"
 )
 
 // ContentMapper handles mapping between domain.Content and other representations.
@@ -14,8 +13,8 @@ func NewContentMapper() *ContentMapper {
 }
 
 // ToPO converts a domain.Content to a repository.ContentPO.
-func (m *ContentMapper) ToPO(c *content.Content) *contentrepo.ContentPO {
-	return &contentrepo.ContentPO{
+func (m *ContentMapper) ToPO(c *content.Content) *ContentPO {
+	return &ContentPO{
 		ID:      c.ID,
 		NoteID:  c.NoteID,
 		Data:    c.Data,
@@ -25,7 +24,7 @@ func (m *ContentMapper) ToPO(c *content.Content) *contentrepo.ContentPO {
 }
 
 // ToDomain converts a repository.ContentPO to a domain.Content.
-func (m *ContentMapper) ToDomain(po *contentrepo.ContentPO) *content.Content {
+func (m *ContentMapper) ToDomain(po *ContentPO) *content.Content {
 	return content.NewContent(po.ID, po.NoteID, po.Data, content.ContentType(po.Type), po.Version)
 }
 

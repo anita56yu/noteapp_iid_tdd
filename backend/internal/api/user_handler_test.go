@@ -15,7 +15,7 @@ import (
 
 var testJwtSecret = []byte("supersecretkey")
 
-func setupUserTest() (*chi.Mux, *useruc.UserUsecase, userrepo.UserRepository) {
+func setupUserTest() (*chi.Mux, *useruc.UserUsecase, useruc.UserRepository) {
 	repo := userrepo.NewInMemoryUserRepository()
 	mapper := &useruc.UserMapper{}
 	uc := useruc.NewUserUsecase(repo, mapper)

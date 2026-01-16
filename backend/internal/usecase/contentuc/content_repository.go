@@ -1,4 +1,4 @@
-package contentrepo
+package contentuc
 
 // ContentRepository defines the interface for content persistence.
 type ContentRepository interface {

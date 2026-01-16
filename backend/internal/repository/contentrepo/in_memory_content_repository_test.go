@@ -2,6 +2,7 @@ package contentrepo_test
 
 import (
 	"noteapp/internal/repository/contentrepo"
+	"noteapp/internal/usecase/contentuc"
 	"sync"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 
 func TestInMemoryContentRepository_Save_Conflict(t *testing.T) {
 	repo := contentrepo.NewInMemoryContentRepository()
-	content := &contentrepo.ContentPO{
+	content := &contentuc.ContentPO{
 		ID:      "c1",
 		NoteID:  "n1",
 		Data:    "Test data",
@@ -43,14 +44,14 @@ func TestInMemoryContentRepository_Save_Conflict(t *testing.T) {
 
 	wg.Wait()
 
-	if (err1 == nil && err2 != contentrepo.ErrContentConflict) || (err2 == nil && err1 != contentrepo.ErrContentConflict) {
+	if (err1 == nil && err2 != contentuc.ErrConflict) || (err2 == nil && err1 != contentuc.ErrConflict) {
 		t.Errorf("Expected one of the saves to fail with a conflict error, but got err1: %v, err2: %v", err1, err2)
 	}
 }
 
 func TestInMemoryContentRepository_Save(t *testing.T) {
 	repo := contentrepo.NewInMemoryContentRepository()
-	content := &contentrepo.ContentPO{
+	content := &contentuc.ContentPO{
 		ID:     "c1",
 		NoteID: "n1",
 		Data:   "Test data",
@@ -86,9 +87,9 @@ func TestInMemoryContentRepository_Save(t *testing.T) {
 
 func TestInMemoryContentRepository_GetAllByNoteID(t *testing.T) {
 	repo := contentrepo.NewInMemoryContentRepository()
-	c1 := &contentrepo.ContentPO{ID: "c1", NoteID: "n1"}
-	c2 := &contentrepo.ContentPO{ID: "c2", NoteID: "n1"}
-	c3 := &contentrepo.ContentPO{ID: "c3", NoteID: "n2"}
+	c1 := &contentuc.ContentPO{ID: "c1", NoteID: "n1"}
+	c2 := &contentuc.ContentPO{ID: "c2", NoteID: "n1"}
+	c3 := &contentuc.ContentPO{ID: "c3", NoteID: "n2"}
 	repo.Save(c1)
 	repo.Save(c2)
 	repo.Save(c3)
@@ -104,7 +105,7 @@ func TestInMemoryContentRepository_GetAllByNoteID(t *testing.T) {
 
 func TestInMemoryContentRepository_GetByID(t *testing.T) {
 	repo := contentrepo.NewInMemoryContentRepository()
-	content := &contentrepo.ContentPO{
+	content := &contentuc.ContentPO{
 		ID:     "c1",
 		NoteID: "n1",
 		Data:   "Test data",
@@ -124,14 +125,14 @@ func TestInMemoryContentRepository_GetByID(t *testing.T) {
 func TestInMemoryContentRepository_GetByID_NotFound(t *testing.T) {
 	repo := contentrepo.NewInMemoryContentRepository()
 	_, err := repo.GetByID("non-existent-id")
-	if err != contentrepo.ErrContentNotFound {
-		t.Errorf("Expected error to be '%v', but got '%v'", contentrepo.ErrContentNotFound, err)
+	if err != contentuc.ErrContentNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrContentNotFound, err)
 	}
 }
 
 func TestInMemoryContentRepository_Delete(t *testing.T) {
 	repo := contentrepo.NewInMemoryContentRepository()
-	c1 := &contentrepo.ContentPO{ID: "c1", NoteID: "n1"}
+	c1 := &contentuc.ContentPO{ID: "c1", NoteID: "n1"}
 	repo.Save(c1)
 
 	err := repo.Delete("c1")
@@ -140,12 +141,12 @@ func TestInMemoryContentRepository_Delete(t *testing.T) {
 	}
 
 	_, err = repo.GetByID("c1")
-	if err != contentrepo.ErrContentNotFound {
-		t.Errorf("Expected error to be '%v', but got '%v'", contentrepo.ErrContentNotFound, err)
+	if err != contentuc.ErrContentNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrContentNotFound, err)
 	}
 
 	err = repo.Delete("c1")
-	if err != contentrepo.ErrContentNotFound {
-		t.Errorf("Expected error to be '%v', but got '%v'", contentrepo.ErrContentNotFound, err)
+	if err != contentuc.ErrContentNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrContentNotFound, err)
 	}
 }

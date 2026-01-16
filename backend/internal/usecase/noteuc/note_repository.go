@@ -1,4 +1,4 @@
-package noterepo
+package noteuc
 
 // NoteRepository defines the interface for note persistence.
 type NoteRepository interface {

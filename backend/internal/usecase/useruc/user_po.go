@@ -1,4 +1,4 @@
-package userrepo
+package useruc
 
 // UserPO represents the persistent state of a user.
 type UserPO struct {

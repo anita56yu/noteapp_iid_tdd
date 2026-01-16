@@ -1,4 +1,4 @@
-package contentuc_test
+package usecasetests
 
 import (
 	"noteapp/internal/repository/contentrepo"
@@ -192,8 +192,8 @@ func TestContentUsecase_DeleteContent(t *testing.T) {
 	}
 
 	_, err = repo.GetByID(id)
-	if err != contentrepo.ErrContentNotFound {
-		t.Errorf("Expected error to be '%v', but got '%v'", contentrepo.ErrContentNotFound, err)
+	if err != contentuc.ErrContentNotFound {
+		t.Errorf("Expected error to be '%v', but got '%v'", contentuc.ErrContentNotFound, err)
 	}
 }
 

@@ -1,4 +1,4 @@
-package useruc_test
+package usecasetests
 
 import (
 	"errors"

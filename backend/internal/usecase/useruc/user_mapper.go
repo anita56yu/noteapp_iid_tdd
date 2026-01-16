@@ -2,14 +2,13 @@ package useruc
 
 import (
 	"noteapp/internal/domain/user"
-	"noteapp/internal/repository/userrepo"
 )
 
-// UserMapper provides methods to convert between domain.User and userrepo.UserPO.
+// UserMapper provides methods to convert between domain.User and useruc.UserPO.
 type UserMapper struct{}
 
-// ToDomain converts a userrepo.UserPO to a domain.User.
-func (m *UserMapper) ToDomain(po *userrepo.UserPO) (*user.User, error) {
+// ToDomain converts a useruc.UserPO to a domain.User.
+func (m *UserMapper) ToDomain(po *UserPO) (*user.User, error) {
 	u, err := user.NewUser(po.ID, po.Username, po.PasswordHash)
 	if err != nil {
 		return nil, err
@@ -20,9 +19,9 @@ func (m *UserMapper) ToDomain(po *userrepo.UserPO) (*user.User, error) {
 	return u, nil
 }
 
-// FromDomain creates a userrepo.UserPO from a domain.User.
-func (m *UserMapper) FromDomain(u *user.User) *userrepo.UserPO {
-	return &userrepo.UserPO{
+// FromDomain creates a useruc.UserPO from a domain.User.
+func (m *UserMapper) FromDomain(u *user.User) *UserPO {
+	return &UserPO{
 		ID:                u.ID(),
 		Username:          u.Username(),
 		PasswordHash:      u.PasswordHash(),

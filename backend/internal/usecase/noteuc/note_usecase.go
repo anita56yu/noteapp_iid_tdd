@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"noteapp/internal/domain/note"
-	"noteapp/internal/repository/noterepo"
 )
 
 // ErrInvalidID is returned when an invalid ID is provided.
@@ -54,12 +53,12 @@ const (
 
 // NoteUsecase handles the business logic for notes.
 type NoteUsecase struct {
-	repo   noterepo.NoteRepository
+	repo   NoteRepository
 	mapper *NoteMapper
 }
 
 // NewNoteUsecase creates a new NoteUsecase.
-func NewNoteUsecase(repo noterepo.NoteRepository) *NoteUsecase {
+func NewNoteUsecase(repo NoteRepository) *NoteUsecase {
 	return &NoteUsecase{repo: repo, mapper: NewNoteMapper()}
 }
 
@@ -84,7 +83,7 @@ func (uc *NoteUsecase) CreateNote(id, title, ownerID string) (string, error) {
 	notePO := uc.mapper.ToPO(n)
 	eventPOs := uc.mapper.toEventPOs(n)
 	if err := uc.repo.SaveWithEvent(notePO, eventPOs); err != nil {
-		return "", uc.mapRepositoryError(err)
+		return "", err
 	}
 
 	return n.ID, nil
@@ -97,7 +96,7 @@ func (uc *NoteUsecase) GetNoteByID(id, userID string) (*NoteDTO, error) {
 	}
 	notePO, err := uc.repo.FindByID(id)
 	if err != nil {
-		return nil, uc.mapRepositoryError(err)
+		return nil, err
 	}
 
 	n := uc.mapper.ToDomain(notePO)
@@ -120,7 +119,7 @@ func (uc *NoteUsecase) DeleteNote(id, userID string, version int) error {
 	}
 
 	if err := uc.repo.Delete(id); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -140,7 +139,7 @@ func (uc *NoteUsecase) AddContent(noteID, contentID string, index, version int) 
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -163,7 +162,7 @@ func (uc *NoteUsecase) ChangeTitle(noteID, userID, newTitle string, version int)
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -182,7 +181,7 @@ func (uc *NoteUsecase) RemoveContent(noteID, contentID string, version int) erro
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -205,7 +204,7 @@ func (uc *NoteUsecase) TagNote(noteID, userID, keywordStr string, version int) e
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -230,7 +229,7 @@ func (uc *NoteUsecase) UntagNote(noteID, userID, keywordStr string, version int)
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -244,7 +243,7 @@ func (uc *NoteUsecase) FindNotesByKeyword(userID, keyword string) ([]*NoteDTO, e
 
 	notePOs, err := uc.repo.FindByKeywordForUser(userID, keyword)
 	if err != nil {
-		return nil, uc.mapRepositoryError(err)
+		return nil, err
 	}
 
 	var noteDTOs []*NoteDTO
@@ -276,7 +275,7 @@ func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission str
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
@@ -286,7 +285,7 @@ func (uc *NoteUsecase) ShareNote(noteID, ownerID, collaboratorID, permission str
 func (uc *NoteUsecase) GetAccessibleNotesForUser(userID string) ([]*NoteDTO, error) {
 	notePOs, err := uc.repo.GetAccessibleNotesByUserID(userID)
 	if err != nil {
-		return nil, uc.mapRepositoryError(err)
+		return nil, err
 	}
 
 	var noteDTOs []*NoteDTO
@@ -313,23 +312,10 @@ func (uc *NoteUsecase) RevokeAccess(noteID, ownerID, collaboratorID string, vers
 
 	updatedNotePO := uc.mapper.ToPO(n)
 	if err := uc.repo.Save(updatedNotePO); err != nil {
-		return uc.mapRepositoryError(err)
+		return err
 	}
 
 	return nil
-}
-
-func (uc *NoteUsecase) mapRepositoryError(err error) error {
-	switch {
-	case errors.Is(err, noterepo.ErrNoteNotFound):
-		return ErrNoteNotFound
-	case errors.Is(err, noterepo.ErrNilNote):
-		return ErrNilNote
-	case errors.Is(err, noterepo.ErrNoteConflict):
-		return ErrConflict
-	default:
-		return fmt.Errorf("an unexpected repository error occurred: %w", err)
-	}
 }
 
 func (uc *NoteUsecase) mapDomainError(err error) error {
@@ -364,10 +350,10 @@ func mapToDomainPermissionType(p string) (note.Permission, error) {
 	}
 }
 
-func (uc *NoteUsecase) getNotePOAndCheckVersion(noteID string, version int) (*noterepo.NotePO, error) {
+func (uc *NoteUsecase) getNotePOAndCheckVersion(noteID string, version int) (*NotePO, error) {
 	notePO, err := uc.repo.FindByID(noteID)
 	if err != nil {
-		return nil, uc.mapRepositoryError(err)
+		return nil, err
 	}
 
 	if notePO.Version != version {
