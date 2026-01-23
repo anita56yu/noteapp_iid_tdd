@@ -4,6 +4,7 @@ This document outlines the collaborative process for AI-assisted coding within t
 
 ## Benefits of this Collaborative Approach:
 
+*   **Human and the AI on the Same Page:** The IID process keep devs and the AI synchronized on their knowledge on the code base.
 *   **Structured Development:** The IID process provides a clear roadmap, making complex projects more manageable.
 *   **Streamlined AI Instruction:** The clear roadmap and predefined steps minimize the effort required from developers to teach the process to the AI, allowing for more efficient collaboration.
 *   **Improved Quality:** Test-Driven Development (TDD) at the implementation stage ensures robust and well-tested code.
